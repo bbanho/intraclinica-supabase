@@ -1,0 +1,152 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Clinic {
+  id          String    @id
+  name        String
+  email       String?
+  plan        String?
+  status      String?
+  nextBilling DateTime? @map("next_billing") @db.Timestamptz
+  createdAt   DateTime? @default(now()) @map("created_at") @db.Timestamptz
+
+  profiles        Profile[]
+  patients        Patient[]
+  products        Product[]
+  transactions    StockTransaction[]
+  appointments    Appointment[]
+  clinicalRecords ClinicalRecord[]
+  socialPosts     SocialPost[]
+
+  @@map("clinics")
+}
+
+model Profile {
+  id           String    @id @db.Uuid
+  name         String
+  email        String?
+  role         String?   @default("USER")
+  clinicId     String?   @map("clinic_id")
+  avatar       String?
+  assignedRoom String?   @map("assigned_room")
+  iam          Json?     @default("[]")
+  createdAt    DateTime? @default(now()) @map("created_at") @db.Timestamptz
+
+  clinic Clinic? @relation(fields: [clinicId], references: [id])
+
+  @@map("profiles")
+}
+
+model Patient {
+  id        String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  clinicId  String    @map("clinic_id")
+  name      String
+  email     String?
+  phone     String?
+  cpf       String?
+  birthDate DateTime? @map("birth_date") @db.Date
+  gender    String?
+  createdAt DateTime? @default(now()) @map("created_at") @db.Timestamptz
+
+  clinic          Clinic           @relation(fields: [clinicId], references: [id])
+  appointments    Appointment[]
+  clinicalRecords ClinicalRecord[]
+
+  @@map("patients")
+}
+
+model Product {
+  id          String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  clinicId    String    @map("clinic_id")
+  name        String
+  category    String?
+  stock       Decimal?  @default(0)
+  minStock    Decimal?  @default(0) @map("min_stock")
+  price       Decimal?  @default(0)
+  costPrice   Decimal?  @default(0) @map("cost_price")
+  supplier    String?
+  expiryDate  DateTime? @map("expiry_date") @db.Date
+  batchNumber String?   @map("batch_number")
+  notes       String?
+  deleted     Boolean?  @default(false)
+  createdAt   DateTime? @default(now()) @map("created_at") @db.Timestamptz
+
+  clinic       Clinic             @relation(fields: [clinicId], references: [id])
+  transactions StockTransaction[]
+
+  @@map("products")
+}
+
+model StockTransaction {
+  id          String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  clinicId    String    @map("clinic_id")
+  productId   String?   @map("product_id") @db.Uuid
+  productName String?   @map("product_name")
+  type        String?
+  quantity    Decimal
+  date        DateTime? @default(now()) @db.Timestamptz
+  notes       String?
+  createdBy   String?   @map("created_by") @db.Uuid
+
+  clinic  Clinic   @relation(fields: [clinicId], references: [id])
+  product Product? @relation(fields: [productId], references: [id])
+
+  @@map("stock_transactions")
+}
+
+model Appointment {
+  id          String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  clinicId    String    @map("clinic_id")
+  patientId   String?   @map("patient_id") @db.Uuid
+  patientName String?   @map("patient_name")
+  doctorName  String?   @map("doctor_name")
+  date        DateTime  @db.Timestamptz
+  status      String?   @default("Agendado")
+  type        String?
+  roomNumber  String?   @map("room_number")
+  createdAt   DateTime? @default(now()) @map("created_at") @db.Timestamptz
+
+  clinic  Clinic   @relation(fields: [clinicId], references: [id])
+  patient Patient? @relation(fields: [patientId], references: [id])
+
+  @@map("appointments")
+}
+
+model ClinicalRecord {
+  id          String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  clinicId    String    @map("clinic_id")
+  patientId   String?   @map("patient_id") @db.Uuid
+  patientName String?   @map("patient_name")
+  doctorName  String?   @map("doctor_name")
+  content     String?
+  notes       String?
+  type        String?
+  createdAt   DateTime? @default(now()) @map("created_at") @db.Timestamptz
+
+  clinic  Clinic   @relation(fields: [clinicId], references: [id])
+  patient Patient? @relation(fields: [patientId], references: [id])
+
+  @@map("clinical_records")
+}
+
+model SocialPost {
+  id          String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  clinicId    String    @map("clinic_id")
+  title       String?
+  content     String?
+  platform    String?
+  status      String?
+  scheduledAt DateTime? @map("scheduled_at") @db.Timestamptz
+  imageUrl    String?   @map("image_url")
+  createdAt   DateTime? @default(now()) @map("created_at") @db.Timestamptz
+
+  clinic Clinic @relation(fields: [clinicId], references: [id])
+
+  @@map("social_posts")
+}

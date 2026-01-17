@@ -1,0 +1,162 @@
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Custom Scrollbar */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background-color: #cbd5e1; /* slate-300 */
+  border-radius: 20px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background-color: #94a3b8; /* slate-400 */
+}
+
+/* Animations */
+@keyframes scan {
+  0%, 100% { top: 0; }
+  50% { top: 100%; }
+}
+
+.animate-scan {
+  animation: scan 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-fade-in {
+  animation: fade-in 0.5s ease-out forwards;
+}
+
+@keyframes scale-in {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+.animate-scale-in {
+  animation: scale-in 0.3s ease-out forwards;
+}
+
+/* Print Specific Styles */
+@media print {
+  @page {
+    size: A4;
+    margin: 0;
+  }
+
+  html, body {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    background: white !important;
+    height: auto !important;
+    overflow: visible !important;
+  }
+
+  /* Hide everything by default */
+  .no-print, 
+  aside, 
+  header, 
+  nav, 
+  .fixed,
+  app-reception,
+  app-clinical,
+  app-reports,
+  app-social {
+    display: none !important;
+  }
+
+  /* Reset layout containers */
+  app-root, app-main-layout, app-inventory, main {
+    display: block !important;
+    width: 100% !important;
+    height: auto !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: visible !important;
+    position: static !important;
+  }
+
+  /* Show only the print pages */
+  .print-page {
+    display: grid !important;
+    visibility: visible !important;
+    width: 210mm !important; /* A4 Width */
+    height: 296mm !important; /* A4 Height (approx) */
+    padding: 10mm !important;
+    margin: 0 auto !important;
+    background: white !important;
+    break-after: page;
+    page-break-after: always;
+    box-shadow: none !important;
+  }
+
+  .print-page:last-child {
+    break-after: auto;
+    page-break-after: auto;
+  }
+
+  .page-break-avoid {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  .print-container-reset {
+    height: auto !important;
+    overflow: visible !important;
+    display: block !important;
+  }
+
+  /* Inventory Print Styles - Consolidated */
+  
+  /* Ensure the printable page takes full width and flows naturally */
+  .printable-page {
+     width: 210mm !important;
+     height: 297mm !important;
+     page-break-after: always !important;
+     break-after: page !important;
+     margin: 0 auto !important;
+     box-shadow: none !important;
+     display: grid !important;
+     background: white !important;
+     visibility: visible !important;
+     /* Ensure absolute positioning doesn't hide it if parent is relative */
+     position: relative !important; 
+  }
+  
+  /* Blank Page Specifics */
+  .blank-page {
+    background: white !important;
+    border: none !important;
+  }
+  
+  /* Content Visibility */
+  .printable-page * { 
+    visibility: visible !important; 
+  }
+
+  /* Neutralize Preview Container on Print */
+  .print-preview-container {
+    background: white !important;
+    border: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    width: 100% !important;
+    height: auto !important;
+    display: block !important;
+    overflow: visible !important;
+    position: static !important;
+  }
+}
