@@ -2,6 +2,7 @@
 
 **Data:** 17/01/2026
 **Objetivo:** Migrar de Monólito de Serviços para Arquitetura Modular (NgRx + Supabase Services Isolados).
+**Padrão:** [Doc7 Architecture Guide](./DOC7_ARCHITECTURE_GUIDE.md)
 
 ## ✅ Módulos Migrados
 
