@@ -16,6 +16,10 @@ export class SupabaseService {
   get auth() {
     return this.supabase.auth;
   }
+
+  get client() {
+    return this.supabase;
+  }
   
   // Atalho tipado se gerarmos tipos futuramente
   from(table: string) {

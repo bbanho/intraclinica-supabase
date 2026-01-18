@@ -112,7 +112,7 @@ export class DatabaseService {
   async saveUser(u: Partial<UserProfile>, pw?: string) { console.log('Stub: saveUser', u); }
   async updateAppointmentStatus(id: string, status: string) { console.log('Stub: updateStatus', id, status); }
   async updateAppointmentRoom(id: string, room: string) { console.log('Stub: updateRoom', id, room); }
-  async requestAccess(clinicId: string, name: string, reason: string) { console.log('Stub: reqAccess'); }
+  async requestAccess(clinicId: string, name: string, reason: string, requestedRoleId?: string) { console.log('Stub: reqAccess', clinicId, name, reason, requestedRoleId); }
   async approveAccess(reqId: string) { console.log('Stub: approveAccess'); }
   async addSocialPost(post: Partial<SocialPost>) { console.log('Stub: addPost'); }
   async addClinicalRecord(rec: Partial<ClinicalRecord>) { console.log('Stub: addRec'); }

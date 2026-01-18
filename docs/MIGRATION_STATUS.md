@@ -12,10 +12,11 @@
 - **Status:** Completo e Testável.
 
 ### 2. Inventory (Estoque)
+- **Documentação:** [ARCHITECTURE_INVENTORY.md](./ARCHITECTURE_INVENTORY.md)
 - **Estado:** `Features/Inventory/Store` (NgRx Feature State - Lazy Loaded)
 - **Serviço:** `InventoryService` (Isolado, chama Supabase direto)
-- **Componentes:** `InventoryComponent` refatorado.
-- **Status:** Completo.
+- **Status:** Híbrido (Core migrado, Transações usam legado).
+- **Tech Debt:** Migrar `handleTransaction` para Action/Effect.
 
 ## 🚧 Em Progresso / Pendente
 

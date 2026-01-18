@@ -32,4 +32,18 @@ export class InventoryEffects {
       catchError(error => of(InventoryActions.deleteProductFailure({ error: error.message })))
     ))
   ));
+
+  addTransaction$ = createEffect(() => this.actions$.pipe(
+    ofType(InventoryActions.addTransaction),
+    switchMap(({ transaction }) => from(this.service.addTransaction({
+        ...transaction,
+        date: new Date().toISOString()
+    })).pipe(
+      map(({ newStock }) => InventoryActions.addTransactionSuccess({ 
+        productId: transaction.productId, 
+        newStock 
+      })),
+      catchError(error => of(InventoryActions.addTransactionFailure({ error: error.message })))
+    ))
+  ));
 }

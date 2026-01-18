@@ -12,3 +12,7 @@ export const addProductFailure = createAction('[Inventory] Add Product Failure',
 export const deleteProduct = createAction('[Inventory] Delete Product', props<{ id: string }>());
 export const deleteProductSuccess = createAction('[Inventory] Delete Product Success', props<{ id: string }>());
 export const deleteProductFailure = createAction('[Inventory] Delete Product Failure', props<{ error: string }>());
+
+export const addTransaction = createAction('[Inventory] Add Transaction', props<{ transaction: { productId: string, clinicId: string, productName: string, type: 'IN' | 'OUT', quantity: number } }>());
+export const addTransactionSuccess = createAction('[Inventory] Add Transaction Success', props<{ productId: string, newStock: number }>());
+export const addTransactionFailure = createAction('[Inventory] Add Transaction Failure', props<{ error: string }>());

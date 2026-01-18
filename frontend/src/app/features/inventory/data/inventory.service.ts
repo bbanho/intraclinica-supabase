@@ -1,73 +1,185 @@
 import { Injectable, inject } from '@angular/core';
 import { SupabaseService } from '../../../core/services/supabase.service';
-import { Product } from '../../../core/models/types';
+import { Product, StockTransaction } from '../../../core/models/types';
 
-@Injectable({ providedIn: 'root' })
+@Injectable({
+  providedIn: 'root'
+})
 export class InventoryService {
   private supabase = inject(SupabaseService);
 
   async getProducts(clinicId: string): Promise<Product[]> {
-    const { data, error } = await this.supabase
-      .from('products')
+    const { data, error } = await this.supabase.client
+      .from('inventory_items')
       .select('*')
-      .eq('clinic_id', clinicId);
+      .eq('clinic_id', clinicId)
+      .eq('deleted', false);
 
     if (error) throw error;
     
-    // Mapeamento Snake Case (DB) -> Camel Case (App)
-    // Assumindo que o DB retorna snake_case. Se o cliente supabase estiver tipado, isso pode ser ajustado.
-    return (data || []).map((p: any) => ({
-      ...p,
-      clinicId: p.clinic_id,
-      minStock: p.min_stock,
-      costPrice: p.cost_price,
-      expiryDate: p.expiry_date,
-      batchNumber: p.batch_number
-    })) as Product[];
+    // Mapper for camelCase
+    return (data || []).map((item: any) => ({
+      id: item.id,
+      clinicId: item.clinic_id,
+      name: item.name,
+      category: item.category,
+      stock: item.stock,
+      minStock: item.min_stock,
+      price: item.price,
+      costPrice: item.cost_price,
+      supplier: item.supplier,
+      expiryDate: item.expiry_date,
+      batchNumber: item.batch_number,
+      notes: item.notes
+    }));
   }
 
   async addProduct(product: Partial<Product>): Promise<Product> {
-    // Converter Camel -> Snake
     const dbPayload = {
-      id: product.id,
-      clinic_id: product.clinicId,
-      name: product.name,
-      category: product.category,
-      stock: product.stock,
-      min_stock: product.minStock,
-      price: product.price,
-      cost_price: product.costPrice,
-      supplier: product.supplier,
-      expiry_date: product.expiryDate,
-      batch_number: product.batchNumber,
-      notes: product.notes
+        id: product.id || crypto.randomUUID(),
+        clinic_id: product.clinicId,
+        name: product.name,
+        category: product.category,
+        stock: product.stock,
+        min_stock: product.minStock,
+        price: product.price,
+        cost_price: product.costPrice,
+        supplier: product.supplier,
+        expiry_date: product.expiryDate,
+        batch_number: product.batchNumber,
+        notes: product.notes,
+        deleted: false
     };
 
-    const { data, error } = await this.supabase
-      .from('products')
-      .insert(dbPayload)
+    const { data, error } = await this.supabase.client
+      .from('inventory_items')
+      .upsert(dbPayload)
       .select()
       .single();
 
     if (error) throw error;
 
-    const p: any = data;
     return {
-      ...p,
-      clinicId: p.clinic_id,
-      minStock: p.min_stock,
-      costPrice: p.cost_price,
-      expiryDate: p.expiry_date,
-      batchNumber: p.batch_number
+        ...product,
+        id: data.id,
+        clinicId: data.clinic_id,
+        stock: data.stock
     } as Product;
   }
 
   async deleteProduct(id: string): Promise<void> {
-    const { error } = await this.supabase
-      .from('products')
-      .update({ deleted: true })
-      .eq('id', id);
-    
+    const { error } = await this.supabase.client
+        .from('inventory_items')
+        .update({ deleted: true })
+        .eq('id', id);
+
     if (error) throw error;
   }
-}
+
+    async addTransaction(transaction: Omit<StockTransaction, 'id'>): Promise<{ transaction: StockTransaction, newStock: number }> {
+
+      // 1. Record Transaction
+
+      const { data: txnData, error: txnError } = await this.supabase.client
+
+          .from('inventory_transactions')
+
+          .insert({
+
+              clinic_id: transaction.clinicId,
+
+              product_id: transaction.productId,
+
+              product_name: transaction.productName,
+
+              type: transaction.type,
+
+              quantity: transaction.quantity,
+
+              date: transaction.date || new Date().toISOString(),
+
+              notes: transaction.notes
+
+          })
+
+          .select()
+
+          .single();
+
+  
+
+      if (txnError) throw txnError;
+
+  
+
+      // 2. Update Stock
+
+      const { data: prodData, error: prodFetchError } = await this.supabase.client
+
+          .from('inventory_items')
+
+          .select('stock')
+
+          .eq('id', transaction.productId)
+
+          .single();
+
+  
+
+      if (prodFetchError) throw prodFetchError;
+
+  
+
+      const newStock = transaction.type === 'IN' 
+
+          ? prodData.stock + transaction.quantity 
+
+          : prodData.stock - transaction.quantity;
+
+  
+
+      const { error: updateError } = await this.supabase.client
+
+          .from('inventory_items')
+
+          .update({ stock: newStock })
+
+          .eq('id', transaction.productId);
+
+  
+
+      if (updateError) throw updateError;
+
+  
+
+      return {
+
+          transaction: {
+
+              id: txnData.id,
+
+              clinicId: txnData.clinic_id,
+
+              productId: txnData.product_id,
+
+              productName: txnData.product_name,
+
+              type: txnData.type,
+
+              quantity: txnData.quantity,
+
+              date: txnData.date,
+
+              notes: txnData.notes
+
+          },
+
+          newStock
+
+      };
+
+    }
+
+  }
+
+  

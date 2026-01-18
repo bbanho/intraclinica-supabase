@@ -2,7 +2,7 @@ import { Component, computed, inject, signal, ElementRef, ViewChild, effect } fr
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Store } from '@ngrx/store';
-import { loadProducts, addProduct, deleteProduct } from './store/inventory.actions';
+import { loadProducts, addProduct, deleteProduct, addTransaction } from './store/inventory.actions';
 import { selectAllProducts, selectInventoryLoading } from './store/inventory.selectors';
 import { DatabaseService } from '../../core/services/database.service';
 import { GeminiService } from '../../core/services/gemini.service';
@@ -691,13 +691,15 @@ export class InventoryComponent {
   handleTransaction(type: 'IN' | 'OUT') {
     const p = this.selectedProduct();
     if (p) {
-        this.db.addTransaction({
-            productId: p.id,
-            productName: p.name,
-            type: type,
-            quantity: this.moveQuantity(),
-            date: new Date().toISOString()
-        });
+        this.store.dispatch(addTransaction({
+            transaction: {
+                productId: p.id,
+                clinicId: p.clinicId,
+                productName: p.name,
+                type: type,
+                quantity: this.moveQuantity()
+            }
+        }));
         this.selectedProduct.set(null);
     }
   }
