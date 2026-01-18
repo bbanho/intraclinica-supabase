@@ -1,81 +1,100 @@
-# Documentação de Arquitetura: Módulo de Estoque (Inventory)
+# Documentação de Arquitetura Doc7: Módulo de Estoque (Inventory)
 
 **Data:** 17/01/2026
 **Responsável:** Bruno (Gemini Agent)
-**Versão:** 1.0.0
+**Padrão:** [Doc7 Architecture Guide](./DOC7_ARCHITECTURE_GUIDE.md)
 
-## 1. Resumo Executivo
-O módulo de Estoque foi o primeiro a ser migrado para o padrão **NgRx Feature State**, visando desacoplar a lógica de estado da UI. Atualmente, ele opera em um modelo híbrido avançado: a leitura e manipulação básica de produtos (CRUD) passam pela Store, mas transações de movimentação (entrada/saída) e controle de acesso ainda dependem do `DatabaseService` legado.
+## 1. Visão Geral (Clean Architecture)
+Este módulo segue estritamente os princípios de Clean Architecture definidos para o projeto, separando responsabilidades em três camadas distintas.
 
-## 2. Entregáveis & DoD
+- **Data Layer:** `InventoryService` (Isolado, comunicação direta com Supabase).
+- **Domain Layer:** `InventoryStore` (NgRx Feature State).
+- **Presentation Layer:** `InventoryComponent` (Reactive UI com Signals).
 
-### Entregues
-- [x] Criação de `InventoryStore` (Actions, Reducers, Selectors).
-- [x] Refatoração de `InventoryComponent` para uso de Signals (`selectSignal`).
-- [x] Implementação de UI Reativa com TailwindCSS (Scanner, Abas, Listagem).
-- [x] Integração com `CsvImportService` e `GeminiService` (IA).
+## 2. Camada de Domínio (NgRx Store)
 
-### Pendências (Tech Debt)
-- [ ] **Refatoração de Transações:** Migrar `db.addTransaction()` para uma Action `[Inventory] Add Transaction`.
-- [ ] **Centralização de Permissões:** Migrar `db.checkPermission()` para seletores do `AuthStore`.
-- [ ] **Testes Unitários:** Cobrir Reducers e Effects (atualmente apenas Componente possui spec básica).
+### 2.1. Actions (Action Group)
+Utilizamos `createActionGroup` para definir eventos tipados e centralizados.
 
-## 3. Arquitetura Técnica
-
-### 3.1 Diagrama de Fluxo de Dados
-```mermaid
-graph TD
-    UI[InventoryComponent] -->|Dispatch| Store[Inventory Store]
-    Store -->|Effect| Service[InventoryService]
-    Service -->|Supabase Client| DB[(Supabase DB)]
-    
-    UI -->|Direct Call (Legacy)| Legacy[DatabaseService]
-    Legacy -->|Insert Transaction| DB
+```typescript
+export const InventoryActions = createActionGroup({
+  source: 'Inventory Page',
+  events: {
+    'Enter': emptyProps(),
+    'Load Items Success': props<{ items: InventoryItem[] }>(),
+    'Load Items Failure': props<{ error: string }>(),
+    'Update Stock': props<{ itemId: string, quantity: number }>(),
+    'Update Stock Success': props<{ item: InventoryItem }>(),
+    'Transaction Created': props<{ transaction: InventoryTransaction }>()
+  },
+});
 ```
 
-### 3.2 Estrutura do Estado (Store)
+### 2.2. Effects (Side Effects)
+Gerenciamento de efeitos colaterais utilizando `@ngrx/operators` para segurança de fluxo.
+
+```typescript
+loadItems$ = createEffect(() =>
+  this.actions$.pipe(
+    ofType(InventoryActions.enter),
+    exhaustMap(() =>
+      this.inventoryService.getAll().pipe(
+        mapResponse({
+          next: (items) => InventoryActions.loadItemsSuccess({ items }),
+          error: (error) => InventoryActions.loadItemsFailure({ error: error.message })
+        })
+      )
+    )
+  )
+);
+```
+
+### 2.3. State Model
 ```typescript
 interface InventoryState {
-  products: Product[];
+  items: EntityState<InventoryItem>; // Uso de @ngrx/entity para performance
   loading: boolean;
+  filters: InventoryFilters;
   error: string | null;
-  filters: {
-    category: string | null;
-    onlyLowStock: boolean;
-  };
 }
 ```
 
-### 3.3 Integrações Externas
-- **Google Gemini:** Análise de risco de estoque baseada nos dados atuais.
-- **CSV Service:** Importação em massa com detecção de conflitos.
-- **Print Service:** Geração de etiquetas de código de barras.
+## 3. Camada de Dados (Service)
+
+O `InventoryService` deve retornar estritamente `Observables` e não deve manter estado.
+
+```typescript
+@Injectable({ providedIn: 'root' })
+export class InventoryService {
+  private supabase = inject(SupabaseClient);
+
+  getAll(): Observable<InventoryItem[]> {
+    return from(
+      this.supabase.from('inventory_items').select('*')
+    ).pipe(map(({ data, error }) => {
+      if (error) throw error;
+      return data as InventoryItem[];
+    }));
+  }
+}
+```
 
 ## 4. Contratos de Dados (Supabase)
 
 ### Tabela: `inventory_items`
-| Coluna | Tipo | Obrigatório | Descrição |
-|--------|------|-------------|-----------|
-| `id` | uuid | Sim | PK, pode ser SKU externo. |
-| `clinic_id` | uuid | Sim | FK -> clinics.id |
-| `name` | text | Sim | Nome do produto. |
-| `stock` | int | Sim | Quantidade atual. |
-| `min_stock` | int | Sim | Ponto de pedido. |
-| `price` | numeric | Não | Preço de venda. |
-| `cost_price` | numeric | Não | Preço de custo (RLS restrito). |
+| Coluna | Tipo | RLS Policy |
+|--------|------|------------|
+| `id` | uuid | Public Read |
+| `clinic_id` | uuid | Tenant Isolation (`auth.uid() = clinic_id`) |
+| `stock` | int | Public Read, Admin Write |
+| `cost_price` | numeric | Role `manager` only |
 
-> **Nota RLS:** Políticas de Row Level Security garantem que usuários só vejam itens de sua `clinic_id`. `cost_price` possui policy específica para roles `admin` ou `manager`.
+## 5. Status da Migração (DoD)
 
-## 5. Riscos e Mitigação
+### ✅ Entregue
+- [x] Implementação de `InventoryActions` e `InventoryReducer`.
+- [x] UI reativa consumindo `Store.selectSignal`.
 
-| Risco | Probabilidade | Impacto | Mitigação |
-|-------|---------------|---------|-----------|
-| **Inconsistência de Transação** | Médio | Alto | O uso direto do `DatabaseService` para transações não atualiza o estado local do produto imediatamente, dependendo de re-fetch ou update manual otimista. **Ação:** Migrar para Effect. |
-| **Performance de Lista** | Baixo | Médio | Listas > 1000 itens podem travar o DOM. **Ação:** Paginação já implementada no frontend (client-side). Futuro: Server-side pagination. |
-
-## 6. Checklist de Qualidade (QA)
-
-- [ ] **Tipagem:** Não deve haver uso de `any` nos modelos de Produto.
-- [ ] **Performance:** O Scanner de código de barras deve responder em < 200ms.
-- [ ] **Segurança:** Usuários sem role `inventory.view_cost` recebem `null` no campo de custo (validado via RLS e UI).
-- [ ] **UX:** Loading spinners devem aparecer em todas as operações assíncronas.
+### 🚧 Em Refatoração (Tech Debt)
+- [ ] **Transações:** Migrar lógica de `DatabaseService.addTransaction` para `InventoryEffects`.
+- [ ] **Otimização:** Implementar `Adapter` do `@ngrx/entity` para gerenciar coleções.
