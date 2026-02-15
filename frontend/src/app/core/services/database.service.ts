@@ -112,8 +112,10 @@ export class DatabaseService {
   async saveUser(u: Partial<UserProfile>, pw?: string) { console.log('Stub: saveUser', u); }
   async updateAppointmentStatus(id: string, status: string) { console.log('Stub: updateStatus', id, status); }
   async updateAppointmentRoom(id: string, room: string) { console.log('Stub: updateRoom', id, room); }
-  async requestAccess(clinicId: string, name: string, reason: string) { console.log('Stub: reqAccess'); }
-  async approveAccess(reqId: string) { console.log('Stub: approveAccess'); }
-  async addSocialPost(post: Partial<SocialPost>) { console.log('Stub: addPost'); }
-  async addClinicalRecord(rec: Partial<ClinicalRecord>) { console.log('Stub: addRec'); }
+  async requestAccess(clinicId: string, clinicName: string, reason: string, roleId: string = 'roles/viewer') { 
+      console.log('Stub: requestAccess', { clinicId, clinicName, reason, roleId }); 
+  }
+  async approveAccess(reqId: string) { console.log('Stub: approveAccess', reqId); }
+  async addSocialPost(post: Partial<SocialPost>) { console.log('Stub: addPost', post); }
+  async addClinicalRecord(rec: Partial<ClinicalRecord>) { console.log('Stub: addRec', rec); }
 }
