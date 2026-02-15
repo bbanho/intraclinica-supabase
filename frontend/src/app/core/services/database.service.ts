@@ -57,17 +57,32 @@ export class DatabaseService {
 
   async loadUserProfile(uid: string) {
     const { data, error } = await this.supabase
-      .from('view_user_profiles')
-      .select('*')
+      .from('user')
+      .select(`
+        id,
+        email,
+        role,
+        iam_bindings,
+        assigned_room,
+        actor:actor_id (
+          name,
+          clinic_id
+        )
+      `)
       .eq('id', uid)
       .single();
       
     if (data) {
-      const user = data as any; 
+      const u = data as any; 
       const profile: UserProfile = { 
-        ...user, 
-        clinicId: user.clinic_id, 
-        iam: user.iam_bindings || [] 
+        id: u.id,
+        actor_id: u.actor_id,
+        name: u.actor.name,
+        clinicId: u.actor.clinic_id,
+        email: u.email,
+        role: u.role,
+        iam: u.iam_bindings || [],
+        assigned_room: u.assigned_room
       };
       this.currentUser.set(profile);
       if (profile.clinicId) this.selectedContextClinic.set(profile.clinicId);
@@ -75,7 +90,6 @@ export class DatabaseService {
   }
 
   private async syncDataForClinic(clinicId: string) {
-    // Stub implementation for now
     console.log('Syncing data for clinic:', clinicId);
   }
 
@@ -94,7 +108,7 @@ export class DatabaseService {
     return false;
   }
 
-  // --- CRUD Operations (Stubs & Impl) ---
+  // --- CRUD Operations ---
   
   async addProduct(product: Partial<Product>) {
     console.log('Stub: addProduct', product);

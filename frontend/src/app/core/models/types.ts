@@ -1,7 +1,17 @@
 
+export type ActorType = 'patient' | 'user' | 'clinic' | 'system';
+
+export interface Actor {
+  id: string;
+  clinicId: string;
+  name: string;
+  type: ActorType;
+  createdAt: string;
+}
+
 export interface Product {
   id: string;
-  clinicId: string; // Associated clinic for multi-tenant isolation
+  clinicId: string;
   name: string;
   category: string;
   stock: number;
@@ -39,10 +49,10 @@ export interface Clinic {
 }
 
 export interface IamBinding {
-  roleId: string; // e.g. 'roles/clinic_admin'
-  resource: string; // e.g. 'clinics/clinic-alpha' or '*'
-  permissions?: string[]; // Specific additions
-  denied?: string[];      // Specific exclusions
+  roleId: string;
+  resource: string;
+  permissions?: string[];
+  denied?: string[];
 }
 
 export interface AccessRequest {
@@ -55,7 +65,7 @@ export interface AccessRequest {
   status: 'pending' | 'approved' | 'denied';
   createdAt: string;
   expiresAt?: string;
-  requestedRoleId?: string; // e.g. 'roles/finance_viewer'
+  requestedRoleId?: string;
 }
 
 export interface Appointment {
@@ -74,13 +84,15 @@ export interface Appointment {
 export interface Patient {
   id: string;
   clinicId: string;
+  // Metadata from Actor (mapped in services)
   name: string;
+  createdAt: string;
+  // Specific Patient Fields
   email?: string;
   phone?: string;
   cpf?: string;
   birthDate?: string;
   gender?: string;
-  createdAt: string;
 }
 
 export interface ClinicalRecord {
@@ -90,7 +102,7 @@ export interface ClinicalRecord {
   patientName: string;
   doctorName: string;
   content: string;
-  notes?: string; // Additional notes field
+  notes?: string;
   type: 'evolucao' | 'receita' | 'atestado' | 'exame' | string;
   timestamp: string;
 }
@@ -109,12 +121,12 @@ export interface SocialPost {
 
 export interface UserProfile {
   id: string;
-  name: string;
+  actor_id: string;
+  clinicId: string;
+  name: string; // From Actor
   email: string;
-  /** @deprecated use iam bindings instead */
   role: UserRole; 
   iam?: IamBinding[];
-  clinicId: string; // Primary context
   avatar?: string;
   assignedRoom?: string;
 }

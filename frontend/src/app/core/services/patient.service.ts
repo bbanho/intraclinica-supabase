@@ -10,24 +10,32 @@ export class PatientService {
   private supabase = inject(SupabaseService);
 
   getPatients(clinicId: string): Observable<Patient[]> {
+    // Perform manual JOIN using Supabase syntax to avoid reliance on Views
     return from(
-      this.supabase.from('view_patients_extended')
-        .select('*')
+      this.supabase.from('patient')
+        .select(`
+          id,
+          cpf,
+          birth_date,
+          gender,
+          actor:id (
+            name,
+            clinic_id,
+            created_at
+          )
+        `)
         .eq('clinic_id', clinicId)
-        .order('created_at', { ascending: false })
     ).pipe(
       map(({ data, error }) => {
         if (error) throw error;
-        return (data || []).map(p => ({
+        return (data || []).map((p: any) => ({
           id: p.id,
-          clinicId: p.clinic_id,
-          name: p.name,
-          email: p.email,
-          phone: p.phone,
+          clinicId: p.actor.clinic_id,
+          name: p.actor.name,
+          createdAt: p.actor.created_at,
           cpf: p.cpf,
           birthDate: p.birth_date,
-          gender: p.gender,
-          createdAt: p.created_at
+          gender: p.gender
         })) as Patient[];
       })
     );
@@ -90,17 +98,14 @@ export class PatientService {
           patientName: r.patient_name,
           doctorName: r.doctor_name,
           createdAt: r.created_at,
-          timestamp: r.created_at // types.ts uses timestamp
+          timestamp: r.created_at 
         })) as ClinicalRecord[];
       })
     );
   }
 
   createPatient(patient: Omit<Patient, 'id' | 'createdAt'>): Observable<Patient> {
-    // Note: Creating a patient is complex because it requires an actor record.
-    // In a real sovereign system, we should use a Postgres Function (RPC) 
-    // to handle this atomic transaction.
-    
+    // Atomic creation via RPC remains the best practice for Actor inheritance
     return from(
       this.supabase.rpc('create_patient_with_actor', {
         p_clinic_id: patient.clinicId,
