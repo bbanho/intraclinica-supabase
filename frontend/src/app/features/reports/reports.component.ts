@@ -1,7 +1,9 @@
-import { Component, inject, signal, computed } from '@angular/core';
+import { Component, inject, signal, computed, effect } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { DatabaseService } from '../../core/services/database.service';
 import { GeminiService } from '../../core/services/gemini.service';
+import { InventoryStore } from '../../core/store/inventory.store';
+import { PatientStore } from '../../core/store/patient.store';
 import { MarkdownModule } from 'ngx-markdown';
 import { IAM_PERMISSIONS } from '../../core/config/iam-roles';
 import { LucideAngularModule, BrainCircuit, Sparkles, TrendingUp, AlertTriangle, CheckCircle2, Clock, DollarSign, AlertOctagon, Activity, Users, CalendarCheck, ClipboardList, ShieldAlert } from 'lucide-angular';
@@ -88,7 +90,7 @@ import { LucideAngularModule, BrainCircuit, Sparkles, TrendingUp, AlertTriangle,
 
              <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm relative overflow-hidden">
                 <div class="text-slate-400 text-xs font-black uppercase tracking-widest mb-1 flex items-center gap-1"><lucide-icon [img]="Activity" [size]="12"></lucide-icon> Movimentações</div>
-                <div class="text-3xl font-black text-slate-800">{{ db.transactions().length }}</div>
+                <div class="text-3xl font-black text-slate-800">{{ inventoryStore.transactions().length }}</div>
                 <div class="text-xs text-slate-400 mt-2 font-bold">Total registrado</div>
             </div>
         </div>
@@ -195,6 +197,8 @@ import { LucideAngularModule, BrainCircuit, Sparkles, TrendingUp, AlertTriangle,
 export class ReportsComponent {
   db = inject(DatabaseService);
   gemini = inject(GeminiService);
+  inventoryStore = inject(InventoryStore);
+  patientStore = inject(PatientStore);
 
   // Constants for template
   IAM_PERMISSIONS = IAM_PERMISSIONS;
@@ -208,6 +212,17 @@ export class ReportsComponent {
   // Signals
   aiInsight = signal('');
   isThinking = signal(false);
+
+  constructor() {
+    effect(() => {
+        const clinicId = this.db.selectedContextClinic();
+        if (clinicId) {
+            this.inventoryStore.loadProducts(clinicId);
+            this.inventoryStore.loadTransactions(clinicId);
+            this.patientStore.loadAppointments(clinicId);
+        }
+    });
+  }
 
   async handleRequestFinanceAccess() {
     const user = this.db.currentUser();
@@ -227,23 +242,23 @@ export class ReportsComponent {
 
   // Computed Metrics
   totalStockValue = computed(() => {
-    return this.db.products().reduce((acc, p) => acc + (p.stock * (p.price || 10)), 0).toLocaleString('pt-BR', {minimumFractionDigits: 2});
+    return this.inventoryStore.products().reduce((acc, p) => acc + (p.stock * (p.price || 10)), 0).toLocaleString('pt-BR', {minimumFractionDigits: 2});
   });
 
-  lowStockCount = computed(() => this.db.products().filter(p => p.stock <= p.minStock).length);
+  lowStockCount = computed(() => this.inventoryStore.products().filter(p => p.stock <= p.minStock).length);
   
-  todayAppointmentsCount = computed(() => this.db.appointments().length);
+  todayAppointmentsCount = computed(() => this.patientStore.appointments().length); // Should filter by today ideally, but using existing logic
 
   expiryAlerts = computed(() => {
     const today = new Date();
     const limit = new Date();
     limit.setDate(limit.getDate() + 30);
-    return this.db.products().filter(p => p.expiryDate && new Date(p.expiryDate) <= limit).slice(0, 10);
+    return this.inventoryStore.products().filter(p => p.expiryDate && new Date(p.expiryDate) <= limit).slice(0, 10);
   });
 
   // Chart Data: Weekly Stock Flow
   weeklyData = computed(() => {
-    const transactions = this.db.transactions();
+    const transactions = this.inventoryStore.transactions();
     const days = ['DOM', 'SEG', 'TER', 'QUA', 'QUI', 'SEX', 'SAB'];
     const now = new Date();
     const last7Days = Array.from({length: 7}, (_, i) => {
@@ -273,7 +288,7 @@ export class ReportsComponent {
 
   // Chart Data: Appointment Density by Hour
   appointmentDensity = computed(() => {
-      const apps = this.db.appointments();
+      const apps = this.patientStore.appointments();
       // Group by hour
       const distribution: Record<string, number> = {};
       
@@ -300,9 +315,9 @@ export class ReportsComponent {
     
     // Construct context from real app data
     const context = `
-      Total Items: ${this.db.products().length}
+      Total Items: ${this.inventoryStore.products().length}
       Low Stock Alerts: ${this.lowStockCount()}
-      Transactions Logged: ${this.db.transactions().length}
+      Transactions Logged: ${this.inventoryStore.transactions().length}
       Weekly Flow: ${JSON.stringify(this.weeklyData())}
       Appointments Today: ${this.todayAppointmentsCount()}
     `;

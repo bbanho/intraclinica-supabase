@@ -1,6 +1,6 @@
 import { Injectable, inject } from '@angular/core';
 import { SupabaseService } from '../../../core/services/supabase.service';
-import { Product } from '../../../core/models/types';
+import { Product, StockTransaction } from '../../../core/models/types';
 
 @Injectable({ providedIn: 'root' })
 export class InventoryService {
@@ -24,6 +24,27 @@ export class InventoryService {
       expiryDate: p.expiry_date,
       batchNumber: p.batch_number
     })) as Product[];
+  }
+
+  async getTransactions(clinicId: string): Promise<StockTransaction[]> {
+    const { data, error } = await this.supabase
+      .from('stock_transactions')
+      .select('*')
+      .eq('clinic_id', clinicId)
+      .order('date', { ascending: false });
+
+    if (error) throw error;
+    
+    return (data || []).map((t: any) => ({
+      id: t.id,
+      clinicId: t.clinic_id,
+      productId: t.product_id,
+      productName: t.product_name,
+      type: t.type,
+      quantity: t.quantity,
+      date: t.date,
+      notes: t.notes
+    })) as StockTransaction[];
   }
 
   async addProduct(product: Partial<Product>): Promise<Product> {

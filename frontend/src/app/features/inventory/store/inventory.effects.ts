@@ -17,6 +17,14 @@ export class InventoryEffects {
     ))
   ));
 
+  loadTransactions$ = createEffect(() => this.actions$.pipe(
+    ofType(InventoryActions.loadTransactions),
+    switchMap(({ clinicId }) => from(this.service.getTransactions(clinicId)).pipe(
+      map(transactions => InventoryActions.loadTransactionsSuccess({ transactions })),
+      catchError(error => of(InventoryActions.loadTransactionsFailure({ error: error.message })))
+    ))
+  ));
+
   addProduct$ = createEffect(() => this.actions$.pipe(
     ofType(InventoryActions.addProduct),
     switchMap(({ product }) => from(this.service.addProduct(product)).pipe(
