@@ -29,7 +29,7 @@ Este documento é a bússola para a transformação dos Stubs em realidade técn
 - [x] Refatorar `types.ts` com hierarquia `Actor`.
 - [x] Criar `rpc` helper no `SupabaseService`.
 - [x] Implementar `PatientService` com JOIN manual em `Actor`.
-- [ ] Implementar `saveUser` real (Criação de Auth + Actor + User).
+- [x] Implementar `saveUser` real (Criação de Auth + Actor + User).
 - [ ] Implementar `addClinic` e `deleteClinic`.
 
 ### Fase 2: Operação Clínica
