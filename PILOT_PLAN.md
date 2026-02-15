@@ -33,13 +33,13 @@ Este documento é a bússola para a transformação dos Stubs em realidade técn
 - [x] Implementar `addClinic` e `deleteClinic`.
 
 ### Fase 2: Operação Clínica
-- [ ] Migrar `ClinicalRecord` (Evoluções médicas) para escrita real.
+- [x] Migrar `ClinicalRecord` (Evoluções médicas) para escrita real.
 - [ ] Migrar `Appointment` (Agendamentos) para escrita real.
 - [ ] Implementar troca de status de agendamento (Aguardando -> Em Atendimento).
 
 ### Fase 3: Inteligência e Marketing
 - [ ] Conectar `GeminiService` e `LocalAiService` aos botões de "Padronizar Documento".
-- [ ] Ativar persistência real de `SocialPost` em `social_post`.
+- [x] Ativar persistência real de `SocialPost` em `social_post`.
 
 ---
 

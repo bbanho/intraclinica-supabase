@@ -139,14 +139,14 @@ export class DatabaseService {
 
       // Clinical Records
       this.supabase
-        .from('clinical_record')
+        .from('clinical_records')
         .select('*')
         .eq('clinic_id', clinicId)
         .order('created_at', { ascending: false }),
 
       // Social Posts
       this.supabase
-        .from('social_post')
+        .from('social_posts')
         .select('*')
         .eq('clinic_id', clinicId),
 
@@ -428,23 +428,42 @@ export class DatabaseService {
   }
 
   async addSocialPost(post: Partial<SocialPost>) { 
-    const { error } = await this.supabase
-      .from('social_post')
+    const { data, error } = await this.supabase
+      .from('social_posts')
       .insert({
         clinic_id: post.clinicId,
         title: post.title,
         content: post.content,
         platform: post.platform,
         status: post.status,
-        image_url: post.imageUrl
-      });
+        image_url: post.imageUrl,
+        scheduled_at: post.scheduledAt
+      })
+      .select()
+      .single();
     
     if (error) throw error;
+
+    if (data) {
+      const newPost: SocialPost = {
+        id: data.id,
+        clinicId: data.clinic_id,
+        title: data.title,
+        content: data.content,
+        platform: data.platform,
+        status: data.status,
+        imageUrl: data.image_url,
+        scheduledAt: data.scheduled_at,
+        timestamp: data.created_at
+      };
+      this.socialPosts.update(list => [...list, newPost]);
+    }
+    return data;
   }
 
   async addClinicalRecord(rec: Partial<ClinicalRecord>) { 
-    const { error } = await this.supabase
-      .from('clinical_record')
+    const { data, error } = await this.supabase
+      .from('clinical_records')
       .insert({
         clinic_id: rec.clinicId,
         patient_id: rec.patientId,
@@ -453,9 +472,27 @@ export class DatabaseService {
         content: rec.content,
         type: rec.type,
         notes: rec.notes
-      });
+      })
+      .select()
+      .single();
     
     if (error) throw error;
+
+    if (data) {
+      const newRec: ClinicalRecord = {
+        id: data.id,
+        clinicId: data.clinic_id,
+        patientId: data.patient_id,
+        patientName: data.patient_name,
+        doctorName: data.doctor_name,
+        content: data.content,
+        type: data.type,
+        notes: data.notes,
+        timestamp: data.created_at
+      };
+      this.clinicalRecords.update(list => [newRec, ...list]);
+    }
+    return data;
   }
 
   async addClinic(c: Partial<Clinic>) { 
