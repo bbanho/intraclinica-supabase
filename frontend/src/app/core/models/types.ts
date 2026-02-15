@@ -121,7 +121,7 @@ export interface SocialPost {
 
 export interface UserProfile {
   id: string;
-  actor_id: string;
+  actor_id?: string;
   clinicId: string;
   name: string; // From Actor
   email: string;

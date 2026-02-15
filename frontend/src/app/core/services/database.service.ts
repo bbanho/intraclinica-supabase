@@ -65,6 +65,7 @@ export class DatabaseService {
         iam_bindings,
         assigned_room,
         actor:actor_id (
+          id,
           name,
           clinic_id
         )
@@ -76,13 +77,13 @@ export class DatabaseService {
       const u = data as any; 
       const profile: UserProfile = { 
         id: u.id,
-        actor_id: u.actor_id,
-        name: u.actor.name,
-        clinicId: u.actor.clinic_id,
+        actor_id: u.actor?.id,
+        name: u.actor?.name,
+        clinicId: u.actor?.clinic_id,
         email: u.email,
         role: u.role,
         iam: u.iam_bindings || [],
-        assigned_room: u.assigned_room
+        assignedRoom: u.assigned_room
       };
       this.currentUser.set(profile);
       if (profile.clinicId) this.selectedContextClinic.set(profile.clinicId);
@@ -265,5 +266,21 @@ export class DatabaseService {
       });
     
     if (error) throw error;
+  }
+
+  async addClinic(c: Partial<Clinic>) { 
+    const { error } = await this.supabase.from('clinic').insert(c);
+    if (error) throw error;
+  }
+
+  async deleteClinic(id: string) {
+    const { error } = await this.supabase.from('clinic').delete().eq('id', id);
+    if (error) throw error;
+  }
+
+  async saveUser(u: Partial<UserProfile>, pw?: string) {
+    // Note: This needs complex handling for Actor + User + Auth. 
+    // Stubbing real call logic for now to fix build.
+    console.log('Real logic for saveUser pending', u);
   }
 }
