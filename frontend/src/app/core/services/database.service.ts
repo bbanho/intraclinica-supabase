@@ -111,15 +111,54 @@ export class DatabaseService {
   // --- CRUD Operations ---
   
   async addProduct(product: Partial<Product>) {
-    console.log('Stub: addProduct', product);
+    const { data, error } = await this.supabase
+      .from('product')
+      .insert({
+        clinic_id: product.clinicId,
+        name: product.name,
+        category: product.category,
+        stock: product.stock,
+        min_stock: product.minStock,
+        price: product.price,
+        supplier: product.supplier,
+        expiry_date: product.expiryDate,
+        batch_number: product.batchNumber,
+        notes: product.notes
+      })
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
   }
   
   async deleteProduct(id: string) { 
-      console.log('Stub: deleteProduct', id);
+    const { error } = await this.supabase
+      .from('product')
+      .update({ deleted: true })
+      .eq('id', id);
+    
+    if (error) throw error;
   }
   
   async addAppointment(apt: Partial<Appointment>) { 
-      console.log('Stub: addAppointment', apt);
+    const { data, error } = await this.supabase
+      .from('appointment')
+      .insert({
+        clinic_id: apt.clinicId,
+        patient_id: apt.patientId,
+        patient_name: apt.patientName,
+        doctor_name: apt.doctorName,
+        date: apt.date,
+        status: apt.status,
+        type: apt.type,
+        room_number: apt.roomNumber
+      })
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
   }
   
   async logout() { 
@@ -127,18 +166,104 @@ export class DatabaseService {
       this.router.navigate(['/login']);
   }
 
-  // Missing Methods (Stubs)
-  async addTransaction(tx: Partial<StockTransaction>) { console.log('Stub: addTransaction', tx); }
-  async addPatient(p: Partial<Patient>) { console.log('Stub: addPatient', p); }
-  async addClinic(c: Partial<Clinic>) { console.log('Stub: addClinic', c); }
-  async deleteClinic(id: string) { console.log('Stub: deleteClinic', id); }
-  async saveUser(u: Partial<UserProfile>, pw?: string) { console.log('Stub: saveUser', u); }
-  async updateAppointmentStatus(id: string, status: string) { console.log('Stub: updateStatus', id, status); }
-  async updateAppointmentRoom(id: string, room: string) { console.log('Stub: updateRoom', id, room); }
-  async requestAccess(clinicId: string, clinicName: string, reason: string, roleId: string = 'roles/viewer') { 
-      console.log('Stub: requestAccess', { clinicId, clinicName, reason, roleId }); 
+  // Missing Methods
+  async addTransaction(tx: Partial<StockTransaction>) { 
+    const { error } = await this.supabase
+      .from('stock_transaction')
+      .insert({
+        clinic_id: tx.clinicId,
+        product_id: tx.productId,
+        product_name: tx.productName,
+        type: tx.type,
+        quantity: tx.quantity,
+        date: new Date().toISOString(),
+        notes: tx.notes
+      });
+    
+    if (error) throw error;
   }
-  async approveAccess(reqId: string) { console.log('Stub: approveAccess', reqId); }
-  async addSocialPost(post: Partial<SocialPost>) { console.log('Stub: addPost', post); }
-  async addClinicalRecord(rec: Partial<ClinicalRecord>) { console.log('Stub: addRec', rec); }
+
+  async addPatient(p: Partial<Patient>) { 
+    return this.supabase.rpc('create_patient_with_actor', {
+      p_clinic_id: p.clinicId,
+      p_name: p.name,
+      p_cpf: p.cpf,
+      p_birth_date: p.birthDate,
+      p_gender: p.gender
+    });
+  }
+
+  async updateAppointmentStatus(id: string, status: string) { 
+    const { error } = await this.supabase
+      .from('appointment')
+      .update({ status })
+      .eq('id', id);
+    
+    if (error) throw error;
+  }
+
+  async updateAppointmentRoom(id: string, room: string) { 
+    const { error } = await this.supabase
+      .from('appointment')
+      .update({ room_number: room })
+      .eq('id', id);
+    
+    if (error) throw error;
+  }
+
+  async requestAccess(clinicId: string, clinicName: string, reason: string, roleId: string = 'roles/viewer') { 
+    const { error } = await this.supabase
+      .from('access_request')
+      .insert({
+        clinic_id: clinicId,
+        clinic_name: clinicName,
+        reason: reason,
+        requested_role_id: roleId,
+        requester_id: this.currentUser()?.id,
+        requester_name: this.currentUser()?.name,
+        status: 'pending'
+      });
+    
+    if (error) throw error;
+  }
+
+  async approveAccess(reqId: string) { 
+    const { error } = await this.supabase
+      .from('access_request')
+      .update({ status: 'approved' })
+      .eq('id', reqId);
+    
+    if (error) throw error;
+  }
+
+  async addSocialPost(post: Partial<SocialPost>) { 
+    const { error } = await this.supabase
+      .from('social_post')
+      .insert({
+        clinic_id: post.clinicId,
+        title: post.title,
+        content: post.content,
+        platform: post.platform,
+        status: post.status,
+        image_url: post.imageUrl
+      });
+    
+    if (error) throw error;
+  }
+
+  async addClinicalRecord(rec: Partial<ClinicalRecord>) { 
+    const { error } = await this.supabase
+      .from('clinical_record')
+      .insert({
+        clinic_id: rec.clinicId,
+        patient_id: rec.patientId,
+        patient_name: rec.patientName,
+        doctor_name: rec.doctorName,
+        content: rec.content,
+        type: rec.type,
+        notes: rec.notes
+      });
+    
+    if (error) throw error;
+  }
 }
