@@ -299,18 +299,20 @@ export class DatabaseService {
     return false;
   }
 
-  // --- CRUD Operations ---
   
   async addProduct(product: Partial<Product>) {
+    const clinicId = product.clinicId || this.selectedContextClinic();
+    if (!clinicId) throw new Error("Clinic ID is required.");
+
     const { data, error } = await this.supabase
       .from('product')
       .insert({
-        clinic_id: product.clinicId,
+        clinic_id: clinicId,
         name: product.name,
         category: product.category,
-        stock: product.stock,
-        min_stock: product.minStock,
-        price: product.price,
+        stock: product.stock || 0,
+        min_stock: product.minStock || 0,
+        price: product.price || 0,
         supplier: product.supplier,
         expiry_date: product.expiryDate,
         batch_number: product.batchNumber,
@@ -333,15 +335,18 @@ export class DatabaseService {
   }
   
   async addAppointment(apt: Partial<Appointment>) { 
+    const clinicId = apt.clinicId || this.selectedContextClinic();
+    if (!clinicId) throw new Error("Clinic ID is required.");
+
     const { data, error } = await this.supabase
       .from('appointment')
       .insert({
-        clinic_id: apt.clinicId,
+        clinic_id: clinicId,
         patient_id: apt.patientId,
         patient_name: apt.patientName,
-        doctor_name: apt.doctorName,
+        doctor_name: apt.doctorName || this.currentUser()?.name,
         date: apt.date,
-        status: apt.status,
+        status: apt.status || 'Agendado',
         type: apt.type,
         room_number: apt.roomNumber
       })
@@ -357,12 +362,14 @@ export class DatabaseService {
       this.router.navigate(['/login']);
   }
 
-  // Missing Methods
   async addTransaction(tx: Partial<StockTransaction>) { 
+    const clinicId = tx.clinicId || this.selectedContextClinic();
+    if (!clinicId) throw new Error("Clinic ID is required.");
+
     const { error } = await this.supabase
       .from('stock_transaction')
       .insert({
-        clinic_id: tx.clinicId,
+        clinic_id: clinicId,
         product_id: tx.productId,
         product_name: tx.productName,
         type: tx.type,
@@ -375,8 +382,11 @@ export class DatabaseService {
   }
 
   async addPatient(p: Partial<Patient>) { 
+    const clinicId = p.clinicId || this.selectedContextClinic();
+    if (!clinicId) throw new Error("Clinic ID is required.");
+
     return this.supabase.rpc('create_patient_with_actor', {
-      p_clinic_id: p.clinicId,
+      p_clinic_id: clinicId,
       p_name: p.name,
       p_cpf: p.cpf,
       p_birth_date: p.birthDate,
@@ -427,15 +437,26 @@ export class DatabaseService {
     if (error) throw error;
   }
 
-  async addSocialPost(post: Partial<SocialPost>) { 
+  async addSocialPost(post: any) { 
+    const clinicId = post.clinicId || this.selectedContextClinic();
+    if (!clinicId) throw new Error("Clinic ID is required for social posts");
+
+    const title = post.title || post.topic || 'Novo Conteúdo';
+    const rawContent = post.content || post.caption || '';
+    const hashtags = Array.isArray(post.hashtags) 
+      ? post.hashtags.map((t: string) => t.startsWith('#') ? t : '#'+t).join(' ') 
+      : (post.hashtags || '');
+    
+    const finalContent = hashtags ? `${rawContent}\n\n${hashtags}` : rawContent;
+
     const { data, error } = await this.supabase
       .from('social_posts')
       .insert({
-        clinic_id: post.clinicId,
-        title: post.title,
-        content: post.content,
-        platform: post.platform,
-        status: post.status,
+        clinic_id: clinicId,
+        title: title,
+        content: finalContent,
+        platform: post.platform || 'instagram',
+        status: post.status || 'draft',
         image_url: post.imageUrl,
         scheduled_at: post.scheduledAt
       })
@@ -462,15 +483,20 @@ export class DatabaseService {
   }
 
   async addClinicalRecord(rec: Partial<ClinicalRecord>) { 
+    const clinicId = rec.clinicId || this.selectedContextClinic();
+    if (!clinicId) throw new Error("Clinic ID is required for clinical records");
+
+    const doctorName = rec.doctorName || this.currentUser()?.name || 'Sistema';
+
     const { data, error } = await this.supabase
       .from('clinical_records')
       .insert({
-        clinic_id: rec.clinicId,
+        clinic_id: clinicId,
         patient_id: rec.patientId,
         patient_name: rec.patientName,
-        doctor_name: rec.doctorName,
+        doctor_name: doctorName,
         content: rec.content,
-        type: rec.type,
+        type: rec.type || 'evolucao',
         notes: rec.notes
       })
       .select()
@@ -494,6 +520,7 @@ export class DatabaseService {
     }
     return data;
   }
+
 
   async addClinic(c: Partial<Clinic>) { 
     const { error } = await this.supabase.from('clinics').insert(c);
