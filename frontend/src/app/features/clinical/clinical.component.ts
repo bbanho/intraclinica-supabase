@@ -1,8 +1,9 @@
-import { Component, inject, OnDestroy, signal, computed } from '@angular/core';
+import { Component, inject, OnDestroy, signal, computed, effect } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { GeminiService } from '../../core/services/gemini.service';
 import { DatabaseService } from '../../core/services/database.service';
+import { PatientStore } from '../../core/store/patient.store';
 import { LocalAiService, LocalModel } from '../../core/services/local-ai.service';
 import { LucideAngularModule, FileText, Clock, Save, History, PlusCircle, Mic, MicOff, Loader2, Shield, Cloud, Monitor, Settings2, Download, DoorOpen, Users, User, ArrowRight, CheckCircle2, Wand2, Trash2 } from 'lucide-angular';
 import { LiveServerMessage } from "@google/genai";
@@ -262,7 +263,7 @@ function createBlob(data: Float32Array): { data: string; mimeType: string } {
                                     {{hist.timestamp | date:'short'}} • {{hist.type | uppercase}}
                                   </div>
                                   <p class="text-xs text-slate-700 bg-slate-50 p-3 rounded-xl border border-slate-100 italic font-medium">
-                                      "{{hist.notes}}"
+                                      "{{hist.content}}"
                                   </p>
                               </div>
                           }
@@ -290,6 +291,7 @@ function createBlob(data: Float32Array): { data: string; mimeType: string } {
 })
 export class ClinicalComponent implements OnDestroy {
   db = inject(DatabaseService);
+  patientStore = inject(PatientStore);
   gemini = inject(GeminiService);
   localAi = inject(LocalAiService);
   
@@ -332,6 +334,23 @@ export class ClinicalComponent implements OnDestroy {
   constructor() {
     this.selectedLocalModel.set(this.localAi.availableModels[0]);
     this.initNativeSpeech();
+
+    // Sync Data Effect
+    effect(() => {
+        const clinicId = this.db.selectedContextClinic();
+        if (clinicId) {
+            this.patientStore.loadPatients(clinicId);
+            this.patientStore.loadAppointments(clinicId);
+        }
+    });
+
+    // Load Records Effect
+    effect(() => {
+        const patient = this.currentPatient();
+        if (patient) {
+            this.patientStore.loadClinicalRecords(patient.id);
+        }
+    });
   }
 
   async unloadLocalModel() {
@@ -355,7 +374,6 @@ export class ClinicalComponent implements OnDestroy {
         const result = await this.gemini.generateContent(this.currentNotes, systemInstruction);
         this.currentNotes = result;
       } else {
-        // For local mode, we use the generate method which already has a medical assistant prompt
         const result = await this.localAi.generate(`Aja como um transcritor médico. Transforme o texto a seguir em um prontuário formal e padronizado: ${this.currentNotes}`);
         this.currentNotes = result;
       }
@@ -366,32 +384,27 @@ export class ClinicalComponent implements OnDestroy {
     }
   }
 
-  // Computed: Waiting List (Patients Checked-in for THIS doctor)
+  // Computed: Waiting List (from PatientStore)
   waitingList = computed(() => {
     const user = this.db.currentUser();
-    return (this.db.appointments() as any[]).filter(a => 
+    return this.patientStore.appointments().filter(a => 
       (a.status === 'Aguardando' || a.status === 'Chamado') && 
       (a.doctorName === user?.name || user?.role === 'ADMIN' || user?.role === 'SUPER_ADMIN' || user?.role === 'CONSULTANT')
     );
   });
 
-  // Computed: Get active patient from appointments (Status: Em Atendimento)
+  // Computed: Get active patient (from PatientStore)
   currentPatient = computed(() => {
     const user = this.db.currentUser();
-    return (this.db.appointments() as any[]).find(a => 
+    return this.patientStore.appointments().find(a => 
       a.status === 'Em Atendimento' && 
       (a.doctorName === user?.name || user?.role === 'ADMIN' || user?.role === 'SUPER_ADMIN' || user?.role === 'CONSULTANT')
     );
   });
 
-  // Computed: Get history for current patient
+  // Computed: Get history (from PatientStore)
   patientHistory = computed(() => {
-    const patient = this.currentPatient();
-    if (!patient) return [];
-    
-    return this.db.clinicalRecords()
-      .filter(r => r.patientId === patient.id || r.patientName === patient.patientName)
-      .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+    return this.patientStore.records();
   });
 
   // Icons
@@ -417,8 +430,8 @@ export class ClinicalComponent implements OnDestroy {
       alert("Por favor, selecione seu consultório antes de chamar o paciente.");
       return;
     }
-    await this.db.updateAppointmentStatus(app.id, 'Chamado');
-    await this.db.updateAppointmentRoom(app.id, user.assignedRoom);
+    this.patientStore.updateAppointmentStatus(app.id, 'Chamado');
+    this.patientStore.updateAppointmentRoom(app.id, user.assignedRoom);
   }
 
   async startConsultation(app: any) {
@@ -427,8 +440,8 @@ export class ClinicalComponent implements OnDestroy {
       alert("Por favor, selecione seu consultório antes de iniciar o atendimento.");
       return;
     }
-    await this.db.updateAppointmentStatus(app.id, 'Em Atendimento');
-    await this.db.updateAppointmentRoom(app.id, user.assignedRoom);
+    this.patientStore.updateAppointmentStatus(app.id, 'Em Atendimento');
+    this.patientStore.updateAppointmentRoom(app.id, user.assignedRoom);
   }
 
   async finishConsultation() {
@@ -439,25 +452,28 @@ export class ClinicalComponent implements OnDestroy {
       await this.saveNotes();
     }
 
-    await this.db.updateAppointmentStatus(patient.id, 'Realizado');
+    this.patientStore.updateAppointmentStatus(patient.id, 'Realizado');
   }
 
   initNativeSpeech() {
-    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-    if (SpeechRecognition) {
-      this.recognition = new SpeechRecognition();
-      this.recognition.continuous = true;
-      this.recognition.interimResults = true;
-      this.recognition.lang = 'pt-BR';
+    // Check for browser support
+    if (typeof window !== 'undefined') {
+        const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+        if (SpeechRecognition) {
+        this.recognition = new SpeechRecognition();
+        this.recognition.continuous = true;
+        this.recognition.interimResults = true;
+        this.recognition.lang = 'pt-BR';
 
-      this.recognition.onresult = (event: any) => {
-        let interimTranscript = '';
-        for (let i = event.resultIndex; i < event.results.length; ++i) {
-          if (event.results[i].isFinal) {
-            this.currentNotes += event.results[i][0].transcript + ' ';
-          }
+        this.recognition.onresult = (event: any) => {
+            let interimTranscript = '';
+            for (let i = event.resultIndex; i < event.results.length; ++i) {
+            if (event.results[i].isFinal) {
+                this.currentNotes += event.results[i][0].transcript + ' ';
+            }
+            }
+        };
         }
-      };
     }
   }
 
@@ -470,7 +486,6 @@ export class ClinicalComponent implements OnDestroy {
 
   async onModelChange(model: LocalModel) {
     this.selectedLocalModel.set(model);
-    // await this.loadLocalModel(); // Removed auto-load
   }
 
   async refineWithLocalAi() {
@@ -483,11 +498,12 @@ export class ClinicalComponent implements OnDestroy {
     const patient = this.currentPatient();
     if (!patient || !this.currentNotes) return;
 
-    await this.db.addClinicalRecord({
-      patientId: patient.id,
+    this.patientStore.createRecord({
+      clinicId: patient.clinicId,
+      patientId: patient.patientId!, // Ensure ID exists
       patientName: patient.patientName,
       doctorName: patient.doctorName,
-      type: patient.type,
+      type: 'evolucao', // Default type
       content: this.currentNotes
     });
 
@@ -498,7 +514,6 @@ export class ClinicalComponent implements OnDestroy {
     if (this.isRecording()) {
       this.stopRecording();
     } else {
-      // Logic: Native is default. Gemini Live only if selected explicitly in Cloud mode.
       if (this.aiMode() === 'local' || this.audioSource() === 'native') {
         this.startNativeSpeech();
       } else {
@@ -517,7 +532,6 @@ export class ClinicalComponent implements OnDestroy {
   }
 
   stopRecording() {
-    // Stop Gemini
     if (this.source) this.source.disconnect();
     if (this.processor) this.processor.disconnect();
     if (this.stream) this.stream.getTracks().forEach(t => t.stop());
@@ -527,7 +541,6 @@ export class ClinicalComponent implements OnDestroy {
       this.session = null;
     }
 
-    // Stop Native
     if (this.recognition) {
       this.recognition.stop();
     }
