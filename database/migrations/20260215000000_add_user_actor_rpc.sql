@@ -11,7 +11,7 @@ create table if not exists actor (
 );
 
 -- Ensure user table exists (inferred structure)
-create table if not exists "user" (
+create table if not exists app_user (
   id uuid references auth.users primary key, -- The Auth ID
   actor_id uuid references actor(id),
   email text,
@@ -21,9 +21,9 @@ create table if not exists "user" (
 );
 
 -- Enable RLS on user table if created
-alter table "user" enable row level security;
+alter table app_user enable row level security;
 -- Policy for user to see own data
-create policy "Users can view own user record" on "user" for select using (auth.uid() = id);
+create policy "Users can view own user record" on app_user for select using (auth.uid() = id);
 
 -- RPC: Create User with Actor
 create or replace function create_user_with_actor(
@@ -49,7 +49,7 @@ begin
   returning id into v_actor_id;
 
   -- 2. Create User linked to Actor
-  insert into "user" (id, actor_id, email, role, iam_bindings, assigned_room)
+  insert into app_user (id, actor_id, email, role, iam_bindings, assigned_room)
   values (p_user_id, v_actor_id, p_email, p_role, p_iam_bindings, p_assigned_room);
 
   -- 3. Return the created user with actor info
@@ -67,7 +67,7 @@ begin
     )
   )
   into v_user_result
-  from "user" u
+  from app_user u
   join actor a on u.actor_id = a.id
   where u.id = p_user_id;
 
@@ -95,7 +95,7 @@ declare
   v_user_result jsonb;
 begin
   -- 1. Get Actor ID
-  select actor_id into v_actor_id from "user" where id = p_user_id;
+  select actor_id into v_actor_id from app_user where id = p_user_id;
 
   if v_actor_id is null then
     raise exception 'User not found or not linked to actor';
@@ -107,7 +107,7 @@ begin
   where id = v_actor_id;
 
   -- 3. Update User
-  update "user"
+  update app_user
   set 
     role = p_role,
     iam_bindings = p_iam_bindings,
@@ -129,7 +129,7 @@ begin
     )
   )
   into v_user_result
-  from "user" u
+  from app_user u
   join actor a on u.actor_id = a.id
   where u.id = p_user_id;
 

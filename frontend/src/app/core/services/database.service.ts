@@ -57,7 +57,7 @@ export class DatabaseService {
 
   async loadUserProfile(uid: string) {
     const { data, error } = await this.supabase
-      .from('user')
+      .from('app_user')
       .select(`
         id,
         email,
@@ -97,7 +97,7 @@ export class DatabaseService {
     ] = await Promise.all([
       // Users with Actor JOIN (filter by actor's clinic)
       this.supabase
-        .from('user')
+        .from('app_user')
         .select(`
           id, email, role, iam_bindings, assigned_room,
           actor:actor_id!inner ( id, name, clinic_id )
@@ -473,7 +473,7 @@ export class DatabaseService {
     if (!user) return;
 
     const { error } = await this.supabase
-      .from('user')
+      .from('app_user')
       .update({ assigned_room: room })
       .eq('id', user.id);
 
@@ -485,20 +485,38 @@ export class DatabaseService {
 
   async saveUser(u: Partial<UserProfile>, pw?: string) {
     if (u.id) {
-      const { error } = await this.supabase
-        .from('profiles')
-        .update({
-          name: u.name,
-          email: u.email,
-          role: u.role,
-          clinic_id: u.clinicId,
-          iam: u.iam,
-          assigned_room: u.assignedRoom,
-          avatar: u.avatar
-        })
-        .eq('id', u.id);
+      const { data, error } = await this.supabase.rpc('update_user_with_actor', {
+        p_user_id: u.id,
+        p_name: u.name,
+        p_role: u.role,
+        p_iam_bindings: u.iam || [],
+        p_assigned_room: u.assignedRoom
+      });
       
       if (error) throw error;
+      
+      if (pw) {
+        const { error: pwError } = await this.supabase.auth.updateUser({ password: pw });
+        if (pwError) throw pwError;
+      }
+
+      if (data) {
+        const updated: UserProfile = {
+          id: data.id,
+          actor_id: data.actor_id,
+          clinicId: data.actor?.clinic_id,
+          name: data.actor?.name,
+          email: data.email,
+          role: data.role,
+          iam: data.iam_bindings || [],
+          assignedRoom: data.assigned_room
+        };
+        
+        this.users.update(list => list.map(user => user.id === updated.id ? updated : user));
+        if (this.currentUser()?.id === updated.id) {
+          this.currentUser.set(updated);
+        }
+      }
       
     } else {
       if (!u.email || !pw || !u.clinicId || !u.name) {
@@ -520,19 +538,31 @@ export class DatabaseService {
       if (authError) throw authError;
       if (!authData.user) throw new Error('Failed to create auth user');
       
-      const { error: profileError } = await this.supabase
-        .from('profiles')
-        .update({
-          name: u.name,
-          role: u.role || 'USER',
-          clinic_id: u.clinicId,
-          iam: u.iam || [],
-          assigned_room: u.assignedRoom,
-          avatar: u.avatar
-        })
-        .eq('id', authData.user.id);
+      const { data, error: rpcError } = await this.supabase.rpc('create_user_with_actor', {
+        p_user_id: authData.user.id,
+        p_email: u.email,
+        p_name: u.name,
+        p_clinic_id: u.clinicId,
+        p_role: u.role || 'USER',
+        p_iam_bindings: u.iam || [],
+        p_assigned_room: u.assignedRoom
+      });
       
-      if (profileError) throw profileError;
+      if (rpcError) throw rpcError;
+
+      if (data) {
+        const newUser: UserProfile = {
+          id: data.id,
+          actor_id: data.actor_id,
+          clinicId: data.actor?.clinic_id,
+          name: data.actor?.name,
+          email: data.email,
+          role: data.role,
+          iam: data.iam_bindings || [],
+          assignedRoom: data.assigned_room
+        };
+        this.users.update(list => [...list, newUser]);
+      }
     }
   }
 }
