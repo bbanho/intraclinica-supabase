@@ -56,17 +56,26 @@ export class DatabaseService {
   }
 
   async loadUserProfile(uid: string) {
-    const { data } = await this.supabase.from('profiles').select('*').eq('id', uid).single();
+    const { data, error } = await this.supabase
+      .from('view_user_profiles')
+      .select('*')
+      .eq('id', uid)
+      .single();
+      
     if (data) {
       const user = data as any; 
-      const profile: UserProfile = { ...user, clinicId: user.clinic_id, iam: user.iam || [] };
+      const profile: UserProfile = { 
+        ...user, 
+        clinicId: user.clinic_id, 
+        iam: user.iam_bindings || [] 
+      };
       this.currentUser.set(profile);
       if (profile.clinicId) this.selectedContextClinic.set(profile.clinicId);
     }
   }
 
   private async syncDataForClinic(clinicId: string) {
-    // Stub implementation for compilation check
+    // Stub implementation for now
     console.log('Syncing data for clinic:', clinicId);
   }
 

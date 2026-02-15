@@ -11,7 +11,7 @@ export class PatientService {
 
   getPatients(clinicId: string): Observable<Patient[]> {
     return from(
-      this.supabase.from('patients')
+      this.supabase.from('view_patients_extended')
         .select('*')
         .eq('clinic_id', clinicId)
         .order('created_at', { ascending: false })
@@ -97,36 +97,22 @@ export class PatientService {
   }
 
   createPatient(patient: Omit<Patient, 'id' | 'createdAt'>): Observable<Patient> {
-    const dbPatient = {
-      clinic_id: patient.clinicId,
-      name: patient.name,
-      email: patient.email,
-      phone: patient.phone,
-      cpf: patient.cpf,
-      birth_date: patient.birthDate,
-      gender: patient.gender,
-      created_at: new Date().toISOString()
-    };
-
+    // Note: Creating a patient is complex because it requires an actor record.
+    // In a real sovereign system, we should use a Postgres Function (RPC) 
+    // to handle this atomic transaction.
+    
     return from(
-      this.supabase.from('patients')
-        .insert(dbPatient)
-        .select()
-        .single()
+      this.supabase.rpc('create_patient_with_actor', {
+        p_clinic_id: patient.clinicId,
+        p_name: patient.name,
+        p_cpf: patient.cpf,
+        p_birth_date: patient.birthDate,
+        p_gender: patient.gender
+      })
     ).pipe(
       map(({ data, error }) => {
         if (error) throw error;
-        return {
-          id: data.id,
-          clinicId: data.clinic_id,
-          name: data.name,
-          email: data.email,
-          phone: data.phone,
-          cpf: data.cpf,
-          birthDate: data.birth_date,
-          gender: data.gender,
-          createdAt: data.created_at
-        } as Patient;
+        return data as Patient;
       })
     );
   }
@@ -198,8 +184,8 @@ export class PatientService {
           notes: data.notes,
           type: data.type,
           timestamp: data.created_at,
-          createdAt: data.created_at // Assuming type definition might have both or one
-        } as unknown as ClinicalRecord; // forced casting to match type
+          createdAt: data.created_at 
+        } as unknown as ClinicalRecord;
       })
     );
   }
