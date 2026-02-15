@@ -30,7 +30,7 @@ Este documento é a bússola para a transformação dos Stubs em realidade técn
 - [x] Criar `rpc` helper no `SupabaseService`.
 - [x] Implementar `PatientService` com JOIN manual em `Actor`.
 - [x] Implementar `saveUser` real (Criação de Auth + Actor + User).
-- [ ] Implementar `addClinic` e `deleteClinic`.
+- [x] Implementar `addClinic` e `deleteClinic`.
 
 ### Fase 2: Operação Clínica
 - [ ] Migrar `ClinicalRecord` (Evoluções médicas) para escrita real.

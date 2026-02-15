@@ -105,7 +105,7 @@ export class DatabaseService {
         .eq('actor.clinic_id', clinicId),
 
       // Clinics (all accessible)
-      this.supabase.from('clinic').select('*'),
+      this.supabase.from('clinics').select('*'),
 
       // Products (active only)
       this.supabase
@@ -459,12 +459,21 @@ export class DatabaseService {
   }
 
   async addClinic(c: Partial<Clinic>) { 
-    const { error } = await this.supabase.from('clinic').insert(c);
-    if (error) throw error;
+    const { error } = await this.supabase.from('clinics').insert(c);
+    if (error) {
+      if (error.code === '23505') {
+        console.error('Duplicate clinic detected:', error);
+        throw new Error('Clinic already exists (Duplicate Key).');
+      }
+      throw error;
+    }
   }
 
   async deleteClinic(id: string) {
-    const { error } = await this.supabase.from('clinic').delete().eq('id', id);
+    const { error } = await this.supabase
+      .from('clinics')
+      .update({ status: 'inactive' })
+      .eq('id', id);
     if (error) throw error;
   }
 
