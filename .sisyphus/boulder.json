@@ -1,9 +1,10 @@
 {
-  "active_plan": "/var/home/motto/Documentos/REPO/intraclinica-supabase/.sisyphus/plans/fix-saveuser-profiles.md",
-  "started_at": "2026-02-15T12:50:00Z",
-  "completed_at": "2026-02-15T12:55:00Z",
-  "session_ids": ["ses_39eacfc3dffeDMyBXGZMCzGEPy", "ses_39ea9a7a1ffeWdbGM8tyqXEhRF"],
-  "plan_name": "fix-saveuser-profiles",
+  "active_plan": "/var/home/motto/Documentos/REPO/intraclinica-supabase/.sisyphus/plans/admin-sovereignty-clinics.md",
+  "started_at": "2026-02-15T13:30:00Z",
+  "completed_at": "2026-02-15T15:00:00Z",
+  "session_ids": ["ses_39efa3e48ffeAYh8naM5iNAFr9"],
+  "plan_name": "admin-sovereignty-clinics",
   "status": "completed",
-  "build_result": "BUILD_GREEN"
+  "build_result": null,
+  "mission_directive": "ADMIN_SOVEREIGNTY_CLINICS"
 }
