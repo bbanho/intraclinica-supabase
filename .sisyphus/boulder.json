@@ -1,0 +1,9 @@
+{
+  "active_plan": "/var/home/motto/Documentos/REPO/intraclinica-supabase/.sisyphus/plans/fix-saveuser-profiles.md",
+  "started_at": "2026-02-15T12:50:00Z",
+  "completed_at": "2026-02-15T12:55:00Z",
+  "session_ids": ["ses_39eacfc3dffeDMyBXGZMCzGEPy", "ses_39ea9a7a1ffeWdbGM8tyqXEhRF"],
+  "plan_name": "fix-saveuser-profiles",
+  "status": "completed",
+  "build_result": "BUILD_GREEN"
+}
