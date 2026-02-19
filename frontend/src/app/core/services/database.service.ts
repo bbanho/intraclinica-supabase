@@ -86,7 +86,20 @@ export class DatabaseService {
         assignedRoom: u.assigned_room
       };
       this.currentUser.set(profile);
-      if (profile.clinicId) this.selectedContextClinic.set(profile.clinicId);
+      
+      // AUTO-SELECT CLINIC (FIX FOR ADMINS)
+      if (profile.clinicId) {
+          this.selectedContextClinic.set(profile.clinicId);
+      } else if (profile.role === 'admin' || profile.role === 'ADMIN' || profile.role === 'SUPER_ADMIN') {
+          // If admin has no specific clinic, select the first available one to avoid empty menu
+          setTimeout(async () => {
+              const { data: clinics } = await this.supabase.from('clinics').select('id').limit(1);
+              if (clinics && clinics.length > 0) {
+                  console.log('Auto-selecting clinic for Admin:', clinics[0].id);
+                  this.selectedContextClinic.set(clinics[0].id);
+              }
+          }, 500);
+      }
     }
   }
 
@@ -123,7 +136,7 @@ export class DatabaseService {
 
       // Appointments
       this.supabase
-        .from('appointment')
+        .from('appointments')
         .select('*')
         .eq('clinic_id', clinicId)
         .order('date', { ascending: true }),
@@ -339,7 +352,7 @@ export class DatabaseService {
     if (!clinicId) throw new Error("Clinic ID is required.");
 
     const { data, error } = await this.supabase
-      .from('appointment')
+      .from('appointments')
       .insert({
         clinic_id: clinicId,
         patient_id: apt.patientId,
@@ -396,7 +409,7 @@ export class DatabaseService {
 
   async updateAppointmentStatus(id: string, status: string) { 
     const { error } = await this.supabase
-      .from('appointment')
+      .from('appointments')
       .update({ status })
       .eq('id', id);
     
@@ -405,11 +418,66 @@ export class DatabaseService {
 
   async updateAppointmentRoom(id: string, room: string) { 
     const { error } = await this.supabase
-      .from('appointment')
+      .from('appointments')
       .update({ room_number: room })
       .eq('id', id);
     
     if (error) throw error;
+  }
+
+  async transitionAppointmentStatus(id: string, newStatus: string): Promise<void> {
+    // 1. Fetch current status
+    const { data: current, error: fetchError } = await this.supabase
+      .from('appointments')
+      .select('status')
+      .eq('id', id)
+      .single();
+
+    if (fetchError || !current) {
+      throw new Error(`Appointment not found: ${id}`);
+    }
+
+    const currentStatus = current.status;
+
+    // 2. Validate transition
+    if (currentStatus === newStatus) return; // No change needed
+
+    let isValid = false;
+
+    // Rule: Any (except Realizado) -> Cancelado
+    if (newStatus === 'Cancelado') {
+      if (currentStatus !== 'Realizado') {
+        isValid = true;
+      }
+    } else {
+      // Rule: Strict progression
+      switch (currentStatus) {
+        case 'Agendado':
+          if (newStatus === 'Aguardando') isValid = true;
+          break;
+        case 'Aguardando':
+          if (newStatus === 'Chamado') isValid = true;
+          break;
+        case 'Chamado':
+          if (newStatus === 'Em Atendimento') isValid = true;
+          break;
+        case 'Em Atendimento':
+          if (newStatus === 'Realizado') isValid = true;
+          break;
+      }
+    }
+
+    if (!isValid) {
+      throw new Error(`Invalid status transition from '${currentStatus}' to '${newStatus}'`);
+    }
+
+    // 3. Update status
+    const { error: updateError } = await this.supabase
+      .from('appointments')
+      .update({ status: newStatus })
+      .eq('id', id);
+
+    if (updateError) throw updateError;
   }
 
   async requestAccess(clinicId: string, clinicName: string, reason: string, roleId: string = 'roles/viewer') { 
