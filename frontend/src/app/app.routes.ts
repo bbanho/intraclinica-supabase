@@ -3,8 +3,7 @@ import { authGuard } from './core/guards/auth.guard';
 import { MainLayoutComponent } from './layout/main-layout.component';
 import { provideState } from '@ngrx/store';
 import { provideEffects } from '@ngrx/effects';
-import { inventoryReducer } from './features/inventory/store/inventory.reducer';
-import { InventoryEffects } from './features/inventory/store/inventory.effects';
+// Imports removed as NgRx is not used for Inventory anymore
 
 export const routes: Routes = [
   { 
@@ -19,11 +18,11 @@ export const routes: Routes = [
       { path: '', redirectTo: 'inventory', pathMatch: 'full' },
       { 
         path: 'inventory', 
-        loadComponent: () => import('./features/inventory/inventory.component').then(m => m.InventoryComponent),
-        providers: [
-          provideState({ name: 'inventory', reducer: inventoryReducer }),
-          provideEffects([InventoryEffects])
-        ]
+        loadComponent: () => import('./features/inventory/inventory.component').then(m => m.InventoryComponent)
+      },
+      {
+        path: 'procedures',
+        loadComponent: () => import('./features/procedures/procedure-recipe.component').then(m => m.ProcedureRecipeComponent)
       },
       {
         path: 'pacientes',
@@ -39,7 +38,11 @@ export const routes: Routes = [
       },
       { 
         path: 'clinical', 
-        loadComponent: () => import('./features/clinical/clinical.component').then(m => m.ClinicalComponent) 
+        loadComponent: () => import('./features/clinical/clinical-execution.component').then(m => m.ClinicalExecutionComponent) 
+      },
+      { 
+        path: 'clinical-execution', 
+        loadComponent: () => import('./features/clinical/clinical-execution.component').then(m => m.ClinicalExecutionComponent) 
       },
       { 
         path: 'reports', 

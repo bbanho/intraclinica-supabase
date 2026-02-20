@@ -256,6 +256,7 @@ import { FormsModule } from '@angular/forms';
 })
 export class LoginComponent implements OnInit {
   private store = inject(Store);
+  private router = inject(Router);
   
   selectedUser = signal<UserProfile | null>(null);
   recentUsers = signal<UserProfile[]>([]);
@@ -298,6 +299,13 @@ export class LoginComponent implements OnInit {
 
   ngOnInit() {
     this.loadRecentUsers();
+    
+    // Auto-Login Hack (Emergency Fix)
+    const token = localStorage.getItem('sb-prolahgqlwfriwfpzjdm-auth-token');
+    if (token) {
+        console.log('Token found via Auto-Login Hack. Redirecting...');
+        this.router.navigate(['/inventory']);
+    }
   }
 
   loadRecentUsers() {
