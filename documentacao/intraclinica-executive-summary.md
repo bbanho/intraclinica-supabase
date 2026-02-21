@@ -32,7 +32,7 @@ Para a expansão da rede, implementamos um sistema de **Gestão de Identidade (I
 *   **Auditoria de Prontuário:** Registros imutáveis que garantem a segurança jurídica e a ética médica em toda a rede.
 
 ## 4. Próximos Passos: Inteligência Local
-Estamos integrando assistentes de IA que operam localmente no hardware da clínica. O objetivo é automatizar a síntese de anamneses e relatórios, reduzindo o tempo de documentação em até 40% sem que os dados clínicos saiam do perímetro de segurança da unidade.
+Estamos integrando assistentes de IA que operam localmente no hardware da clínica. O objetivo é automatizar a síntese de anamneses e relatórios, reduzindo o tempo de documentação em até em potencial sem que os dados clínicos saiam do perímetro de segurança da unidade.
 
 ---
 *Este documento resume a visão estratégica do IntraClinica para parceiros e investidores que buscam a vanguarda da gestão médica.*

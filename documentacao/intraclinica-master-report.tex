@@ -132,7 +132,7 @@ Diferente das soluções tradicionais em nuvem opaca, o IntraClinica utiliza uma
 
 \begin{itemize}
     \item \textbf{Backend-as-a-Service Resiliente:} Implementado sobre Supabase (PostgreSQL 16), garantindo que a clínica seja dona da base de dados e possa realizar auditorias granulares.
-    \item \textbf{Isolamento Multi-Tenancy (RLS):} Utilização de \textit{Row Level Security} nativo do Postgres para garantir o isolamento absoluto dos dados entre diferentes unidades. Um médico só acessa dados onde o identificador da clínica coincide com seu perfil autorizado.
+    \item \textbf{Isolamento Multi-Tenancy (RLS):} Utilização de \textit{Row Level Security} nativo do Postgres para garantir o isolamento lógico rigoroso dos dados entre diferentes unidades. Um médico só acessa dados onde o identificador da clínica coincide com seu perfil autorizado.
     \item \textbf{Máquina de Estados de Agendamento:} Lógica rigorosa de transição de status (Agendado $\rightarrow$ Aguardando $\rightarrow$ Em Atendimento $\rightarrow$ Realizado), impedindo saltos de etapa e garantindo a integridade do faturamento e dos indicadores de produtividade.
     \item \textbf{Segurança Zero-Trust:} Cada requisição de dado é validada no nível do banco de dados, protegendo a rede contra acessos indevidos.
 \end{itemize}

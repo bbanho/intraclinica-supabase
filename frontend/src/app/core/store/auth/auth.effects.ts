@@ -30,6 +30,32 @@ export class AuthEffects {
     )
   );
 
+  loadSession$ = createEffect(() =>
+    this.actions$.pipe(
+      ofType(AuthActions.loadSession),
+      switchMap(() =>
+        from(this.supabase.auth.getUser()).pipe(
+          map(({ data: { user }, error }) => {
+            if (error || !user) {
+              return AuthActions.loginFailure({ error: error?.message || 'No user found' });
+            }
+            // Mapear User do Supabase para UserProfile da aplicação
+            const profile = { 
+              id: user.id, 
+              email: user.email!, 
+              name: user.user_metadata['name'] || 'User',
+              role: user.app_metadata['role'] || 'user',
+              avatar: null,
+              clinicId: user.user_metadata['clinic_id'] || 'default' // Fallback para passar no build
+            };
+            return AuthActions.loginSuccess({ user: profile });
+          }),
+          catchError((error) => of(AuthActions.loginFailure({ error: error.message })))
+        )
+      )
+    )
+  );
+
   loginSuccess$ = createEffect(() =>
     this.actions$.pipe(
       ofType(AuthActions.loginSuccess),

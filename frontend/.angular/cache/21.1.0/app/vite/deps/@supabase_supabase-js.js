@@ -4,7 +4,7 @@ import {
 } from "./chunk-B2KI3AIV.js";
 import {
   __spreadValues
-} from "./chunk-KWSTWQNB.js";
+} from "./chunk-H2SRQSE4.js";
 
 // node_modules/@supabase/functions-js/dist/module/helper.js
 var resolveFetch = (customFetch) => {
