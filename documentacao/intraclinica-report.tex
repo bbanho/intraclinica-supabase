@@ -1,0 +1,109 @@
+\documentclass[12pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[portuguese]{babel}
+\usepackage[T1]{fontenc}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{geometry}
+\usepackage{xcolor}
+\usepackage{titlesec}
+\usepackage{booktabs}
+\usepackage{fancyhdr}
+
+% Configurações de layout
+\geometry{margin=2.5cm}
+\definecolor{medblue}{RGB}{0, 102, 204}
+\hypersetup{colorlinks=true, linkcolor=medblue, urlcolor=medblue}
+
+% Estilo de títulos
+\titleformat{\section}{\color{medblue}\normalfont\Large\bfseries}{\thesection}{1em}{}
+\titleformat{\subsection}{\color{medblue}\normalfont\large\bfseries}{\thesubsection}{1em}{}
+
+% Cabeçalho e Rodapé
+\pagestyle{fancy}
+\fancyhf{}
+\lhead{Relatório de Arquitetura e Operação - IntraClinica}
+\rhead{Confidencial}
+\cfoot{\thepage}
+
+\title{
+    \vspace{2cm}
+    \textbf{\Huge IntraClinica}\\
+    \large Gestão Clínica Soberana e Excelência em Experiência Médica (plataformas legadas (como o MedX))\\
+    \vspace{1cm}
+    \Large Relatório Técnico-Operacional para Expansão e Curadoria
+}
+\author{Bruno \& Axi (AxiomaticDelirium)}
+\date{Fevereiro de 2026}
+
+\begin{document}
+
+\maketitle
+\newpage
+
+\tableofcontents
+\newpage
+
+\section{Visão Geral: O Compromisso IntraClinica}
+O IntraClinica foi concebido não apenas como uma ferramenta administrativa, mas como um \textbf{organismo de suporte à decisão médica}. Em um cenário onde a dependência de plataformas externas compromete a soberania dos dados e a agilidade do atendimento, o IntraClinica propõe uma infraestrutura resiliente, centrada na \textbf{Experiência Médica (plataformas legadas (como o MedX))}.
+
+Nossa missão é devolver ao médico o controle total sobre o seu fluxo de trabalho, garantindo que a tecnologia atue como um multiplicador de força, e não como uma barreira burocrática.
+
+\section{Fluxos de Uso e Jornada do Paciente (plataformas legadas (como o MedX))}
+
+\subsection{Recepção e Triagem Inteligente}
+O fluxo de entrada foi otimizado para reduzir a fricção no primeiro contato.
+\begin{itemize}
+    \item \textbf{Uso Prático:} Identificação rápida via dados demográficos integrados.
+    \item \textbf{Diferencial plataformas legadas (como o MedX):} A recepção opera com permissões granulares, protegendo a intimidade do prontuário enquanto garante eficiência no agendamento.
+\end{itemize}
+
+\subsection{Atendimento Clínico e Prontuário Soberano}
+O coração da plataforma é o prontuário eletrônico, desenhado com foco no \textit{deep work} médico.
+\begin{itemize}
+    \item \textbf{Uso Prático:} Registro de evoluções, prescrições e solicitações de exames com interface limpa e intuitiva.
+    \item \textbf{Diferencial plataformas legadas (como o MedX):} Implementação da "Regra de Uma Mão" para tablets, permitindo que o médico realize consultas sem que a interface se torne um obstáculo físico. Os dados são persistidos localmente e sincronizados em tempo real, garantindo integridade absoluta.
+\end{itemize}
+
+\subsection{Gestão de Insumos e Estoque Crítico}
+A gestão de suprimentos é tratada como um processo de segurança clínica.
+\begin{itemize}
+    \item \textbf{Uso Prático:} Monitoramento automatizado de validades e níveis críticos de estoque de insumos médicos.
+    \item \textbf{Diferencial plataformas legadas (como o MedX):} Alertas inteligentes de reabastecimento baseados em tendências de consumo, evitando interrupções em procedimentos por falta de material.
+\end{itemize}
+
+\section{Governança Médica e Segurança (IAM)}
+A curadoria de médicos parceiros exige um controle rigoroso de quem acessa o quê. Nossa estrutura de \textbf{Identity and Access Management (IAM)} define papéis claros:
+
+\begin{table}[h]
+\centering
+\caption{Estrutura de Papéis e Responsabilidades}
+\begin{tabular}{@{}ll@{}}
+\toprule
+\textbf{Papel} & \textbf{Responsabilidade Principal} \\ \midrule
+\textbf{Diretoria Médica} & Gestão de protocolos, curadoria de parceiros e auditoria global. \\
+\textbf{Médico Especialista} & Atendimento pleno e gestão do prontuário do paciente. \\
+\textbf{Secretariado} & Agendamento e fluxo de faturamento básico. \\
+\textbf{Gestão de Rede} & Análise macro de tendências e escalabilidade das unidades. \\ \bottomrule
+\end{tabular}
+\end{table}
+
+\section{Fundação Tecnológica e Resiliência}
+A arquitetura do IntraClinica utiliza tecnologias de ponta para garantir que o sistema nunca pare:
+\begin{itemize}
+    \item \textbf{Persistência Local-First:} O sistema prioriza a latência zero e a disponibilidade offline.
+    \item \textbf{Segurança Zero-Trust:} Cada requisição de dado é validada por regras de segurança no nível do banco de dados, garantindo que um médico parceiro acesse apenas os dados pertinentes à sua atuação.
+    \item \textbf{Inteligência Distribuída:} Utilização de modelos de linguagem para auxílio na síntese de casos clínicos e análise de estoque sem expor dados sensíveis a nuvens públicas não controladas.
+\end{itemize}
+
+\section{Roadmap de Expansão}
+Estamos evoluindo de uma malha de dados geométrica para uma topologia de conhecimento (Tier 4). 
+\begin{enumerate}
+    \item \textbf{Fase Atual:} Consolidação da persistência social e infraestrutura Supabase.
+    \item \textbf{Próxima Fase:} Implementação de assistentes de anamnese baseados em IA local para acelerar a documentação sem perda de qualidade.
+\end{enumerate}
+
+\section{Conclusão}
+O IntraClinica é a fundação para uma medicina mais humana, eficiente e, acima de tudo, \textbf{soberana}. Estamos prontos para expandir a rede de parceiros, oferecendo uma plataforma que respeita o tempo do médico e a segurança do paciente.
+
+\end{document}

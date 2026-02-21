@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="pt-br" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Docs | Axiomatic Architecture</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/framer-motion@10.16.4/dist/framer-motion.js"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500&family=Playfair+Display:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --med-dark: #0a0a0b;
+            --med-blue: #00d1df;
+            --med-ice: #f8fafc;
+            --med-grey: #1e293b;
+        }
+        body {
+            background-color: var(--med-dark);
+            color: var(--med-ice);
+            font-family: 'JetBrains+Mono', monospace;
+            -webkit-font-smoothing: antialiased;
+        }
+        .serif { font-family: 'Playfair Display', serif; }
+        .border-med { border-color: rgba(0, 209, 223, 0.15); }
+        .bg-med-card { background: rgba(30, 41, 59, 0.3); }
+        .bg-grid {
+            background-image: linear-gradient(to right, rgba(255,255,255,0.02) 1px, transparent 1px),
+                              linear-gradient(to bottom, rgba(255,255,255,0.02) 1px, transparent 1px);
+            background-size: 40px 40px;
+        }
+        ::-webkit-scrollbar { width: 4px; }
+        ::-webkit-scrollbar-track { background: var(--med-dark); }
+        ::-webkit-scrollbar-thumb { background: var(--med-grey); border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--med-blue); }
+    </style>
+</head>
+<body class="bg-grid">
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useMemo } = React;
+        const { motion, AnimatePresence } = Motion;
+
+        const App = () => {
+            const [activeSection, setActiveSection] = useState('vision');
+
+            return (
+                <div className="flex min-h-screen">
+                    {/* Sidebar */}
+                    <aside className="w-64 border-r border-med h-screen sticky top-0 bg-[#0a0a0b]/80 backdrop-blur-xl hidden lg:flex flex-col p-8">
+                        <div className="mb-12">
+                            <div className="flex items-center gap-2 mb-2">
+                                <div className="w-2 h-2 bg-cyan-400 rounded-full"></div>
+                                <span className="text-xs font-bold tracking-widest uppercase text-cyan-400/60">Axiomatic Unit</span>
+                            </div>
+                            <h1 className="text-lg font-medium tracking-tighter">Documentation <span className="opacity-30">v3.3</span></h1>
+                        </div>
+
+                        <nav className="flex-1 space-y-8">
+                            <div>
+                                <h3 className="text-[10px] uppercase tracking-[0.3em] opacity-30 mb-4 font-bold">Estratégia</h3>
+                                <ul className="space-y-3 text-xs">
+                                    <li><button onClick={() => setActiveSection('vision')} className={`hover:text-cyan-400 transition-colors ${activeSection === 'vision' ? 'text-cyan-400 font-bold' : 'opacity-60'}`}>Visão Clínica</button></li>
+                                    <li><button onClick={() => setActiveSection('medx')} className={`hover:text-cyan-400 transition-colors ${activeSection === 'medx' ? 'text-cyan-400 font-bold' : 'opacity-60'}`}>Arquitetura de Vanguarda</button></li>
+                                </ul>
+                            </div>
+                            <div>
+                                <h3 className="text-[10px] uppercase tracking-[0.3em] opacity-30 mb-4 font-bold">Arquitetura</h3>
+                                <ul className="space-y-3 text-xs">
+                                    <li><button onClick={() => setActiveSection('database')} className={`hover:text-cyan-400 transition-colors ${activeSection === 'database' ? 'text-cyan-400 font-bold' : 'opacity-60'}`}>Topologia de Dados</button></li>
+                                    <li><button onClick={() => setActiveSection('operation')} className={`hover:text-cyan-400 transition-colors ${activeSection === 'operation' ? 'text-cyan-400 font-bold' : 'opacity-60'}`}>Fluxos de Operação</button></li>
+                                </ul>
+                            </div>
+                            <div>
+                                <h3 className="text-[10px] uppercase tracking-[0.3em] opacity-30 mb-4 font-bold">Engenharia</h3>
+                                <ul className="space-y-3 text-xs">
+                                    <li><button onClick={() => setActiveSection('nexus')} className={`hover:text-cyan-400 transition-colors ${activeSection === 'nexus' ? 'text-cyan-400 font-bold' : 'opacity-60'}`}>Axio Nexus v3</button></li>
+                                </ul>
+                            </div>
+                        </nav>
+
+                        <div className="mt-auto pt-8 border-t border-med opacity-20 text-[9px] uppercase tracking-widest leading-loose">
+                            BLUEFIN_HOST<br/>LATENCY: 12ms<br/>STABLE_BUILD
+                        </div>
+                    </aside>
+
+                    {/* Main Content */}
+                    <main className="flex-1 p-8 lg:p-24 max-w-5xl overflow-y-auto">
+                        <AnimatePresence mode="wait">
+                            <motion.div
+                                key={activeSection}
+                                initial={{ opacity: 0, x: 10 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                exit={{ opacity: 0, x: -10 }}
+                                transition={{ duration: 0.4 }}
+                            >
+                                {activeSection === 'vision' && <VisionSection />}
+                                {activeSection === 'medx' && <AxiMedSection />}
+                                {activeSection === 'database' && <DatabaseSection />}
+                                {activeSection === 'operation' && <OperationSection />}
+                                {activeSection === 'nexus' && <NexusSection />}
+                            </motion.div>
+                        </AnimatePresence>
+                    </main>
+                </div>
+            );
+        };
+
+        const VisionSection = () => (
+            <div className="space-y-12">
+                <header>
+                    <div className="text-cyan-500 text-[10px] font-bold tracking-[0.4em] uppercase mb-4 text-justify">Foundation</div>
+                    <h2 className="serif text-5xl italic mb-6">Medicina para <br/> Humanos.</h2>
+                    <p className="text-sm opacity-60 leading-relaxed max-w-2xl text-justify">
+                        O IntraClinica surge como uma terceira via no mercado de saúde. Fundamentado na soberania técnica e na dignidade da prática médica, o sistema devolve ao profissional o controle absoluto sobre o dado e o tempo de atendimento.
+                    </p>
+                </header>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <div className="bg-med-card p-8 rounded-2xl border border-med">
+                        <h4 className="text-xs font-bold uppercase tracking-widest mb-4 text-cyan-400">Soberania Radical</h4>
+                        <p className="text-xs opacity-50 leading-relaxed text-justify">
+                            Diferente de sistemas de aluguel, o médico é dono físico e lógico da informação. A posse do hardware e do banco de dados (Nexus) garante que a inteligência gerada seja um ativo vitalício.
+                        </p>
+                    </div>
+                    <div className="bg-med-card p-8 rounded-2xl border border-med">
+                        <h4 className="text-xs font-bold uppercase tracking-widest mb-4 text-cyan-400">Resiliência Operacional</h4>
+                        <p className="text-xs opacity-50 leading-relaxed text-justify">
+                            Infraestrutura Local-First. O sistema opera com latência zero e independe da estabilidade de provedores de nuvem centralizados para o fluxo clínico básico.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        );
+
+        const AxiMedSection = () => (
+            <div className="space-y-12">
+                <header>
+                    <div className="text-cyan-500 text-[10px] font-bold tracking-[0.4em] uppercase mb-4">Strategic Goals</div>
+                    <h2 className="serif text-5xl italic mb-6">Soberania vs Burocracia.</h2>
+                    <p className="text-sm opacity-60 leading-relaxed max-w-2xl text-justify">
+                        Superando a complexidade burocrática dos sistemas legados. O IntraClinica propõe um modelo de Software Soberano em oposição às arquiteturas fechadas tradicionais, focando na fluidez técnica.
+                    </p>
+                </header>
+
+                <div className="space-y-6">
+                    <div className="flex gap-12 items-start py-8 border-b border-med">
+                        <div className="w-1/3">
+                            <h4 className="text-[10px] font-bold uppercase tracking-widest text-cyan-400">Excelência Operacional</h4>
+                        </div>
+                        <div className="w-2/3">
+                            <p className="text-xs opacity-50 leading-relaxed text-justify">
+                                Otimização de custos através da automação atômica. Identificamos gargalos comuns em plataformas tradicionais e implementamos soluções de rastreabilidade instantânea de insumos.
+                            </p>
+                        </div>
+                    </div>
+                    <div className="flex gap-12 items-start py-8 border-b border-med">
+                        <div className="w-1/3">
+                            <h4 className="text-[10px] font-bold uppercase tracking-widest text-cyan-400">A "Regra de Uma Mão"</h4>
+                        </div>
+                        <div className="w-2/3">
+                            <p className="text-xs opacity-50 leading-relaxed text-justify">
+                                Priorizamos o contato visual entre médico e paciente através de interfaces monomanuais otimizadas, superando o modelo de atenção fragmentada do legado.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        );
+
+        const DatabaseSection = () => (
+            <div className="space-y-12">
+                <header>
+                    <div className="text-cyan-500 text-[10px] font-bold tracking-[0.4em] uppercase mb-4">Data Topology</div>
+                    <h2 className="serif text-5xl italic mb-6 leading-tight">Estrutura Relacional <br/> e Multi-Tenancy.</h2>
+                </header>
+
+                <div className="bg-med-card rounded-3xl p-12 border border-med flex items-center justify-center min-h-[400px]">
+                    <DatabaseSchemaAnimation />
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div className="p-6 border border-med rounded-xl">
+                        <div className="text-lg font-medium mb-2 italic">PostgreSQL 16</div>
+                        <p className="text-[10px] opacity-40 leading-relaxed text-justify">Persistência relacional auditável e soberana via Supabase.</p>
+                    </div>
+                    <div className="p-6 border border-med rounded-xl">
+                        <div className="text-lg font-medium mb-2 italic">RLS Security</div>
+                        <p className="text-[10px] opacity-40 leading-relaxed text-justify">Segurança Zero-Trust no nível da linha. Isolamento absoluto por clínica.</p>
+                    </div>
+                    <div className="p-6 border border-med rounded-xl">
+                        <div className="text-lg font-medium mb-2 italic">Actor Specialization</div>
+                        <p className="text-[10px] opacity-40 leading-relaxed text-justify">Herança de tipos (User/Patient) para gestão de identidade unificada.</p>
+                    </div>
+                </div>
+            </div>
+        );
+
+        const OperationSection = () => {
+            const [step, setStep] = useState(0);
+            
+            useEffect(() => {
+                const interval = setInterval(() => setStep(s => (s + 1) % 4), 4000);
+                return () => clearInterval(interval);
+            }, []);
+
+            return (
+                <div className="space-y-12">
+                    <header>
+                        <div className="text-cyan-500 text-[10px] font-bold tracking-[0.4em] uppercase mb-4">Clinical Logic</div>
+                        <h2 className="serif text-5xl italic mb-6">Fluxo de Baixa Atômica.</h2>
+                        <p className="text-sm opacity-60 leading-relaxed text-justify max-w-2xl">
+                            A tecnologia como rastro do ato médico. No IntraClinica, a execução de um procedimento dispara automaticamente o controle de insumos e faturamento.
+                        </p>
+                    </header>
+
+                    <div className="bg-med-card rounded-3xl p-12 border border-med min-h-[500px] flex flex-col md:flex-row items-center gap-12 text-justify">
+                        <div className="w-full md:w-1/2 flex flex-col items-center">
+                            <OperationAnimation step={step} />
+                        </div>
+                        <div className="w-full md:w-1/2 space-y-8">
+                            {[
+                                {t: "Atendimento Clínico", d: "Médico finaliza procedimento no tablet.", icon: "🩺"},
+                                {t: "Chamada Atômica", d: "RPC consulta receita dinâmica de insumos.", icon: "⚡"},
+                                {t: "Dedução de Estoque", d: "Postgres atualiza saldo e gera rastro de auditoria.", icon: "📦"},
+                                {t: "Consolidação", d: "Fluxo financeiro e de reposição atualizado.", icon: "💎"}
+                            ].map((s, i) => (
+                                <motion.div 
+                                    key={i}
+                                    animate={{ opacity: step === i ? 1 : 0.2, x: step === i ? 10 : 0 }}
+                                    className="flex gap-6 items-center"
+                                >
+                                    <div className="text-2xl">{s.icon}</div>
+                                    <div>
+                                        <h4 className="text-xs font-bold uppercase tracking-widest">{s.t}</h4>
+                                        <p className="text-[10px] opacity-60">{s.d}</p>
+                                    </div>
+                                </motion.div>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        const NexusSection = () => (
+            <div className="space-y-12 py-12">
+                <div className="text-center max-w-2xl mx-auto mb-16">
+                    <h2 className="serif text-6xl italic mb-8">O Engenheiro <br/> Invisível.</h2>
+                    <p className="text-sm opacity-60 leading-loose text-justify">
+                        Axio Nexus não é um software; é o garantidor da integridade. Ele monitora a genealogia do projeto, audita a segurança Zero-Trust e tece a topologia de conhecimento que sustenta o IntraClinica.
+                    </p>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
+                    <div className="space-y-8">
+                        <div className="bg-white/5 p-8 rounded-3xl border-l-4 border-cyan-500">
+                            <div className="text-[10px] opacity-30 uppercase font-bold mb-4">Tier 4: Topology</div>
+                            <h4 className="text-xl mb-4 italic">Consciência de Fantasmas</h4>
+                            <p className="text-xs opacity-50 leading-relaxed text-justify">
+                                O Nexus rastreia GhostFiles — arquivos superados ou movidos entre branches. Ele mantém a lógica conectada mesmo quando a implementação física muda, evitando a amnésia sistêmica.
+                            </p>
+                        </div>
+                        <div className="bg-white/5 p-8 rounded-3xl border-l-4 border-white/10">
+                            <div className="text-[10px] opacity-30 uppercase font-bold mb-4">Tier 2: Essence</div>
+                            <h4 className="text-xl mb-4 italic">Destilação de Intencionalidade</h4>
+                            <p className="text-xs opacity-50 leading-relaxed text-justify">
+                                O Mistral local analisa cada módulo do IntraClinica para extrair sua "Essência". O Nexus entende o *porquê* de cada função, não apenas o *como*.
+                            </p>
+                        </div>
+                    </div>
+                    <div className="flex items-center justify-center p-12 bg-med-card rounded-3xl border border-med border-dashed opacity-40">
+                        <div className="text-center">
+                            <div className="text-4xl mb-4 italic serif">AIP-05.1</div>
+                            <div className="text-[10px] uppercase tracking-[0.3em] font-bold">Cognition Recovery Protocol</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        );
+
+        const OperationAnimation = ({ step }) => {
+            return (
+                <div className="relative w-64 h-64 flex flex-col items-center justify-center">
+                    <motion.div 
+                        animate={{ 
+                            scale: step === 0 ? 1.1 : 1, 
+                            borderColor: step === 0 ? "#00d1df" : "rgba(255,255,255,0.1)",
+                            boxShadow: step === 0 ? "0 0 30px rgba(0,209,223,0.3)" : "none"
+                        }}
+                        className="w-24 h-24 rounded-full border-2 flex items-center justify-center bg-med-dark z-10 transition-all duration-700"
+                    >
+                        <span className="text-3xl">🩺</span>
+                    </motion.div>
+
+                    <div className="h-16 w-[1px] bg-white/5 relative overflow-hidden">
+                        <motion.div 
+                            animate={{ 
+                                y: step === 1 ? "100%" : "-100%",
+                                opacity: step === 1 ? 1 : 0 
+                            }}
+                            className="absolute inset-0 w-full bg-cyan-400"
+                        />
+                    </div>
+
+                    <motion.div 
+                        animate={{ 
+                            scale: step === 2 ? 1.1 : 1, 
+                            borderColor: step === 2 ? "#00d1df" : "rgba(255,255,255,0.1)",
+                            boxShadow: step === 2 ? "0 0 30px rgba(0,209,223,0.3)" : "none"
+                        }}
+                        className="w-32 h-20 rounded-2xl border-2 flex flex-col items-center justify-center bg-med-dark z-10 transition-all duration-700"
+                    >
+                        <div className="text-[9px] opacity-40 mb-1 tracking-widest uppercase font-bold">Postgres_RPC</div>
+                        <div className="flex gap-1">
+                            {[1,2,3,4].map(i => (
+                                <motion.div 
+                                    key={i}
+                                    animate={{ 
+                                        height: step === 2 ? 10 : 4,
+                                        backgroundColor: step >= 2 ? "#00d1df" : "rgba(255,255,255,0.1)"
+                                    }}
+                                    className="w-1 rounded-full"
+                                />
+                            ))}
+                        </div>
+                    </motion.div>
+
+                    <AnimatePresence>
+                        {step === 3 && (
+                            <motion.div 
+                                initial={{ scale: 0.8, opacity: 0 }}
+                                animate={{ scale: 1.5, opacity: 0.2 }}
+                                exit={{ opacity: 0 }}
+                                transition={{ duration: 1.5 }}
+                                className="absolute bottom-4 w-48 h-48 border border-cyan-500 rounded-full pointer-events-none"
+                            />
+                        )}
+                    </AnimatePresence>
+                </div>
+            );
+        };
+
+        const DatabaseSchemaAnimation = () => {
+            const nodes = [
+                {id: 'clinic', x: 0, y: -100, label: "CLINIC"},
+                {id: 'actor', x: -120, y: 0, label: "ACTOR"},
+                {id: 'inventory', x: 120, y: 0, label: "INVENTORY"},
+                {id: 'patient', x: -180, y: 100, label: "PATIENT"},
+                {id: 'user', x: -60, y: 100, label: "USER"},
+                {id: 'item', x: 120, y: 100, label: "ITEM"},
+            ];
+
+            return (
+                <svg width="100%" height="100%" viewBox="-250 -150 500 300" preserveAspectRatio="xMidYMid meet">
+                    <defs>
+                        <linearGradient id="lineGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                            <stop offset="0%" stopColor="rgba(0,209,223,0)" />
+                            <stop offset="50%" stopColor="rgba(0,209,223,0.3)" />
+                            <stop offset="100%" stopColor="rgba(0,209,223,0)" />
+                        </linearGradient>
+                    </defs>
+                    
+                    <Connection from={nodes[0]} to={nodes[1]} />
+                    <Connection from={nodes[0]} to={nodes[2]} />
+                    <Connection from={nodes[1]} to={nodes[3]} />
+                    <Connection from={nodes[1]} to={nodes[4]} />
+                    <Connection from={nodes[2]} to={nodes[5]} />
+
+                    {nodes.map(node => (
+                        <motion.g 
+                            key={node.id} 
+                            whileHover={{ scale: 1.05 }}
+                        >
+                            <rect 
+                                x={node.x - 45} 
+                                y={node.y - 18} 
+                                width="90" 
+                                height="36" 
+                                rx="4" 
+                                fill="#0a0a0b"
+                                stroke="rgba(0,209,223,0.2)"
+                                strokeWidth="1"
+                            />
+                            <text 
+                                x={node.x} 
+                                y={node.y + 4} 
+                                textAnchor="middle" 
+                                fill="#00d1df"
+                                style={{ fontSize: '8px', fontWeight: 'bold', letterSpacing: '1px' }}
+                            >
+                                {node.label}
+                            </text>
+                        </motion.g>
+                    ))}
+                </svg>
+            );
+        };
+
+        const Connection = ({ from, to }) => {
+            return (
+                <motion.path 
+                    d={`M ${from.x} ${from.y} L ${to.x} ${to.y}`}
+                    stroke="url(#lineGrad)"
+                    strokeWidth="1"
+                    initial={{ pathLength: 0 }}
+                    animate={{ pathLength: 1 }}
+                    transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
+                />
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById("root"));
+        root.render(<App />);
+    </script>
+    
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+</body>
+</html>

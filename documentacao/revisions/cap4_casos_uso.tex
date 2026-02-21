@@ -1,0 +1,29 @@
+ \chapter{Fluxos Operacionais e Casos de Uso}
+
+Este capítulo descreve os fluxos vitais do sistema Intraclinica Doc Expander e como eles materializam a visão MedX no dia a dia da clínica. A integração com o serviço Angular de Autenticação e Controle de Permissões fornece um nível adicional de segurança e funcionalidade para o sistema.
+
+\section{Recepção e Triagem de Alta Performance}
+
+O fluxo de entrada foi desenhado para ser o mais silencioso possível, com a ajuda do serviço Angular para validar dados demográficos dos pacientes e inserir-os na fila de espera inteligente.
+\begin{itemize}
+    \item \textbf{Fluxo:} O secretariado realiza o check-in rápido, com a verificação automática de perfil do usuário através da integração com o banco de dados Supabase. Os pacientes são inseridos na fila de espera inteligente.
+    \item \textbf{Impacto:} Quando o médico abre o prontuário, o sistema já apresenta o contexto demográfico e o histórico de retornos do paciente, permitindo que a consulta inicie sem perguntas repetitivas e burocráticas.
+\end{itemize}
+
+\section{O Ato Médico e a Máquina de Estados}
+
+O status da consulta é gerido por uma máquina de estados rigorosa, impedindo saltos de etapa que poderiam comprometer a auditoria. Com a integração do serviço Angular, a gestão dos estados da consulta inclui a verificação de permissões necessárias para os médicos e outros usuários do sistema.
+\begin{enumerate}
+    \item \textbf{Agendado:} O registro inicial é criado no banco de dados Supabase, com as informações da consulta e das permissões do médico.
+    \item \textbf{Aguardando:} O paciente está presente fisicamente na clínica.
+    \item \textbf{Em Atendimento:} Com a verificação de permissão, o médico inicia a anamnese e o sistema captura as informações do atendimento em tempo real.
+    \item \textbf{Realizado:} O atendimento é concluído com a geração de documentos (receitas, atestados) ou registro de procedimentos. Com a verificação de permissão, o sistema libera as informações do prontuário para os médicos e outros usuários autorizados.
+\end{enumerate}
+
+Essa progressão garante que o sistema capture o tempo real de cada fase do atendimento, gerando indicadores de performance (KPIs) precisos para a gestão da unidade.
+
+\section{Comunicação e Engajamento Ético}
+
+O sistema inclui um módulo de inteligência criativa que auxilia a clínica na produção de conteúdo educativo para redes sociais, lembretes de retorno via canais de mensagem, fortalecendo a autoridade médica sem violar os limites éticos da profissão. O serviço Angular fornece uma interface para o módulo, permitindo que o sistema regule o conteúdo produzido e o envie de forma responsável.
+
+Adicionando as funcionalidades do serviço Angular ao nosso projeto, a Intraclinica Doc Expander torna-se um sistema completo para gerenciamento de consultas médicas com elevado nível de segurança e controle de dados.

@@ -1,0 +1,27 @@
+\chapter{Fluxos Operacionais e Casos de Uso}
+
+Este capítulo descreve os fluxos vitais do sistema e como eles materializam a visão Experiência Clínica Soberana (Ecossistema IntraClinica) no dia a dia da clínica.
+
+\section{Recepção e Triagem de Alta Performance}
+
+O fluxo de entrada foi desenhado para ser o mais silencioso possível.
+\begin{itemize}
+    \item \textbf{Fluxo:} O secretariado realiza o check-in rápido. Os dados demográficos são validados e o paciente é inserido na fila de espera inteligente.
+    \item \textbf{Impacto:} Quando o médico abre o prontuário, o sistema já apresenta o contexto demográfico e o histórico de retornos, permitindo que a consulta inicie sem perguntas repetitivas e burocráticas.
+\end{itemize}
+
+\section{O Ato Médico e a Máquina de Estados}
+
+O status da consulta é gerido por uma máquina de estados rigorosa, impedindo saltos de etapa que poderiam comprometer a auditoria.
+\begin{enumerate}
+    \item \textbf{Agendado:} O registro inicial.
+    \item \textbf{Aguardando:} O paciente está presente fisicamente.
+    \item \textbf{Em Atendimento:} O médico iniciou a anamnese.
+    \item \textbf{Realizado:} O atendimento foi concluído com a geração de documentos (receitas, atestados) ou registro de procedimentos.
+\end{enumerate}
+
+Essa progressão garante que o sistema capture o tempo real de cada fase do atendimento, gerando indicadores de performance (KPIs) precisos para a gestão da unidade.
+
+\section{Comunicação e Engajamento Ético}
+
+O sistema inclui um módulo de inteligência criativa que auxilia a clínica na produção de conteúdo educativo para redes sociais e lembretes de retorno via canais de mensagem, fortalecendo a autoridade médica sem violar os limites éticos da profissão.
