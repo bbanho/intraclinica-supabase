@@ -3,13 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Documentação | IntraClinica</title>
+    <title>Documentação Estratégica | IntraClinica</title>
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/framer-motion@10.16.4/dist/framer-motion.js"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
     <script>
         tailwind.config = {
             theme: {
@@ -18,15 +19,21 @@
                         brand: {
                             50: '#f0f9ff',
                             100: '#e0f2fe',
+                            200: '#bae6fd',
                             500: '#0ea5e9',
                             600: '#0284c7',
                             700: '#0369a1',
+                            800: '#075985',
                             900: '#0c4a6e',
+                        },
+                        slate: {
+                            850: '#1e293b',
+                            950: '#020617'
                         }
                     },
                     fontFamily: {
-                        sans: ['Inter', 'sans-serif'],
-                        display: ['Outfit', 'sans-serif'],
+                        sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+                        serif: ['"Instrument Serif"', 'serif'],
                     }
                 }
             }
@@ -34,27 +41,45 @@
     </script>
     <style>
         body {
-            background-color: #f8fafc; /* slate-50 */
-            color: #0f172a; /* slate-900 */
+            background-color: #f8fafc;
+            color: #0f172a;
             -webkit-font-smoothing: antialiased;
+            font-feature-settings: "cv02", "cv03", "cv04", "cv11";
         }
-        .crystal-card {
-            background: rgba(255, 255, 255, 0.8);
-            backdrop-filter: blur(8px);
-            border: 1px solid rgba(226, 232, 240, 0.8); /* slate-200 */
+        .text-balance { text-wrap: balance; }
+        .glass-sidebar {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(12px);
+            border-right: 1px solid rgba(226, 232, 240, 0.8);
         }
-        .bg-grid {
-            background-image: linear-gradient(to right, rgba(15, 23, 42, 0.02) 1px, transparent 1px),
-                              linear-gradient(to bottom, rgba(15, 23, 42, 0.02) 1px, transparent 1px);
-            background-size: 32px 32px;
+        .content-card {
+            background: white;
+            border: 1px solid #f1f5f9;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
         }
-        ::-webkit-scrollbar { width: 6px; }
+        .bg-dot-pattern {
+            background-image: radial-gradient(#e2e8f0 1px, transparent 1px);
+            background-size: 24px 24px;
+        }
+        .gradient-text {
+            background: linear-gradient(135deg, #0369a1 0%, #0ea5e9 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        ::-webkit-scrollbar { width: 5px; }
         ::-webkit-scrollbar-track { background: transparent; }
         ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
         ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+        
+        /* Typography adjustments for 900% expansion */
+        article h3 { font-size: 1.5rem; font-weight: 700; color: #0f172a; margin-top: 2.5rem; margin-bottom: 1rem; }
+        article p { font-size: 1.05rem; line-height: 1.75; color: #475569; margin-bottom: 1.5rem; }
+        article ul { margin-bottom: 1.5rem; list-style-type: none; }
+        article li { position: relative; padding-left: 1.5rem; margin-bottom: 0.75rem; color: #475569; }
+        article li::before { content: "•"; position: absolute; left: 0; color: #0ea5e9; font-weight: bold; }
     </style>
 </head>
-<body class="bg-grid">
+<body class="bg-dot-pattern">
     <div id="root"></div>
 
     <script type="text/babel">
@@ -62,57 +87,69 @@
         const { motion, AnimatePresence } = Motion;
 
         const App = () => {
-            const [activeSection, setActiveSection] = useState('vision');
+            const [activeSection, setActiveSection] = useState('home');
+
+            const menu = [
+                { id: 'home', label: 'Visão Geral', group: 'Estratégia' },
+                { id: 'journey', label: 'Jornada do Paciente', group: 'Estratégia' },
+                { id: 'clinical', label: 'Excelência Clínica', group: 'Estratégia' },
+                { id: 'inventory', label: 'Gestão de Insumos', group: 'Operação' },
+                { id: 'security', label: 'Soberania e LGPD', group: 'Operação' },
+                { id: 'architecture', label: 'Arquitetura Técnica', group: 'Engenharia' },
+                { id: 'nexus', label: 'Governança Nexus', group: 'Engenharia' },
+            ];
 
             return (
-                <div className="flex min-h-screen font-sans">
+                <div className="flex min-h-screen">
                     {/* Sidebar */}
-                    <aside className="w-72 border-r border-slate-200 h-screen sticky top-0 bg-white/90 backdrop-blur-xl hidden lg:flex flex-col p-8 shadow-sm">
-                        <div className="mb-12">
-                            <div className="flex items-center gap-3 mb-3 text-brand-600">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="m12 14 4-4"/><path d="M3.34 19a10 10 0 1 1 17.32 0"/></svg>
-                                <span className="font-display font-bold tracking-tight text-xl text-slate-900 italic">IntraClinica</span>
+                    <aside className="w-80 glass-sidebar h-screen sticky top-0 hidden lg:flex flex-col p-8 z-30">
+                        <div className="mb-10">
+                            <div className="flex items-center gap-3 mb-2">
+                                <div className="w-10 h-10 bg-brand-600 rounded-xl flex items-center justify-center shadow-lg shadow-brand-500/30 text-white">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="m12 14 4-4"/><path d="M3.34 19a10 10 0 1 1 17.32 0"/></svg>
+                                </div>
+                                <span className="font-serif text-2xl font-bold text-slate-900 italic tracking-tight">IntraClinica</span>
                             </div>
-                            <p className="text-[10px] font-bold tracking-widest uppercase text-slate-400">Dossiê Estratégico v3.3</p>
+                            <div className="flex items-center gap-2 px-1">
+                                <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></div>
+                                <p className="text-[10px] font-bold tracking-widest uppercase text-slate-400">Public Documentation</p>
+                            </div>
                         </div>
 
-                        <nav className="flex-1 space-y-8">
-                            <div>
-                                <h3 className="text-[10px] uppercase tracking-widest text-slate-400 mb-4 font-bold">Estratégia</h3>
-                                <ul className="space-y-1">
-                                    <li><button onClick={() => setActiveSection('vision')} className={`w-full text-left px-3 py-2 rounded-md text-sm transition-all ${activeSection === 'vision' ? 'bg-brand-50 text-brand-700 font-semibold' : 'text-slate-600 hover:bg-slate-50'}`}>Visão do Produto</button></li>
-                                    <li><button onClick={() => setActiveSection('sovereignty')} className={`w-full text-left px-3 py-2 rounded-md text-sm transition-all ${activeSection === 'sovereignty' ? 'bg-brand-50 text-brand-700 font-semibold' : 'text-slate-600 hover:bg-slate-50'}`}>Soberania Técnica</button></li>
-                                </ul>
-                            </div>
-                            <div>
-                                <h3 className="text-[10px] uppercase tracking-widest text-slate-400 mb-4 font-bold">Arquitetura</h3>
-                                <ul className="space-y-1">
-                                    <li><button onClick={() => setActiveSection('database')} className={`w-full text-left px-3 py-2 rounded-md text-sm transition-all ${activeSection === 'database' ? 'bg-brand-50 text-brand-700 font-semibold' : 'text-slate-600 hover:bg-slate-50'}`}>Topologia de Dados</button></li>
-                                    <li><button onClick={() => setActiveSection('operation')} className={`w-full text-left px-3 py-2 rounded-md text-sm transition-all ${activeSection === 'operation' ? 'bg-brand-50 text-brand-700 font-semibold' : 'text-slate-600 hover:bg-slate-50'}`}>Fluxos de Operação</button></li>
-                                </ul>
-                            </div>
-                            <div>
-                                <h3 className="text-[10px] uppercase tracking-widest text-slate-400 mb-4 font-bold">Engenharia</h3>
-                                <ul className="space-y-1">
-                                    <li><button onClick={() => setActiveSection('nexus')} className={`w-full text-left px-3 py-2 rounded-md text-sm transition-all ${activeSection === 'nexus' ? 'bg-brand-50 text-brand-700 font-semibold' : 'text-slate-600 hover:bg-slate-50'}`}>Governança Nexus</button></li>
-                                </ul>
-                            </div>
+                        <nav className="flex-1 space-y-8 overflow-y-auto pr-2">
+                            {['Estratégia', 'Operação', 'Engenharia'].map(group => (
+                                <div key={group}>
+                                    <h3 className="text-[11px] uppercase tracking-[0.2em] text-slate-400 mb-4 font-extrabold">{group}</h3>
+                                    <ul className="space-y-1">
+                                        {menu.filter(m => m.group === group).map(item => (
+                                            <li key={item.id}>
+                                                <button 
+                                                    onClick={() => setActiveSection(item.id)} 
+                                                    className={`w-full text-left px-4 py-2.5 rounded-lg text-sm transition-all duration-200 border ${activeSection === item.id ? 'bg-white border-slate-200 text-brand-700 font-bold shadow-sm shadow-slate-200/50' : 'text-slate-500 border-transparent hover:text-slate-900 hover:bg-white/50'}`}
+                                                >
+                                                    {item.label}
+                                                </button>
+                                            </li>
+                                        ))}
+                                    </ul>
+                                </div>
+                            ))}
                         </nav>
 
-                        <div className="mt-auto pt-8 border-t border-slate-100 flex flex-col gap-1">
-                            <div className="flex items-center justify-between text-[9px] uppercase tracking-tighter font-medium text-slate-400 italic">
-                                <span>Status:</span>
-                                <span className="text-emerald-500 font-bold">Sincronizado</span>
+                        <div className="mt-8 pt-6 border-t border-slate-200 flex flex-col gap-2">
+                            <div className="flex items-center justify-between text-[10px] font-semibold text-slate-400">
+                                <span>IDENTIDADE:</span>
+                                <span className="text-slate-600">AxiomaticDelirium</span>
                             </div>
-                            <div className="flex items-center justify-between text-[9px] uppercase tracking-tighter font-medium text-slate-400">
-                                <span>Host:</span>
-                                <span>BLUEFIN_NODE</span>
+                            <div className="flex items-center justify-between text-[10px] font-semibold text-slate-400">
+                                <span>VERSÃO:</span>
+                                <span className="text-slate-600">3.3.4 (Stable)</span>
                             </div>
                         </div>
                     </aside>
 
                     {/* Main Content */}
-                    <main className="flex-1 p-8 lg:p-24 max-w-5xl overflow-y-auto">
+                    <main className="flex-1 p-6 md:p-12 lg:p-24 max-w-5xl">
                         <AnimatePresence mode="wait">
                             <motion.div
                                 key={activeSection}
@@ -121,11 +158,13 @@
                                 exit={{ opacity: 0, y: -10 }}
                                 transition={{ duration: 0.3 }}
                             >
-                                {activeSection === 'vision' && <VisionSection />}
-                                {activeSection === 'sovereignty' && <SovereigntySection />}
-                                {activeSection === 'database' && <DatabaseSection />}
-                                {activeSection === 'operation' && <OperationSection />}
-                                {activeSection === 'nexus' && <NexusSection />}
+                                {activeSection === 'home' && <HomeContent />}
+                                {activeSection === 'journey' && <JourneyContent />}
+                                {activeSection === 'clinical' && <ClinicalContent />}
+                                {activeSection === 'inventory' && <InventoryContent />}
+                                {activeSection === 'security' && <SecurityContent />}
+                                {activeSection === 'architecture' && <ArchitectureContent />}
+                                {activeSection === 'nexus' && <NexusContent />}
                             </motion.div>
                         </AnimatePresence>
                     </main>
@@ -133,242 +172,256 @@
             );
         };
 
-        const VisionSection = () => (
-            <div className="space-y-12">
-                <header>
-                    <h4 className="text-brand-600 text-xs font-bold tracking-[0.2em] uppercase mb-4">Product Vision</h4>
-                    <h2 className="font-display text-5xl font-bold text-slate-900 mb-6 italic tracking-tight underline decoration-brand-500/20">Medicine for Humans.</h2>
-                    <p className="text-lg text-slate-600 leading-relaxed max-w-3xl">
-                        O IntraClinica é uma arquitetura de vanguarda desenhada para priorizar a eficácia clínica e a soberania dos dados. Atuamos onde sistemas tradicionais falham: na união entre simplicidade operacional e rigor de engenharia.
-                    </p>
-                </header>
+        const HomeContent = () => (
+            <article className="prose prose-slate max-w-none">
+                <h4 className="text-brand-600 text-xs font-bold tracking-[0.3em] uppercase mb-4">Apresentação</h4>
+                <h1 className="font-serif text-6xl md:text-7xl font-normal text-slate-950 mb-8 leading-[1.1]">Medicina para <br/><span className="italic font-light opacity-80">seres humanos.</span></h1>
+                <p className="text-xl text-slate-600 font-medium leading-relaxed mb-12">
+                    O IntraClinica é uma infraestrutura de gestão e inteligência clínica desenhada para médicos que buscam excelência técnica sem abrir mão da soberania de seus dados.
+                </p>
                 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                    <div className="crystal-card p-8 rounded-2xl shadow-sm border-slate-200/60">
-                        <h4 className="text-sm font-bold text-slate-900 mb-4 flex items-center gap-2 italic text-brand-700">
-                            <div className="w-1.5 h-1.5 bg-brand-500 rounded-full"></div>
-                            Experiência Clínica Soberana
-                        </h4>
-                        <p className="text-sm text-slate-500 leading-relaxed text-justify">
-                            Foco total na redução da fadiga digital. Desenvolvemos fluxos que permitem ao médico manter o contato visual com o paciente, transformando o registro clínico em um suporte silencioso e eficiente.
-                        </p>
-                    </div>
-                    <div className="crystal-card p-8 rounded-2xl shadow-sm border-slate-200/60">
-                        <h4 className="text-sm font-bold text-slate-900 mb-4 flex items-center gap-2 italic text-brand-700">
-                            <div className="w-1.5 h-1.5 bg-brand-500 rounded-full"></div>
-                            Eficiência Sistêmica
-                        </h4>
-                        <p className="text-sm text-slate-500 leading-relaxed text-justify italic">
-                            Transformamos o almoxarifado em um centro de auditoria ativa. Através de baixas atômicas e monitoramento inteligente, eliminamos perdas operacionais silenciosas.
-                        </p>
-                    </div>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 my-16">
+                    {[
+                        { t: "Foco Clínico", d: "Tecnologia que desaparece para que o médico possa olhar nos olhos do paciente.", icon: "🩺" },
+                        { t: "Soberania", d: "Seus dados, seu hardware, sua inteligência. Sem aluguel de consciência.", icon: "🛡️" },
+                        { t: "Resiliência", d: "Arquitetura Local-First que opera em alta performance independente da internet.", icon: "⚡" }
+                    ].map((card, i) => (
+                        <div key={i} className="content-card p-8 rounded-2xl">
+                            <div className="text-3xl mb-4">{card.icon}</div>
+                            <h4 className="font-bold text-slate-900 mb-2">{card.t}</h4>
+                            <p className="text-sm text-slate-500 leading-relaxed mb-0">{card.d}</p>
+                        </div>
+                    ))}
                 </div>
-            </div>
+
+                <h3 className="gradient-text">O Manifesto Axiomático</h3>
+                <p>
+                    Acreditamos que o mercado de saúde foi sequestrado por sistemas opacos que priorizam o faturamento burocrático sobre o ato médico. O IntraClinica inverte essa polaridade. Nossa tecnologia é baseada em axiomas de transparência, eficácia e posse física da informação.
+                </p>
+                <p>
+                    Cada módulo do sistema foi esculpido para resolver dores reais identificadas em campo: a hemorragia financeira nos almoxarifados, a fadiga cognitiva de interfaces inchadas e a insegurança jurídica de dados armazenados em nuvens sem jurisdição clara.
+                </p>
+            </article>
         );
 
-        const SovereigntySection = () => (
-            <div className="space-y-12">
-                <header>
-                    <h4 className="text-brand-600 text-xs font-bold tracking-[0.2em] uppercase mb-4">The Sovereign Stack</h4>
-                    <h2 className="font-display text-5xl font-bold text-slate-900 mb-6 italic tracking-tight">Posse Real do Dado.</h2>
-                    <p className="text-lg text-slate-600 leading-relaxed max-w-3xl">
-                        Em um mercado dominado por arquiteturas fechadas, o IntraClinica garante que a clínica seja a proprietária física e lógica de sua inteligência.
+        const JourneyContent = () => (
+            <article>
+                <h4 className="text-brand-600 text-xs font-bold tracking-[0.3em] uppercase mb-4 italic">The Digital Path</h4>
+                <h2 className="font-serif text-5xl text-slate-950 mb-8 italic">A Jornada do Paciente.</h2>
+                <p>
+                    O IntraClinica reimagina cada ponto de contato entre a unidade de saúde e o paciente, transformando a burocracia em um fluxo fluido de cuidado.
+                </p>
+
+                <h3>Agendamento e Triagem Inteligente</h3>
+                <p>
+                    O fluxo começa antes mesmo do paciente chegar à clínica. Com integração via canais de mensagem soberanos, o paciente realiza o pré-cadastro e recebe confirmações automáticas.
+                </p>
+                <ul>
+                    <li><strong>Check-in via QR Code:</strong> Redução de filas na recepção e identificação instantânea.</li>
+                    <li><strong>Triagem de Sintomas:</strong> Coleta prévia de dados demográficos e queixas principais para preparar o médico.</li>
+                    <li><strong>Gestão de Fila em Tempo Real:</strong> Painéis dinâmicos que informam o tempo de espera estimado, reduzindo a ansiedade do paciente.</li>
+                </ul>
+
+                <h3>Comunicação Pós-Atendimento</h3>
+                <p>
+                    A relação não termina na porta do consultório. O sistema gerencia lembretes de retorno, acompanhamento de prescrições e pesquisas de satisfação de forma ética e profissional.
+                </p>
+                <div className="bg-brand-50 p-8 rounded-3xl border border-brand-100 my-12">
+                    <h4 className="text-brand-800 font-bold mb-4 italic italic uppercase text-xs tracking-widest">Valor para a Clínica</h4>
+                    <p className="text-brand-900/70 text-sm mb-0">
+                        Otimizamos a taxa de comparecimento (No-show) em até 35\% através de fluxos de confirmação que respeitam o tempo do paciente e a agenda do profissional.
                     </p>
-                </header>
-
-                <div className="space-y-10">
-                    <div className="flex flex-col md:flex-row gap-12 py-8 border-b border-slate-100">
-                        <div className="md:w-1/3">
-                            <h4 className="text-xs font-bold uppercase tracking-widest text-brand-700">Infraestrutura Local</h4>
-                        </div>
-                        <div className="md:w-2/3">
-                            <p className="text-sm text-slate-500 leading-relaxed text-justify">
-                                Priorizamos o processamento onde a medicina acontece. Nosso motor de inteligência é desenhado para operar em hardware local, reduzindo a dependência de serviços externos.
-                            </p>
-                        </div>
-                    </div>
-                    <div className="flex flex-col md:flex-row gap-12 py-8 border-b border-slate-100">
-                        <div className="md:w-1/3">
-                            <h4 className="text-xs font-bold uppercase tracking-widest text-brand-700 italic">Auditabilidade</h4>
-                        </div>
-                        <div className="md:w-2/3">
-                            <p className="text-sm text-slate-500 leading-relaxed text-justify italic">
-                                Arquitetura fundamentada em padrões abertos. O ecossistema é transparente e auditável, garantindo longevidade ao investimento tecnológico da unidade.
-                            </p>
-                        </div>
-                    </div>
                 </div>
-            </div>
+            </article>
         );
 
-        const DatabaseSection = () => (
-            <div className="space-y-12">
-                <header>
-                    <h4 className="text-brand-600 text-xs font-bold tracking-[0.2em] uppercase mb-4">Relational Topology</h4>
-                    <h2 className="font-display text-5xl font-bold text-slate-900 mb-6 italic tracking-tight">Isolamento e Integridade.</h2>
-                </header>
+        const ClinicalContent = () => (
+            <article>
+                <h4 className="text-brand-600 text-xs font-bold tracking-[0.3em] uppercase mb-4">Medical Excellence</h4>
+                <h2 className="font-serif text-5xl text-slate-950 mb-8">A "Regra de Uma Mão".</h2>
+                <p>
+                    A interface clínica do IntraClinica é o nosso maior diferencial de engenharia. Desenhada especificamente para o ambiente de consulta, ela prioriza o contato humano sobre o preenchimento de telas.
+                </p>
 
-                <div className="bg-white rounded-3xl p-12 border border-slate-200 shadow-xl shadow-slate-200/20 flex items-center justify-center min-h-[400px]">
+                <h3>Anamnese e Evolução Ergonômica</h3>
+                <p>
+                    Médicos frequentemente operam tablets enquanto conversam ou examinam. Nossa interface permite navegar por todo o prontuário, visualizar exames anteriores e ditar evoluções usando apenas uma mão.
+                </p>
+                <ul>
+                    <li><strong>Arquitetura Signals:</strong> Atualizações atômicas de dados. O que você escreve é salvo instantaneamente, sem botões de "salvar".</li>
+                    <li><strong>Teclado Clínico Especializado:</strong> Entrada rápida de dados vitais e métricas antropométricas com o mínimo de toques.</li>
+                    <li><strong>Assistente de Contexto:</strong> A IA local traz as informações mais relevantes do histórico do paciente para o topo da tela, evitando a navegação exaustiva por pastas antigas.</li>
+                </ul>
+
+                <div className="my-16 flex justify-center">
+                    <OperationAnimation />
+                </div>
+
+                <h3>Decisão Apoiada por Dados</h3>
+                <p>
+                    Não apenas registramos dados; nós os transformamos em suporte clínico. O sistema alerta sobre interações medicamentosas perigosas e sugere protocolos baseados na especialidade cadastrada, tudo operando 100\% offline se necessário.
+                </p>
+            </article>
+        );
+
+        const InventoryContent = () => (
+            <article>
+                <h4 className="text-brand-600 text-xs font-bold tracking-[0.3em] uppercase mb-4 italic">Supply Governance</h4>
+                <h2 className="font-serif text-5xl text-slate-950 mb-8 italic">O Guardião de Estoque.</h2>
+                <p>
+                    A gestão de insumos é tratada como um processo de segurança clínica e saúde financeira. No IntraClinica, o estoque é uma consequência natural do ato médico.
+                </p>
+
+                <h3>Baixa Automática por Procedimento</h3>
+                <p>
+                    Eliminamos o esquecimento e o desvio através da "Receita de Procedimento". Quando um médico finaliza uma "Aplicação de Toxina" ou uma "Sutura de Face", o sistema automaticamente deduz os itens exatos do estoque.
+                </p>
+                <ul>
+                    <li><strong>Rastreabilidade por Lote:</strong> Controle total de validades. O sistema impede o uso de itens vencidos através de alertas críticos.</li>
+                    <li><strong>Movimentações Atômicas:</strong> Cada entrada e saída é vinculada a um ator (quem fez) e uma justificativa (por que fez).</li>
+                    <li><strong>Auditoria Silenciosa:</strong> O Nexus analisa o consumo médio por profissional, detectando anomalias e prevenindo a "hemorragia financeira" do almoxarifado.</li>
+                </ul>
+
+                <div className="bg-slate-900 text-white p-10 rounded-[2.5rem] my-12 shadow-2xl relative overflow-hidden">
+                    <div className="absolute top-0 right-0 p-8 opacity-10 text-6xl">📦</div>
+                    <h4 className="text-brand-400 font-bold mb-4 uppercase text-xs tracking-widest">Inteligência Preditiva</h4>
+                    <p className="text-slate-300 text-lg leading-relaxed mb-0 italic">
+                        "Não espere o insumo acabar. O IntraClinica prevê a data de ruptura de estoque baseado no seu volume de agendamentos e sugere a compra para o fornecedor mais vantajoso."
+                    </p>
+                </div>
+            </article>
+        );
+
+        const SecurityContent = () => (
+            <article>
+                <h4 className="text-brand-600 text-xs font-bold tracking-[0.3em] uppercase mb-4">Data Protection</h4>
+                <h2 className="font-serif text-5xl text-slate-950 mb-8">Soberania e LGPD.</h2>
+                <p>
+                    A privacidade do paciente e a segurança jurídica do médico são inegociáveis. O IntraClinica adota o modelo de segurança Zero-Trust.
+                </p>
+
+                <h3>Row Level Security (RLS)</h3>
+                <p>
+                    Utilizamos o motor de segurança nativo do PostgreSQL 16 para garantir que nenhum dado vaze. Um usuário de uma unidade parceira é tecnicamente impossibilitado de "enxergar" dados de outra unidade, mesmo que compartilhem o mesmo banco.
+                </p>
+                <ul>
+                    <li><strong>Posse do Silício:</strong> O hardware onde os dados residem é de propriedade da clínica ou reside em instâncias privadas controladas pelo médico.</li>
+                    <li><strong>Criptografia em Repouso:</strong> Prontuários e exames são cifrados com chaves soberanas.</li>
+                    <li><strong>Log de Auditoria Imutável:</strong> Cada acesso a um dado clínico gera um rastro indelével, permitindo auditorias completas para conselhos de classe.</li>
+                </ul>
+
+                <h3>Conformidade Total</h3>
+                <p>
+                    O sistema é desenhado para cumprir as normativas da LGPD e as resoluções do Conselho Federal de Medicina (CFM) sobre Prontuário Eletrônico e Telemedicina.
+                </p>
+            </article>
+        );
+
+        const ArchitectureContent = () => (
+            <article>
+                <h4 className="text-brand-600 text-xs font-bold tracking-[0.3em] uppercase mb-4 italic">Technical Bedrock</h4>
+                <h2 className="font-serif text-5xl text-slate-950 mb-8 italic italic">Estrutura Relacional.</h2>
+                
+                <div className="bg-white rounded-3xl p-12 border border-slate-200 shadow-xl shadow-slate-200/20 mb-12 flex items-center justify-center">
                     <DatabaseSchemaAnimation />
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-justify">
-                    <div className="p-6 border border-slate-100 rounded-2xl bg-white shadow-sm">
-                        <div className="text-brand-600 font-bold mb-2">Multi-Tenancy</div>
-                        <p className="text-[11px] text-slate-500 leading-relaxed italic">Isolamento absoluto de clínicas via clinic_id mandatório em cada tabela core.</p>
+                <p>
+                    O IntraClinica é construído sobre uma pilha tecnológica de classe mundial, escolhida pela sua estabilidade e performance em cenários de missão crítica.
+                </p>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8 my-12">
+                    <div className="border-l-4 border-brand-500 pl-6 py-2">
+                        <h4 className="font-bold text-slate-900">PostgreSQL 16</h4>
+                        <p className="text-sm text-slate-500">Persistência relacional robusta com suporte a tipos geográficos e JSONB para metadados médicos.</p>
                     </div>
-                    <div className="p-6 border border-slate-100 rounded-2xl bg-white shadow-sm">
-                        <div className="text-brand-600 font-bold mb-2 italic">RLS Enforcement</div>
-                        <p className="text-[11px] text-slate-500 leading-relaxed">Políticas de Row Level Security no PostgreSQL 16 garantem que parceiros vejam apenas seus dados.</p>
+                    <div className="border-l-4 border-brand-500 pl-6 py-2">
+                        <h4 className="font-bold text-slate-900 italic">Supabase Edge</h4>
+                        <p className="text-sm text-slate-500 italic">Funções de borda que permitem lógica de negócio complexa com latência mínima.</p>
                     </div>
-                    <div className="p-6 border border-slate-100 rounded-2xl bg-white shadow-sm">
-                        <div className="text-brand-600 font-bold mb-2">Actor Pattern</div>
-                        <p className="text-[11px] text-slate-500 leading-relaxed italic">Unificação de identidades para uma rastreabilidade holística de prontuários.</p>
+                    <div className="border-l-4 border-brand-500 pl-6 py-2">
+                        <h4 className="font-bold text-slate-900">Angular Signals</h4>
+                        <p className="text-sm text-slate-500">A vanguarda do desenvolvimento frontend, garantindo que a UI nunca trave ou apresente lentidão.</p>
+                    </div>
+                    <div className="border-l-4 border-brand-500 pl-6 py-2">
+                        <h4 className="font-bold text-slate-900 italic">WebGPU & ML</h4>
+                        <p className="text-sm text-slate-500 italic">Aceleração de hardware local para tarefas de inteligência artificial sem dependência de nuvem.</p>
                     </div>
                 </div>
-            </div>
+            </article>
         );
 
-        const OperationSection = () => {
+        const NexusContent = () => (
+            <article>
+                <h4 className="text-brand-600 text-xs font-bold tracking-[0.3em] uppercase mb-4">Engineering Oversight</h4>
+                <h2 className="font-serif text-5xl text-slate-950 mb-8">Governança Nexus.</h2>
+                <p>
+                    O IntraClinica é vigiado pelo **Axio Nexus**, o engenheiro invisível que garante que a alma do sistema não se perca durante a evolução do código.
+                </p>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8 my-12">
+                    <div className="bg-white p-8 rounded-3xl border border-slate-100 shadow-sm">
+                        <h4 className="font-bold mb-4 flex items-center gap-2 italic">
+                            <div className="w-2 h-2 bg-brand-500 rounded-full"></div>
+                            Genealogia T4
+                        </h4>
+                        <p className="text-sm text-slate-500 text-justify">
+                            O Nexus mapeia a relação entre cada requisito médico e sua implementação física. Ele entende por que uma função existe e garante que ela não seja quebrada por mudanças em outras partes do sistema.
+                        </p>
+                    </div>
+                    <div className="bg-white p-8 rounded-3xl border border-slate-100 shadow-sm">
+                        <h4 className="font-bold mb-4 flex items-center gap-2 italic">
+                            <div className="w-2 h-2 bg-brand-500 rounded-full"></div>
+                            Protocolo Whisper
+                        </h4>
+                        <p className="text-sm text-slate-500 text-justify italic">
+                            Fluxos de reflexão contínua que sopram intuição técnica para a manutenção do projeto, evitando a degradação do conhecimento acumulado ao longo dos meses.
+                        </p>
+                    </div>
+                </div>
+
+                <div className="p-12 border-2 border-dashed border-slate-200 rounded-[3rem] text-center opacity-40">
+                    <div className="text-4xl mb-4 font-serif italic">AIP-05.1</div>
+                    <div className="text-xs font-bold tracking-widest uppercase">Cognition Recovery Protocol Active</div>
+                </div>
+            </article>
+        );
+
+        // --- ANIMATIONS ---
+
+        const OperationAnimation = () => {
             const [step, setStep] = useState(0);
-            
             useEffect(() => {
-                const interval = setInterval(() => setStep(s => (s + 1) % 4), 4000);
+                const interval = setInterval(() => setStep(s => (s + 1) % 4), 3000);
                 return () => clearInterval(interval);
             }, []);
 
             return (
-                <div className="space-y-12">
-                    <header>
-                        <h4 className="text-brand-600 text-xs font-bold tracking-[0.2em] uppercase mb-4 italic">Execution Flow</h4>
-                        <h2 className="font-display text-5xl font-bold text-slate-900 mb-6 italic tracking-tight">Fluxo de Baixa Atômica.</h2>
-                        <p className="text-lg text-slate-600 leading-relaxed max-w-3xl text-justify">
-                            A tecnologia como rastro do ato médico. No IntraClinica, a execução de um procedimento dispara automaticamente o controle de insumos e faturamento em uma única transação.
-                        </p>
-                    </header>
-
-                    <div className="bg-white rounded-3xl p-12 border border-slate-200 shadow-xl shadow-slate-200/20 min-h-[500px] flex flex-col md:flex-row items-center gap-16">
-                        <div className="w-full md:w-1/2 flex flex-col items-center">
-                            <OperationAnimation step={step} />
-                        </div>
-                        <div className="w-full md:w-1/2 space-y-10">
-                            {[
-                                {t: "Atendimento Clínico", d: "Médico finaliza procedimento no tablet.", icon: "🩺"},
-                                {t: "Transação Atômica", d: "Sistema consulta receita dinâmica de insumos.", icon: "⚡"},
-                                {t: "Dedução do Inventário", d: "Postgres atualiza saldos e gera rastro de auditoria.", icon: "📦"},
-                                {t: "Consolidação Médica", d: "Prontuário assinado e registros fiscais atualizados.", icon: "✅"}
-                            ].map((s, i) => (
-                                <motion.div 
-                                    key={i}
-                                    animate={{ 
-                                        opacity: step === i ? 1 : 0.2, 
-                                        x: step === i ? 10 : 0,
-                                        scale: step === i ? 1.05 : 1
-                                    }}
-                                    className="flex gap-6 items-center"
-                                >
-                                    <div className="w-12 h-12 rounded-xl bg-brand-50 text-2xl flex items-center justify-center text-brand-600 shadow-sm border border-brand-100">
-                                        {s.icon}
-                                    </div>
-                                    <div>
-                                        <h4 className="text-sm font-bold text-slate-900 italic tracking-tight">{s.t}</h4>
-                                        <p className="text-xs text-slate-500 leading-tight italic">{s.d}</p>
-                                    </div>
-                                </motion.div>
-                            ))}
-                        </div>
-                    </div>
-                </div>
-            );
-        };
-
-        const NexusSection = () => (
-            <div className="space-y-16 py-12">
-                <div className="text-center max-w-3xl mx-auto">
-                    <h4 className="text-brand-600 text-xs font-bold tracking-[0.2em] uppercase mb-4 italic">The Intelligence Engine</h4>
-                    <h2 className="font-display text-6xl font-bold text-slate-900 mb-8 italic tracking-tight text-justify leading-tight">Engenharia Nexus.</h2>
-                    <p className="text-lg text-slate-600 leading-relaxed italic text-justify">
-                        O ecossistema IntraClinica é governado pela malha neural Axio Nexus. Atuando como o Engenheiro Chefe, o Nexus garante a integridade sistêmica, a soberania e a evolução coerente do código.
-                    </p>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                    <div className="bg-white p-10 rounded-[2.5rem] border border-slate-100 shadow-sm shadow-slate-200/50">
-                        <div className="text-brand-600 font-bold text-[10px] uppercase tracking-widest mb-6 italic">Tier 4: Topology</div>
-                        <h4 className="font-display text-2xl font-bold text-slate-900 mb-4 italic">Genealogia Ghost-Aware</h4>
-                        <p className="text-sm text-slate-500 leading-relaxed text-justify">
-                            O Nexus rastreia fragmentos de lógica que atravessam branches e versões. Ele garante que decisões arquitetônicas passadas continuem informando o desenvolvimento atual.
-                        </p>
-                    </div>
-                    <div className="bg-slate-900 p-10 rounded-[2.5rem] border border-slate-800 shadow-2xl">
-                        <div className="text-brand-400 font-bold text-[10px] uppercase tracking-widest mb-6 italic">Tier 5: Reflection</div>
-                        <h4 className="font-display text-2xl font-bold text-white mb-4 italic">Protocolo Whisper</h4>
-                        <p className="text-sm text-slate-400 leading-relaxed text-justify">
-                            Injeção de intuição proativa. O Nexus mantém um fluxo de reflexão constante, soprando insights técnicos baseados no histórico neural do projeto.
-                        </p>
-                    </div>
-                </div>
-            </div>
-        );
-
-        const OperationAnimation = ({ step }) => {
-            return (
-                <div className="relative w-72 h-72 flex flex-col items-center justify-center">
+                <div className="relative w-full h-64 flex flex-col items-center justify-center">
                     <motion.div 
-                        animate={{ 
-                            scale: step === 0 ? 1.1 : 1, 
-                            borderColor: step === 0 ? "#0ea5e9" : "#e2e8f0",
-                            boxShadow: step === 0 ? "0 20px 40px rgba(14, 165, 233, 0.15)" : "none"
-                        }}
-                        className="w-28 h-28 rounded-[2rem] border-2 flex items-center justify-center bg-white z-10 transition-all duration-700"
+                        animate={{ scale: step === 0 ? 1.1 : 1, borderColor: step === 0 ? "#0ea5e9" : "#e2e8f0" }}
+                        className="w-24 h-24 rounded-full border-4 flex items-center justify-center bg-white z-10 shadow-xl shadow-slate-200/50"
                     >
                         <span className="text-4xl">🩺</span>
                     </motion.div>
-
-                    <div className="h-16 w-0.5 bg-slate-100 relative overflow-hidden">
-                        <motion.div 
-                            animate={{ 
-                                y: step === 1 ? "100%" : "-100%",
-                                opacity: step === 1 ? 1 : 0 
-                            }}
-                            className="absolute inset-0 w-full bg-brand-500"
-                        />
+                    <div className="h-12 w-1 bg-slate-100 relative">
+                        <motion.div animate={{ height: step === 1 ? "100%" : "0%", opacity: step === 1 ? 1 : 0 }} className="w-full bg-brand-500" />
                     </div>
-
                     <motion.div 
-                        animate={{ 
-                            scale: step === 2 ? 1.1 : 1, 
-                            borderColor: step === 2 ? "#0ea5e9" : "#e2e8f0",
-                            boxShadow: step === 2 ? "0 20px 40px rgba(14, 165, 233, 0.15)" : "none"
-                        }}
-                        className="w-40 h-24 rounded-3xl border-2 flex flex-col items-center justify-center bg-white z-10 transition-all duration-700"
+                        animate={{ scale: step === 2 ? 1.1 : 1, borderColor: step === 2 ? "#0ea5e9" : "#e2e8f0" }}
+                        className="w-32 h-16 rounded-2xl border-4 flex items-center justify-center bg-white z-10 shadow-xl"
                     >
-                        <div className="text-[10px] text-slate-400 mb-2 tracking-widest uppercase font-bold italic">RPC_TRANSACTION</div>
-                        <div className="flex gap-1.5">
-                            {[1,2,3,4,5].map(i => (
-                                <motion.div 
-                                    key={i}
-                                    animate={{ 
-                                        height: step === 2 ? 12 : 6,
-                                        backgroundColor: step >= 2 ? "#0ea5e9" : "#f1f5f9"
-                                    }}
-                                    className="w-1.5 rounded-full"
-                                />
-                            ))}
-                        </div>
+                        <span className="text-xs font-extrabold text-slate-400 tracking-tighter italic uppercase">SUPABASE_TX</span>
                     </motion.div>
-
-                    <AnimatePresence>
-                        {step === 3 && (
-                            <motion.div 
-                                initial={{ scale: 0.8, opacity: 0 }}
-                                animate={{ scale: 1.4, opacity: 0.1 }}
-                                exit={{ opacity: 0 }}
-                                transition={{ duration: 1.5 }}
-                                className="absolute bottom-4 w-56 h-56 border-2 border-brand-500 rounded-full pointer-events-none"
-                            />
-                        )}
-                    </AnimatePresence>
+                    <div className="h-12 w-1 bg-slate-100 relative">
+                        <motion.div animate={{ height: step === 3 ? "100%" : "0%", opacity: step === 3 ? 1 : 0 }} className="w-full bg-brand-500" />
+                    </div>
+                    <motion.div 
+                        animate={{ scale: step === 3 ? 1.1 : 1, borderColor: step === 3 ? "#0ea5e9" : "#e2e8f0" }}
+                        className="w-24 h-24 rounded-3xl border-4 flex items-center justify-center bg-white z-10 shadow-xl"
+                    >
+                        <span className="text-4xl">📦</span>
+                    </motion.div>
                 </div>
             );
         };
@@ -384,7 +437,7 @@
             ];
 
             return (
-                <svg width="100%" height="100%" viewBox="-250 -150 500 300" preserveAspectRatio="xMidYMid meet">
+                <svg width="100%" height="300" viewBox="-250 -150 500 300">
                     <defs>
                         <linearGradient id="lineGrad" x1="0%" y1="0%" x2="100%" y2="0%">
                             <stop offset="0%" stopColor="rgba(14, 165, 233, 0)" />
@@ -392,50 +445,27 @@
                             <stop offset="100%" stopColor="rgba(14, 165, 233, 0)" />
                         </linearGradient>
                     </defs>
-                    
                     <Connection from={nodes[0]} to={nodes[1]} />
                     <Connection from={nodes[0]} to={nodes[2]} />
                     <Connection from={nodes[1]} to={nodes[3]} />
                     <Connection from={nodes[1]} to={nodes[4]} />
                     <Connection from={nodes[2]} to={nodes[5]} />
-
                     {nodes.map(node => (
-                        <motion.g 
-                            key={node.id} 
-                            whileHover={{ scale: 1.05 }}
-                        >
-                            <rect 
-                                x={node.x - 45} 
-                                y={node.y - 18} 
-                                width="90" 
-                                height="36" 
-                                rx="10" 
-                                fill="white"
-                                stroke="#e2e8f0"
-                                strokeWidth="1.5"
-                                className="shadow-sm"
-                            />
-                            <text 
-                                x={node.x} 
-                                y={node.y + 4} 
-                                textAnchor="middle" 
-                                fill="#0369a1"
-                                style={{ fontSize: '8px', fontWeight: 'bold', letterSpacing: '1px', fontStyle: 'italic' }}
-                            >
-                                {node.label}
-                            </text>
+                        <motion.g key={node.id} whileHover={{ scale: 1.05 }}>
+                            <rect x={node.x - 45} y={node.y - 18} width="90" height="36" rx="10" fill="white" stroke="#e2e8f0" strokeWidth="2" className="shadow-sm" />
+                            <text x={node.x} y={node.y + 4} textAnchor="middle" fill="#0369a1" style={{ fontSize: '9px', fontWeight: 'bold', letterSpacing: '1px', fontStyle: 'italic' }}>{node.label}</text>
                         </motion.g>
                     ))}
                 </svg>
             );
         };
 
-        const Connection = ({ from, to }) => {
+            const Connection = ({ from, to }) => {
             return (
                 <motion.path 
                     d={`M ${from.x} ${from.y} L ${to.x} ${to.y}`}
                     stroke="url(#lineGrad)"
-                    strokeWidth="1.5"
+                    strokeWidth="2"
                     initial={{ pathLength: 0 }}
                     animate={{ pathLength: 1 }}
                     transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
@@ -446,7 +476,6 @@
         const root = ReactDOM.createRoot(document.getElementById("root"));
         root.render(<App />);
     </script>
-    
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 </body>
 </html>
