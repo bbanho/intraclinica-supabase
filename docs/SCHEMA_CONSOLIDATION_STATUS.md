@@ -101,6 +101,10 @@ And treat these as legacy or deprecation targets:
 - `public."user"`
 - PascalCase duplicates such as `AccessRequest`, `Batch`, `StockTransaction`
 
+The detailed target model and transition rules now live in:
+
+- [CANONICAL_SCHEMA_TARGET.md](CANONICAL_SCHEMA_TARGET.md)
+
 ## Immediate Cleanup Order
 
 1. Freeze the canonical model in writing.
