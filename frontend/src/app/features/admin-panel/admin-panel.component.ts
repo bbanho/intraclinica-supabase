@@ -6,6 +6,8 @@ import { DatabaseService } from '../../core/services/database.service';
 import { Clinic, UserProfile, UserRole, IamBinding } from '../../core/models/types';
 import { IAM_ROLES, IAM_PERMISSIONS, getDisplayRole } from '../../core/config/iam-roles';
 
+import { UiConfigService } from '../../core/services/ui-config.service';
+import { Package, BarChart3, Share2, ClipboardList, UserRound, Calendar, Stethoscope } from 'lucide-angular';
 import { SAAS_PLANS } from '../../core/config/domain-constants';
 
 @Component({
@@ -53,6 +55,7 @@ import { SAAS_PLANS } from '../../core/config/domain-constants';
                         <lucide-icon [img]="LayoutDashboard" [size]="14"></lucide-icon> Dashboard Unidade
                     </button>
                     <button (click)="activeTab.set('clinic-staff')" [class.bg-emerald-600]="activeTab() === 'clinic-staff'" [class.text-white]="activeTab() === 'clinic-staff'" class="px-6 py-2.5 rounded-xl text-xs font-black uppercase transition-all">Equipe & Roles</button>
+                    <button (click)="activeTab.set('clinic-settings')" [class.bg-emerald-600]="activeTab() === 'clinic-settings'" [class.text-white]="activeTab() === 'clinic-settings'" class="px-6 py-2.5 rounded-xl text-xs font-black uppercase transition-all">Configurações SaaS</button>
                     <button (click)="activeTab.set('clinic-settings')" [class.bg-emerald-600]="activeTab() === 'clinic-settings'" [class.text-white]="activeTab() === 'clinic-settings'" class="px-6 py-2.5 rounded-xl text-xs font-black uppercase transition-all">Configurações SaaS</button>
                 }
             </div>
@@ -240,6 +243,35 @@ import { SAAS_PLANS } from '../../core/config/domain-constants';
         }
 
         <!-- CLINIC STAFF MANAGEMENT -->
+        @if (selectedClinic() && activeTab() === 'clinic-settings') {
+            <div class="bg-white rounded-[40px] border border-slate-200 shadow-sm overflow-hidden animate-scale-in mb-8">
+                <div class="p-10 border-b border-slate-100 bg-slate-50/50">
+                    <h3 class="text-2xl font-black text-slate-900 uppercase tracking-tight">Módulos & Configurações</h3>
+                    <p class="text-slate-500 font-medium">Habilite ou desabilite os módulos SaaS para esta unidade.</p>
+                </div>
+                <div class="p-10">
+                    <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        @for (mod of uiConfig.allModules(); track mod.key) {
+                            <div class="p-6 border border-slate-100 rounded-3xl bg-slate-50 relative flex flex-col transition-all hover:border-slate-200">
+                                <div class="flex items-center justify-between mb-4">
+                                    <div class="flex items-center gap-3">
+                                        <div class="p-3 bg-white rounded-xl shadow-sm text-teal-600">
+                                            <lucide-icon [img]="getIcon(mod.icon)" [size]="20"></lucide-icon>
+                                        </div>
+                                        <span class="font-black text-slate-800 uppercase tracking-tight">{{mod.label}}</span>
+                                    </div>
+                                    <label class="relative inline-flex items-center cursor-pointer">
+                                        <input type="checkbox" class="sr-only peer" [checked]="mod.enabled" (change)="uiConfig.toggleModule(mod.key, !mod.enabled)">
+                                        <div class="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-teal-500 shadow-inner"></div>
+                                    </label>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+        }
+
         @if (selectedClinic() && activeTab() === 'clinic-staff') {
             <div class="bg-white rounded-[40px] border border-slate-200 shadow-sm overflow-hidden animate-scale-in">
                 <div class="p-10 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
@@ -659,6 +691,7 @@ import { SAAS_PLANS } from '../../core/config/domain-constants';
 })
 export class AdminPanelComponent {
   db = inject(DatabaseService);
+  uiConfig = inject(UiConfigService);
   SAAS_PLANS = SAAS_PLANS;
   
   activeTab = signal<string>('global');
@@ -747,6 +780,28 @@ ORDER BY created_at DESC;`;
   readonly Check = Check;
   readonly RefreshCw = RefreshCw;
   readonly Key = Key;
+  readonly Package = Package; 
+  readonly BarChart3 = BarChart3; 
+  readonly Share2 = Share2; 
+  readonly ClipboardList = ClipboardList; 
+  readonly UserRound = UserRound; 
+  readonly Calendar = Calendar; 
+  readonly Stethoscope = Stethoscope; 
+  
+  iconMap: Record<string, any> = { 
+    "Package": Package, 
+    "Users": Users, 
+    "UserRound": UserRound, 
+    "ClipboardList": ClipboardList, 
+    "Stethoscope": Stethoscope, 
+    "BarChart3": BarChart3, 
+    "Share2": Share2, 
+    "Calendar": Calendar 
+  }; 
+  
+  getIcon(iconName: string) { 
+    return this.iconMap[iconName] || LayoutDashboard; 
+  }
 
   openClinicModal() {
       this.newClinicData = { id: 'clinic-' + crypto.randomUUID(), name: '', email: '', plan: 'Starter', status: 'active' };

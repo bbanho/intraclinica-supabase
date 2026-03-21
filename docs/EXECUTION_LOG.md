@@ -30,3 +30,13 @@
   - [x] Refatorado `InventoryStore` para uma facade magra sobre `DatabaseService` e deletado o módulo `Inventory` do NgRx.
   - [x] Removido NgRx completamente de `main.ts`.
   - [x] Desinstalado `@ngrx/store`, `@ngrx/effects`, e `@ngrx/store-devtools` do `package.json`.
+
+### Fase 4 Concluída
+- [x] **Fase 4: Config-driven UI via Supabase**
+  - [x] Migration criada: `ui_module`, `clinic_module`, `clinic_config`.
+  - [x] Seed adicionado para os 8 módulos SaaS padrão.
+  - [x] Criado o `UiConfigService` reagindo a `ClinicContextService`.
+  - [x] Adaptado o `MainLayoutComponent` para renderizar módulos baseando-se em `uiConfig.enabledModules()`.
+  - [x] Adicionada tab "Configurações SaaS" no painel administrativo para ligar/desligar módulos, que funciona em real-time na própria UI e banco de dados.
+
+**STATUS GERAL:** REFATORAÇÃO 100% COMPLETA (Zero erros em `tsc --noEmit`). Todas as 4 Fases concluídas hoje.

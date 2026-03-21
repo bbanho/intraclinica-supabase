@@ -3,8 +3,9 @@ import { RouterOutlet, RouterLink, RouterLinkActive } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { DatabaseService } from '../core/services/database.service';
+import { UiConfigService } from '../core/services/ui-config.service';
 import { IAM_PERMISSIONS } from '../core/config/iam-roles';
-import { LucideAngularModule, LayoutDashboard, Stethoscope, LogOut, Package, Users, BarChart3, Share2, ShieldCheck, Bell, ShieldAlert, Check, X, Globe, ClipboardList, UserRound } from 'lucide-angular';
+import { LucideAngularModule, LayoutDashboard, Stethoscope, LogOut, Package, Users, BarChart3, Share2, ShieldCheck, Bell, ShieldAlert, Check, X, Globe, ClipboardList, UserRound, Calendar } from 'lucide-angular';
 
 @Component({
   selector: 'app-main-layout',
@@ -51,34 +52,19 @@ import { LucideAngularModule, LayoutDashboard, Stethoscope, LogOut, Package, Use
               <div class="px-3 mb-2 text-[10px] font-black uppercase text-teal-600 tracking-widest animate-fade-in">
                 Operação Clínica
               </div>
-              <a routerLink="/inventory" routerLinkActive="bg-teal-50 text-teal-700 font-semibold shadow-sm" class="flex items-center gap-3 px-3 py-3 rounded-xl transition-all group text-slate-400 hover:bg-slate-50 hover:text-slate-700 animate-scale-in">
-                <lucide-icon [img]="Package" [size]="20"></lucide-icon>
-                <span class="text-sm">Estoque & Etiquetas</span>
-              </a>
-              <a routerLink="/reception" routerLinkActive="bg-teal-50 text-teal-700 font-semibold shadow-sm" class="flex items-center gap-3 px-3 py-3 rounded-xl transition-all group text-slate-400 hover:bg-slate-50 hover:text-slate-700 animate-scale-in">
-                <lucide-icon [img]="Users" [size]="20"></lucide-icon>
-                <span class="text-sm">Recepção</span>
-              </a>
-              <a routerLink="/patients" routerLinkActive="bg-teal-50 text-teal-700 font-semibold shadow-sm" class="flex items-center gap-3 px-3 py-3 rounded-xl transition-all group text-slate-400 hover:bg-slate-50 hover:text-slate-700 animate-scale-in">
-                <lucide-icon [img]="UserRound" [size]="20"></lucide-icon>
-                <span class="text-sm">Pacientes</span>
-              </a>
-              <a routerLink="/procedures" routerLinkActive="bg-teal-50 text-teal-700 font-semibold shadow-sm" class="flex items-center gap-3 px-3 py-3 rounded-xl transition-all group text-slate-400 hover:bg-slate-50 hover:text-slate-700 animate-scale-in">
-                <lucide-icon [img]="ClipboardList" [size]="20"></lucide-icon>
-                <span class="text-sm">Procedimentos</span>
-              </a>
-              <a routerLink="/clinical" routerLinkActive="bg-teal-50 text-teal-700 font-semibold shadow-sm" class="flex items-center gap-3 px-3 py-3 rounded-xl transition-all group text-slate-400 hover:bg-slate-50 hover:text-slate-700 animate-scale-in">
-                <lucide-icon [img]="Stethoscope" [size]="20"></lucide-icon>
-                <span class="text-sm">Prontuário IA</span>
-              </a>
-              <a routerLink="/reports" routerLinkActive="bg-teal-50 text-teal-700 font-semibold shadow-sm" class="flex items-center gap-3 px-3 py-3 rounded-xl transition-all group text-slate-400 hover:bg-slate-50 hover:text-slate-700 animate-scale-in">
-                <lucide-icon [img]="BarChart3" [size]="20"></lucide-icon>
-                <span class="text-sm">Indicadores</span>
-              </a>
-              <a routerLink="/social" routerLinkActive="bg-teal-50 text-teal-700 font-semibold shadow-sm" class="flex items-center gap-3 px-3 py-3 rounded-xl transition-all group text-slate-400 hover:bg-slate-50 hover:text-slate-700 animate-scale-in">
-                <lucide-icon [img]="Share2" [size]="20"></lucide-icon>
-                <span class="text-sm">Marketing IA</span>
-              </a>
+              
+              @for (mod of uiConfig.enabledModules(); track mod.key) {
+                <a [routerLink]="mod.route" routerLinkActive="bg-teal-50 text-teal-700 font-semibold shadow-sm" class="flex items-center gap-3 px-3 py-3 rounded-xl transition-all group text-slate-400 hover:bg-slate-50 hover:text-slate-700 animate-scale-in">
+                  <lucide-icon [img]="getIcon(mod.icon)" [size]="20"></lucide-icon>
+                  <span class="text-sm">{{mod.label}}</span>
+                </a>
+              }
+              
+              @if (uiConfig.enabledModules().length === 0) {
+                 <div class="px-3 py-4 text-xs text-slate-400 text-center italic">
+                   Carregando módulos...
+                 </div>
+              }
           }
 
           @if (db.currentUser()?.role === 'ADMIN' || db.currentUser()?.role === 'IT' || db.currentUser()?.role === 'SUPER_ADMIN' || db.currentUser()?.role === 'CONSULTANT') {
@@ -249,6 +235,7 @@ import { LucideAngularModule, LayoutDashboard, Stethoscope, LogOut, Package, Use
 })
 export class MainLayoutComponent {
   db = inject(DatabaseService);
+  uiConfig = inject(UiConfigService);
   showNotifications = signal(false);
   showRequestAccessModal = signal(false);
   requestAccessData = { clinicId: '', reason: '', roleId: 'roles/saas_support' };
@@ -273,7 +260,22 @@ export class MainLayoutComponent {
   LayoutDashboard = LayoutDashboard; Stethoscope = Stethoscope; LogOut = LogOut; 
   Package = Package; Users = Users; BarChart3 = BarChart3; Share2 = Share2; ShieldCheck = ShieldCheck;
   Bell = Bell; ShieldAlert = ShieldAlert; Check = Check; X = X; Globe = Globe;
-  ClipboardList = ClipboardList; UserRound = UserRound;
+  ClipboardList = ClipboardList; UserRound = UserRound; Calendar = Calendar;
+
+  iconMap: Record<string, any> = {
+    'Package': Package,
+    'Users': Users,
+    'UserRound': UserRound,
+    'ClipboardList': ClipboardList,
+    'Stethoscope': Stethoscope,
+    'BarChart3': BarChart3,
+    'Share2': Share2,
+    'Calendar': Calendar
+  };
+
+  getIcon(iconName: string) {
+    return this.iconMap[iconName] || LayoutDashboard;
+  }
 
   updateContext(val: string) {
       this.db.selectedContextClinic.set(val);

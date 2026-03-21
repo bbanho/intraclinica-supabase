@@ -242,6 +242,74 @@ export type Database = {
         }
         Relationships: []
       }
+      clinic_config: {
+        Row: {
+          clinic_id: string
+          id: string
+          key: string
+          value: Json
+        }
+        Insert: {
+          clinic_id: string
+          id?: string
+          key: string
+          value?: Json
+        }
+        Update: {
+          clinic_id?: string
+          id?: string
+          key?: string
+          value?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "clinic_config_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: false
+            referencedRelation: "clinic"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      clinic_module: {
+        Row: {
+          clinic_id: string
+          enabled: boolean | null
+          id: string
+          module_key: string
+          sort_order: number | null
+        }
+        Insert: {
+          clinic_id: string
+          enabled?: boolean | null
+          id?: string
+          module_key: string
+          sort_order?: number | null
+        }
+        Update: {
+          clinic_id?: string
+          enabled?: boolean | null
+          id?: string
+          module_key?: string
+          sort_order?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "clinic_module_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: false
+            referencedRelation: "clinic"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "clinic_module_module_key_fkey"
+            columns: ["module_key"]
+            isOneToOne: false
+            referencedRelation: "ui_module"
+            referencedColumns: ["key"]
+          },
+        ]
+      }
       clinical_record: {
         Row: {
           clinic_id: string
@@ -562,6 +630,36 @@ export type Database = {
           },
         ]
       }
+      ui_module: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          icon: string
+          id: string
+          key: string
+          label: string
+          route: string
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          icon: string
+          id?: string
+          key: string
+          label: string
+          route: string
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          icon?: string
+          id?: string
+          key?: string
+          label?: string
+          route?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -671,6 +769,7 @@ export type Database = {
         }
         Returns: Json
       }
+      get_clinic_ui_config: { Args: { p_clinic_id: string }; Returns: Json }
       has_permission: {
         Args: { required_permission: string; target_clinic_id: string }
         Returns: boolean
