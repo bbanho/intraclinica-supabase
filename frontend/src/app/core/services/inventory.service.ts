@@ -1,7 +1,7 @@
 import { Injectable, inject } from '@angular/core';
 import { SupabaseService } from './supabase.service';
 import { DatabaseService } from './database.service';
-import { InventoryItem, InventoryMovement, ProcedureType, ProcedureRecipe } from '../models/inventory.types';
+import { ProcedureType, ProcedureRecipe } from '../models/inventory.types';
 
 @Injectable({
   providedIn: 'root'
@@ -15,113 +15,120 @@ export class InventoryService {
   }
 
   private get actorId() {
-    return this.dbService.currentUser()?.actor_id || this.dbService.currentUser()?.id;
+    return this.dbService.currentUser()?.actor_id ?? null;
   }
 
-  // --- Inventory Items ---
+  // --- Products (canonical inventory) ---
 
   async getItems() {
     if (!this.clinicId) throw new Error('Clinic context is required');
-    
+
     const { data, error } = await this.supabase
-      .from('inventory_item')
+      .from('product')
       .select('*')
       .eq('clinic_id', this.clinicId)
+      .eq('deleted', false)
       .order('name');
-      
+
     if (error) throw error;
-    return data as InventoryItem[];
+    return data;
   }
 
   async getItem(id: string) {
     const { data, error } = await this.supabase
-      .from('inventory_item')
+      .from('product')
       .select('*')
       .eq('id', id)
       .single();
-      
+
     if (error) throw error;
-    return data as InventoryItem;
+    return data;
   }
 
-  async createItem(item: Omit<InventoryItem, 'id' | 'clinic_id' | 'created_at' | 'updated_at'>) {
+  async createItem(item: { name: string; description?: string; unit?: string; current_stock?: number; min_stock?: number; avg_cost_price?: number; price?: number; barcode?: string; category?: string }) {
     if (!this.clinicId) throw new Error('Clinic context is required');
 
     const { data, error } = await this.supabase
-      .from('inventory_item')
-      .insert({ ...item, clinic_id: this.clinicId })
+      .from('product')
+      .insert({
+        clinic_id: this.clinicId,
+        name: item.name,
+        unit: item.unit ?? 'un',
+        description: item.description ?? null,
+        current_stock: item.current_stock ?? 0,
+        min_stock: item.min_stock ?? 0,
+        avg_cost_price: item.avg_cost_price ?? 0,
+        price: item.price ?? 0,
+        barcode: item.barcode ?? null,
+        category: item.category ?? null,
+        deleted: false
+      })
       .select()
       .single();
-      
+
     if (error) throw error;
-    return data as InventoryItem;
+    return data;
   }
 
-  async updateItem(id: string, updates: Partial<InventoryItem>) {
+  async updateItem(id: string, updates: Partial<{ name: string; description: string; unit: string; min_stock: number; avg_cost_price: number; price: number; barcode: string; category: string }>) {
     const { data, error } = await this.supabase
-      .from('inventory_item')
-      .update({ ...updates, updated_at: new Date().toISOString() })
+      .from('product')
+      .update(updates)
       .eq('id', id)
       .select()
       .single();
-      
+
     if (error) throw error;
-    return data as InventoryItem;
+    return data;
   }
 
   async deleteItem(id: string) {
     const { error } = await this.supabase
-      .from('inventory_item')
-      .delete()
+      .from('product')
+      .update({ deleted: true })
       .eq('id', id);
-      
+
     if (error) throw error;
   }
 
-  // --- Movements ---
+  // --- Stock movements (via RPC — trigger keeps product.current_stock in sync) ---
 
-  async recordMovement(movement: Omit<InventoryMovement, 'id' | 'clinic_id' | 'created_at' | 'actor_id'>) {
+  async recordMovement(movement: { item_id: string; qty_change: number; reason?: string; notes?: string }) {
     if (!this.clinicId) throw new Error('Clinic context is required');
 
-    // 1. Record movement
-    const { error: moveError } = await this.supabase
-      .from('inventory_movement')
-      .insert({
-        ...movement,
-        clinic_id: this.clinicId,
-        actor_id: this.actorId
-      });
-      
-    if (moveError) throw moveError;
+    const type = movement.qty_change >= 0 ? 'IN' : 'OUT';
+    const qty = Math.abs(movement.qty_change);
 
-    // 2. Update item stock (Manual update as perform_procedure loop handles auto deduction)
-    const item = await this.getItem(movement.item_id);
-    const newStock = Number(item.current_stock) + Number(movement.qty_change);
+    const { data, error } = await this.supabase.rpc('add_stock_movement', {
+      p_clinic_id: this.clinicId,
+      p_product_id: movement.item_id,
+      p_type: type,
+      p_qty: qty,
+      p_reason: movement.reason ?? 'MANUAL',
+      p_notes: movement.notes ?? null,
+      p_actor_id: this.actorId
+    });
 
-    const { error: updateError } = await this.supabase
-      .from('inventory_item')
-      .update({ current_stock: newStock, updated_at: new Date().toISOString() })
-      .eq('id', movement.item_id);
-
-    if (updateError) throw updateError;
+    if (error) throw error;
+    return data;
   }
 
-  async getMovements(itemId?: string) {
+  async getMovements(productId?: string) {
     if (!this.clinicId) throw new Error('Clinic context is required');
 
     let query = this.supabase
-      .from('inventory_movement')
-      .select('*, actor:actor_id(name)') 
+      .from('stock_transaction')
+      .select('*, product:product_id(name), actor:actor_id(name)')
       .eq('clinic_id', this.clinicId)
-      .order('created_at', { ascending: false });
+      .order('timestamp', { ascending: false });
 
-    if (itemId) {
-      query = query.eq('item_id', itemId);
+    if (productId) {
+      query = query.eq('product_id', productId);
     }
 
     const { data, error } = await query;
     if (error) throw error;
-    return data as (InventoryMovement & { actor?: { name: string } })[];
+    return data;
   }
 
   // --- Procedure Types ---
@@ -134,7 +141,7 @@ export class InventoryService {
       .select('*')
       .eq('clinic_id', this.clinicId)
       .order('name');
-      
+
     if (error) throw error;
     return data as ProcedureType[];
   }
@@ -164,7 +171,7 @@ export class InventoryService {
     return data as ProcedureType;
   }
 
-  // --- Procedure Recipes ---
+  // --- Procedure Recipes (item_id now references product) ---
 
   async getRecipes(procedureTypeId: string) {
     const { data, error } = await this.supabase
@@ -179,7 +186,7 @@ export class InventoryService {
       .eq('procedure_type_id', procedureTypeId);
 
     if (error) throw error;
-    
+
     return data.map((r: any) => ({
       ...r,
       item_name: r.item?.name,
@@ -207,35 +214,35 @@ export class InventoryService {
     if (error) throw error;
   }
 
-  // --- RPC Calls & Audit ---
-  
+  // --- Perform Procedure RPC ---
+
   async performProcedure(procedureTypeId: string, patientId: string | null, notes: string = '') {
-      if (!this.clinicId) throw new Error('Clinic context is required');
+    if (!this.clinicId) throw new Error('Clinic context is required');
 
-      const { data, error } = await this.supabase.rpc('perform_procedure', {
-        p_clinic_id: this.clinicId,
-        p_patient_id: patientId, 
-        p_professional_id: this.actorId,
-        p_procedure_type_id: procedureTypeId,
-        p_notes: notes
-      });
+    const { data, error } = await this.supabase.rpc('perform_procedure', {
+      p_clinic_id: this.clinicId,
+      p_patient_id: patientId,
+      p_professional_id: this.actorId,
+      p_procedure_type_id: procedureTypeId,
+      p_notes: notes
+    });
 
-      if (error) throw error;
-      return data; // returns procedure ID
+    if (error) throw error;
+    return data; // returns procedure ID (uuid)
   }
 
   async getProcedureAuditLog() {
     if (!this.clinicId) throw new Error('Clinic context is required');
 
     const { data, error } = await this.supabase
-      .from('inventory_movement')
-      .select('*, actor:actor_id(name)')
+      .from('stock_transaction')
+      .select('*, product:product_id(name), actor:actor_id(name)')
       .eq('clinic_id', this.clinicId)
       .eq('reason', 'PROCEDURE')
-      .order('created_at', { ascending: false })
+      .order('timestamp', { ascending: false })
       .limit(20);
 
     if (error) throw error;
-    return data as (InventoryMovement & { actor?: { name: string } })[];
+    return data;
   }
 }

@@ -37,7 +37,7 @@ export class DatabaseService {
       patientId: row.patient_id,
       doctorActorId: row.doctor_actor_id ?? undefined,
       patientName: row.patient_name ?? row.patient?.actor?.name ?? '',
-      doctorName: row.doctor_name ?? 'Profissional',
+      doctorName: 'Profissional',
       date: row.appointment_date ?? row.date,
       status: row.status,
       type: row.type ?? 'Consulta',
@@ -52,10 +52,9 @@ export class DatabaseService {
       clinicId: row.clinic_id,
       patientId: row.patient_id,
       doctorActorId: row.doctor_actor_id ?? undefined,
-      patientName: row.patient_name ?? row.patient?.actor?.name ?? '',
-      doctorName: row.doctor_name ?? 'Profissional',
+      patientName: row.patient?.actor?.name ?? '',
+      doctorName: 'Profissional',
       content: row.content,
-      notes: row.notes,
       type: row.type,
       timestamp: row.timestamp ?? row.created_at
     };
@@ -64,15 +63,12 @@ export class DatabaseService {
   private mapAccessRequestRow(row: any) {
     return {
       id: row.id,
-      requesterId: row.requester_id,
       requesterUserId: row.requester_user_id,
-      requesterName: row.requester_name,
       clinicId: row.clinic_id,
       clinicName: row.clinic_name,
       reason: row.reason,
       status: row.status,
       createdAt: row.created_at,
-      expiresAt: row.expires_at,
       requestedRoleId: row.requested_role_id
     };
   }
@@ -151,7 +147,7 @@ export class DatabaseService {
   }
 
   private async fetchAppointmentsForClinic(clinicId: string) {
-    const canonical = await this.supabase
+    const { data, error } = await this.supabase
       .from('appointment')
       .select(`
         *,
@@ -164,20 +160,12 @@ export class DatabaseService {
       .eq('clinic_id', clinicId)
       .order('appointment_date', { ascending: true });
 
-    if (!canonical.error) return canonical.data || [];
-
-    const legacy = await this.supabase
-      .from('appointments')
-      .select('*')
-      .eq('clinic_id', clinicId)
-      .order('date', { ascending: true });
-
-    if (legacy.error) throw legacy.error;
-    return legacy.data || [];
+    if (error) throw error;
+    return data || [];
   }
 
   private async fetchClinicalRecordsForClinic(clinicId: string) {
-    const canonical = await this.supabase
+    const { data, error } = await this.supabase
       .from('clinical_record')
       .select(`
         *,
@@ -190,16 +178,8 @@ export class DatabaseService {
       .eq('clinic_id', clinicId)
       .order('timestamp', { ascending: false });
 
-    if (!canonical.error) return canonical.data || [];
-
-    const legacy = await this.supabase
-      .from('clinical_records')
-      .select('*')
-      .eq('clinic_id', clinicId)
-      .order('created_at', { ascending: false });
-
-    if (legacy.error) throw legacy.error;
-    return legacy.data || [];
+    if (error) throw error;
+    return data || [];
   }
 
   private async fetchAccessRequestsForClinic(clinicId: string) {
@@ -212,81 +192,11 @@ export class DatabaseService {
     return result.data || [];
   }
 
-  private async selectAppointmentStatus(id: string) {
-    let result = await this.supabase
-      .from('appointment')
-      .select('status')
-      .eq('id', id)
-      .single();
-
-    if (result.error) {
-      result = await this.supabase
-        .from('appointments')
-        .select('status')
-        .eq('id', id)
-        .single();
-    }
-
-    return result;
-  }
-
-  private async updateAppointmentFields(id: string, values: Record<string, unknown>, legacyValues?: Record<string, unknown>) {
-    let result = await this.supabase
+  private async updateAppointmentFields(id: string, values: Record<string, unknown>) {
+    return this.supabase
       .from('appointment')
       .update(values)
       .eq('id', id);
-
-    if (result.error) {
-      result = await this.supabase
-        .from('appointments')
-        .update(legacyValues ?? values)
-        .eq('id', id);
-    }
-
-    return result;
-  }
-
-  private async insertAppointment(canonicalValues: Record<string, unknown>, legacyValues: Record<string, unknown>) {
-    let result = await this.supabase
-      .from('appointment')
-      .insert(canonicalValues)
-      .select()
-      .single();
-
-    if (result.error) {
-      result = await this.supabase
-        .from('appointments')
-        .insert(legacyValues)
-        .select()
-        .single();
-    }
-
-    return result;
-  }
-
-  private async insertClinicalRecord(canonicalValues: Record<string, unknown>, legacyValues: Record<string, unknown>) {
-    let result = await this.supabase
-      .from('clinical_record')
-      .insert(canonicalValues)
-      .select(`
-        *,
-        patient:patient_id (
-          actor:id (
-            name
-          )
-        )
-      `)
-      .single();
-
-    if (result.error) {
-      result = await this.supabase
-        .from('clinical_records')
-        .insert(legacyValues)
-        .select()
-        .single();
-    }
-
-    return result;
   }
 
   private async syncDataForClinic(clinicId: string) {
@@ -498,35 +408,15 @@ export class DatabaseService {
     const clinicId = apt.clinicId || this.selectedContextClinic();
     if (!clinicId) throw new Error("Clinic ID is required.");
 
-    const doctorName = apt.doctorName || this.currentUser()?.name || 'Profissional';
-    const doctorActorId = this.currentUser()?.actor_id;
-    const doctorId = this.currentUser()?.id;
-
-    const canonicalValues = {
-        clinic_id: clinicId,
-        patient_id: apt.patientId,
-        doctor_id: doctorId,
-        doctor_actor_id: doctorActorId,
-        patient_name: apt.patientName,
-        doctor_name: doctorName,
-        appointment_date: apt.date,
-        status: apt.status || 'Agendado',
-        room_number: apt.roomNumber,
-        timestamp: new Date().toISOString()
-      };
-
-    const legacyValues = {
-      clinic_id: clinicId,
-      patient_id: apt.patientId,
-      patient_name: apt.patientName,
-      doctor_name: doctorName,
-      date: apt.date,
-      status: apt.status || 'Agendado',
-      type: apt.type,
-      room_number: apt.roomNumber
-    };
-
-    const { data, error } = await this.insertAppointment(canonicalValues, legacyValues);
+    const { data, error } = await this.supabase.rpc('add_appointment', {
+      p_clinic_id: clinicId,
+      p_patient_id: apt.patientId,
+      p_doctor_actor_id: this.currentUser()?.actor_id,
+      p_date: apt.date,
+      p_status: apt.status || 'Agendado',
+      p_room_number: apt.roomNumber ?? null,
+      p_priority: null
+    });
 
     if (error) throw error;
     return data;
@@ -541,17 +431,16 @@ export class DatabaseService {
     const clinicId = tx.clinicId || this.selectedContextClinic();
     if (!clinicId) throw new Error("Clinic ID is required.");
 
-    const { error } = await this.supabase
-      .from('stock_transaction')
-      .insert({
-        clinic_id: clinicId,
-        product_id: tx.productId,
-        type: tx.type,
-        total_qty: tx.quantity,
-        timestamp: new Date().toISOString(),
-        reason: tx.notes
-      });
-    
+    const { error } = await this.supabase.rpc('add_stock_movement', {
+      p_clinic_id: clinicId,
+      p_product_id: tx.productId,
+      p_type: tx.type,
+      p_qty: tx.quantity,
+      p_reason: tx.notes || 'MANUAL',
+      p_notes: null,
+      p_actor_id: this.currentUser()?.actor_id ?? null
+    });
+
     if (error) throw error;
   }
 
@@ -577,7 +466,6 @@ export class DatabaseService {
   async updateAppointmentRoom(id: string, room: string) { 
     const { error } = await this.updateAppointmentFields(
       id,
-      { room_number: room },
       { room_number: room }
     );
     
@@ -586,7 +474,11 @@ export class DatabaseService {
 
   async transitionAppointmentStatus(id: string, newStatus: string): Promise<void> {
     // 1. Fetch current status
-    const { data: current, error: fetchError } = await this.selectAppointmentStatus(id);
+    const { data: current, error: fetchError } = await this.supabase
+      .from('appointment')
+      .select('status')
+      .eq('id', id)
+      .single();
 
     if (fetchError || !current) {
       throw new Error(`Appointment not found: ${id}`);
@@ -633,35 +525,17 @@ export class DatabaseService {
   }
 
   async requestAccess(clinicId: string, clinicName: string, reason: string, roleId: string = 'roles/viewer') { 
-    let error: any = null;
-
-    ({ error } = await this.supabase
+    const { error } = await this.supabase
       .from('access_request')
       .insert({
         clinic_id: clinicId,
         clinic_name: clinicName,
         reason: reason,
         requested_role_id: roleId,
-        requester_id: this.currentUser()?.id,
         requester_user_id: this.currentUser()?.id,
-        requester_name: this.currentUser()?.name,
         status: 'pending'
-      }));
+      });
 
-    if (error) {
-      ({ error } = await this.supabase
-        .from('access_request')
-        .insert({
-          clinic_id: clinicId,
-          clinic_name: clinicName,
-          reason: reason,
-          requested_role_id: roleId,
-          requester_id: this.currentUser()?.id,
-          requester_name: this.currentUser()?.name,
-          status: 'pending'
-        }));
-    }
-    
     if (error) throw error;
   }
 
@@ -720,32 +594,14 @@ export class DatabaseService {
     const clinicId = rec.clinicId || this.selectedContextClinic();
     if (!clinicId) throw new Error("Clinic ID is required for clinical records");
 
-    const doctorName = rec.doctorName || this.currentUser()?.name || 'Sistema';
-    const doctorActorId = this.currentUser()?.actor_id;
-    const doctorId = this.currentUser()?.id;
+    const { data, error } = await this.supabase.rpc('add_clinical_record', {
+      p_clinic_id: clinicId,
+      p_patient_id: rec.patientId,
+      p_doctor_actor_id: this.currentUser()?.actor_id,
+      p_content: rec.content,
+      p_type: (rec.type || 'EVOLUCAO').toUpperCase()
+    });
 
-    const canonicalValues = {
-      clinic_id: clinicId,
-      patient_id: rec.patientId,
-      doctor_id: doctorId,
-      doctor_actor_id: doctorActorId,
-      content: rec.content,
-      type: (rec.type || 'evolucao').toUpperCase(),
-      timestamp: new Date().toISOString()
-    };
-
-    const legacyValues = {
-      clinic_id: clinicId,
-      patient_id: rec.patientId,
-      patient_name: rec.patientName,
-      doctor_name: doctorName,
-      content: rec.content,
-      type: rec.type || 'evolucao',
-      notes: rec.notes
-    };
-
-    const { data, error } = await this.insertClinicalRecord(canonicalValues, legacyValues);
-    
     if (error) throw error;
 
     if (data) {

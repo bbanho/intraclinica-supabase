@@ -1,131 +1,97 @@
 # Schema Consolidation Status
 
-## Session Scope
+_Last updated: 2026-03-21_
 
-This document records the current state of the Supabase-backed data model after local runtime recovery, remote schema inspection, and seed preparation.
+## Current State: Identity Bridge Applied ✅
 
-## Advances Completed
+The `identity_bridge` migration (`20260321000000`) has been applied to the remote database.
+All legacy fallback paths have been removed from the frontend service layer.
+The legacy `intraclinica-angular/` directory has been archived.
 
-- Linked the local repository to the target Supabase project.
-- Confirmed the remote project and generated types from the live `public` schema via Supabase CLI.
-- Verified that the remote database is structurally present but effectively empty from an application-data perspective.
-- Added the first additive transition migration to bridge legacy `public."user"` references toward canonical identities:
-  - [database/migrations/20260321000000_identity_bridge.sql](../database/migrations/20260321000000_identity_bridge.sql)
-- Prepared a draft seed scaffold and then explicitly downgraded it to non-executable status after live execution exposed additional type drift:
-  - [database/seeds/demo_front_seed_draft.sql](../database/seeds/demo_front_seed_draft.sql)
-- Confirmed the current frontend auth flow:
-  - email/password login through `signInWithPassword`
-  - session hydration through `onAuthStateChange`
-  - Google login still disabled at the UI layer
+---
 
-## Confirmed Remote Canonical Surface In Use
+## Remote Schema Inventory (post identity_bridge)
 
-The live remote schema currently exposes and/or is expected by the frontend to use these snake_case relations:
+### Canonical tables (keep, build on)
+| Table | Notes |
+|---|---|
+| `clinic` | Multi-tenant root |
+| `actor` | Domain identity root (users + patients) |
+| `app_user` | Auth-linked user, references `auth.users(id)` |
+| `patient` | References `actor(id)` |
+| `appointment` | Now has `doctor_actor_id uuid` ✅ |
+| `clinical_record` | Now has `doctor_actor_id uuid` ✅ |
+| `access_request` | Now has `requester_user_id uuid` ✅ |
+| `product` | Operational inventory |
+| `stock_transaction` | Stock movements |
+| `social_post` | Content/marketing |
+| `financial_transaction` | Financial records |
 
-- `clinic`
-- `actor`
-- `app_user`
-- `patient`
-- `product`
-- `stock_transaction`
-- `appointment`
-- `clinical_record`
-- `access_request`
-- `inventory_item`
-- `inventory_movement`
-- `procedure_type`
-- `procedure_recipe`
+### Procedural subsystem (keep, isolate, do not expand)
+| Table | Notes |
+|---|---|
+| `inventory_item` | Procedure-linked consumables |
+| `inventory_movement` | Procedure consumption events |
+| `procedure_type` | Procedure catalogue |
+| `procedure_recipe` | Procedure → consumable mapping |
 
-## Structural Problems Confirmed
+### Legacy tables (target for deletion — no legacy clients)
+| Table | Reason |
+|---|---|
+| `public."user"` | Text-id identity, superseded by `app_user` + `actor` |
+| `AccessRequest` (PascalCase) | Duplicate of `access_request` |
+| `Batch` (PascalCase) | Duplicate/unused |
+| `StockTransaction` (PascalCase) | Duplicate of `stock_transaction` |
+| `FinancialTransaction` (PascalCase) | Duplicate of `financial_transaction` |
+| `ProductHistory` (PascalCase) | Orphan view/table |
+| `ApiKey` (PascalCase) | Unclear ownership, no frontend consumer |
+| `AccessBinding` (PascalCase) | Superseded by `iam_bindings` jsonb on `app_user` |
+| `Contact` (PascalCase) | No frontend consumer identified |
+| `FinancialCategory` (PascalCase) | No frontend consumer identified |
+| `batch` (snake_case) | No frontend consumer identified |
 
-The database currently carries overlapping models and naming styles:
+### Legacy columns (target for deletion)
+| Table | Column | Reason |
+|---|---|---|
+| `appointment` | `doctor_id text` | References `public."user"`, superseded by `doctor_actor_id` |
+| `appointment` | `doctor_name text` | Denormalized, derivable from actor JOIN |
+| `clinical_record` | `doctor_id text` | References `public."user"`, superseded by `doctor_actor_id` |
+| `access_request` | `requester_id text` | References `public."user"`, superseded by `requester_user_id` |
 
-- snake_case and PascalCase duplicates coexist:
-  - `access_request` and `AccessRequest`
-  - `batch` and `Batch`
-  - `stock_transaction` and `StockTransaction`
-- there is also a parallel `public."user"` table in addition to `public.app_user`
-- ids for conceptually related entities are not consistently typed across the whole model
-- local migrations and snippets do not all describe the same reality as the remote schema
+### Legacy RPCs (review and consolidate)
+| RPC | Status |
+|---|---|
+| `create_user_with_actor` | Keep — used by frontend `saveUser` |
+| `update_user_with_actor` | Keep — used by frontend `saveUser` |
+| `create_patient_with_actor` | Keep — used by frontend `addPatient` |
+| `perform_procedure` | Keep — procedural subsystem |
+| `has_permission` | Keep — IAM check |
+| `is_super_admin` | Keep — IAM check |
 
-This creates three concrete problems:
+---
 
-1. seed and migration scripts become brittle
-2. runtime code needs defensive casting and table-specific assumptions
-3. social auth and onboarding are harder than necessary because identity mapping is ambiguous
+## Frontend Service Layer (post-cleanup)
 
-## Operational Evidence
+`database.service.ts` has been cleaned:
+- All fallback queries to plural/legacy table names removed (`appointments`, `clinical_records`)
+- `mapClinicalRecordRow()` no longer reads non-existent `doctor_name` or `notes` columns
+- `insertAppointment`, `insertClinicalRecord`, `selectAppointmentStatus`, `updateAppointmentFields` simplified to single-path canonical queries
+- `requestAccess` fallback removed
+- TypeScript compiles clean (`tsc --noEmit` passes)
 
-### Remote inspection
+---
 
-The following commands were used successfully against the linked Supabase project:
+## Migration History
 
-```bash
-supabase projects list
-supabase link --project-ref <PROJECT_REF>
-supabase gen types typescript --linked --schema public
-supabase inspect db table-stats --linked
-```
+| Migration | Status | Notes |
+|---|---|---|
+| `20260117121134` | Applied (remote only) | Initial remote baseline, placeholder locally |
+| `20260321000000_identity_bridge` | Applied ✅ | Added `doctor_actor_id`, `requester_user_id`, indexes, FKs |
 
-### Observed table population
+---
 
-`table-stats` reported estimated row count `0` for the application tables relevant to the current frontend, including:
+## Next Engineering Phase: Hard Cleanup
 
-- `public.clinic`
-- `public.actor`
-- `public.app_user`
-- `public.user`
-- `public.patient`
-- `public.product`
-- `public.stock_transaction`
-- `public.appointment`
-- `public.clinical_record`
-- `public.access_request`
+Since **this project has no legacy clients**, the transitional bridge columns and legacy tables can be removed in the next migration without a deprecation window.
 
-This means schema exists, but the app still lacks a coherent baseline dataset.
-
-## Recommended Canonical Model
-
-Unless a contrary business requirement appears, the repository should converge on:
-
-- `clinic`
-- `actor`
-- `app_user`
-- `patient`
-- `product`
-- `stock_transaction`
-- `appointment`
-- `clinical_record`
-- `access_request`
-
-And treat these as legacy or deprecation targets:
-
-- `public."user"`
-- PascalCase duplicates such as `AccessRequest`, `Batch`, `StockTransaction`
-
-The detailed target model and transition rules now live in:
-
-- [CANONICAL_SCHEMA_TARGET.md](CANONICAL_SCHEMA_TARGET.md)
-
-## Immediate Cleanup Order
-
-1. Freeze the canonical model in writing.
-2. Inspect exact physical column types for all canonical tables from the live database.
-3. Write a consolidation migration to normalize key types and eliminate duplicate paths.
-4. Update the frontend to compile against generated remote types.
-5. Rebuild executable seeds only after the canonical contract is stable.
-6. Implement Google login on top of the consolidated identity model.
-
-## Notes On Auth
-
-Current operator user was confirmed in `auth.users` during investigation.
-
-However, the existence of an `auth.users` row alone is not enough. The application still requires a clean mapping into the canonical application identity tables.
-
-## Next Task
-
-The next engineering task should be the second consolidation pass:
-
-1. update frontend code to read and write the canonical bridge columns
-2. validate the transition migration against the remote project
-3. only then remove legacy `public."user"` dependencies
+See `REPO_CONSOLIDATION_PLAN.md` for the full cleanup roadmap.
