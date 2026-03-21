@@ -11,6 +11,95 @@ export class PatientService {
   private supabase = inject(SupabaseService);
   private db = inject(DatabaseService);
 
+  private async fetchAppointments(clinicId: string) {
+    const canonical = await this.supabase.from('appointment')
+      .select(`
+        *,
+        patient:patient_id (
+          actor:id (
+            name
+          )
+        )
+      `)
+      .eq('clinic_id', clinicId)
+      .order('appointment_date', { ascending: true });
+
+    if (!canonical.error) return canonical;
+
+    return this.supabase.from('appointments')
+      .select('*')
+      .eq('clinic_id', clinicId)
+      .order('date', { ascending: true });
+  }
+
+  private async updateAppointment(id: string, values: Record<string, unknown>) {
+    const canonical = await this.supabase.from('appointment')
+      .update(values)
+      .eq('id', id);
+
+    if (!canonical.error) return canonical;
+
+    return this.supabase.from('appointments')
+      .update(values)
+      .eq('id', id);
+  }
+
+  private async fetchClinicalRecords(patientId: string) {
+    const canonical = await this.supabase.from('clinical_record')
+      .select(`
+        *,
+        patient:patient_id (
+          actor:id (
+            name
+          )
+        )
+      `)
+      .eq('patient_id', patientId)
+      .order('timestamp', { ascending: false });
+
+    if (!canonical.error) return canonical;
+
+    return this.supabase.from('clinical_records')
+      .select('*')
+      .eq('patient_id', patientId)
+      .order('created_at', { ascending: false });
+  }
+
+  private async insertAppointment(canonicalValues: Record<string, unknown>, legacyValues: Record<string, unknown>) {
+    const canonical = await this.supabase.from('appointment')
+      .insert(canonicalValues)
+      .select()
+      .single();
+
+    if (!canonical.error) return canonical;
+
+    return this.supabase.from('appointments')
+      .insert(legacyValues)
+      .select()
+      .single();
+  }
+
+  private async insertClinicalRecord(canonicalValues: Record<string, unknown>, legacyValues: Record<string, unknown>) {
+    const canonical = await this.supabase.from('clinical_record')
+      .insert(canonicalValues)
+      .select(`
+        *,
+        patient:patient_id (
+          actor:id (
+            name
+          )
+        )
+      `)
+      .single();
+
+    if (!canonical.error) return canonical;
+
+    return this.supabase.from('clinical_records')
+      .insert(legacyValues)
+      .select()
+      .single();
+  }
+
   private mapAppointmentRow(row: any): Appointment {
     return {
       id: row.id,
@@ -77,26 +166,7 @@ export class PatientService {
 
   getAppointments(clinicId: string): Observable<Appointment[]> {
     return from(
-      (async () => {
-        const canonical = await this.supabase.from('appointment')
-          .select(`
-            *,
-            patient:patient_id (
-              actor:id (
-                name
-              )
-            )
-          `)
-          .eq('clinic_id', clinicId)
-          .order('appointment_date', { ascending: true });
-
-        if (!canonical.error) return canonical;
-
-        return this.supabase.from('appointments')
-          .select('*')
-          .eq('clinic_id', clinicId)
-          .order('date', { ascending: true });
-      })()
+      this.fetchAppointments(clinicId)
     ).pipe(
       map(({ data, error }) => {
         if (error) throw error;
@@ -107,58 +177,19 @@ export class PatientService {
 
   updateAppointmentStatus(id: string, status: string): Observable<void> {
     return from(
-      (async () => {
-        const canonical = await this.supabase.from('appointment')
-          .update({ status })
-          .eq('id', id);
-
-        if (!canonical.error) return canonical;
-
-        return this.supabase.from('appointments')
-          .update({ status })
-          .eq('id', id);
-      })()
+      this.updateAppointment(id, { status })
     ).pipe(map(({ error }) => { if (error) throw error; }));
   }
 
   updateAppointmentRoom(id: string, roomNumber: string): Observable<void> {
     return from(
-      (async () => {
-        const canonical = await this.supabase.from('appointment')
-          .update({ room_number: roomNumber })
-          .eq('id', id);
-
-        if (!canonical.error) return canonical;
-
-        return this.supabase.from('appointments')
-          .update({ room_number: roomNumber })
-          .eq('id', id);
-      })()
+      this.updateAppointment(id, { room_number: roomNumber })
     ).pipe(map(({ error }) => { if (error) throw error; }));
   }
 
   getClinicalRecords(patientId: string): Observable<ClinicalRecord[]> {
     return from(
-      (async () => {
-        const canonical = await this.supabase.from('clinical_record')
-          .select(`
-            *,
-            patient:patient_id (
-              actor:id (
-                name
-              )
-            )
-          `)
-          .eq('patient_id', patientId)
-          .order('timestamp', { ascending: false });
-
-        if (!canonical.error) return canonical;
-
-        return this.supabase.from('clinical_records')
-          .select('*')
-          .eq('patient_id', patientId)
-          .order('created_at', { ascending: false });
-      })()
+      this.fetchClinicalRecords(patientId)
     ).pipe(
       map(({ data, error }) => {
         if (error) throw error;
@@ -216,19 +247,7 @@ export class PatientService {
     };
 
     return from(
-      (async () => {
-        const canonical = await this.supabase.from('appointment')
-          .insert(canonicalAppointment)
-          .select()
-          .single();
-
-        if (!canonical.error) return canonical;
-
-        return this.supabase.from('appointments')
-          .insert(legacyAppointment)
-          .select()
-          .single();
-      })()
+      this.insertAppointment(canonicalAppointment, legacyAppointment)
     ).pipe(
       map(({ data, error }) => {
         if (error) throw error;
@@ -264,26 +283,7 @@ export class PatientService {
     };
 
     return from(
-      (async () => {
-        const canonical = await this.supabase.from('clinical_record')
-          .insert(canonicalRecord)
-          .select(`
-            *,
-            patient:patient_id (
-              actor:id (
-                name
-              )
-            )
-          `)
-          .single();
-
-        if (!canonical.error) return canonical;
-
-        return this.supabase.from('clinical_records')
-          .insert(legacyRecord)
-          .select()
-          .single();
-      })()
+      this.insertClinicalRecord(canonicalRecord, legacyRecord)
     ).pipe(
       map(({ data, error }) => {
         if (error) throw error;
