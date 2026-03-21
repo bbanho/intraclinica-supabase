@@ -58,6 +58,7 @@ export interface IamBinding {
 export interface AccessRequest {
   id: string;
   requesterId: string;
+  requesterUserId?: string;
   requesterName: string;
   clinicId: string;
   clinicName: string;
@@ -72,6 +73,7 @@ export interface Appointment {
   id: string;
   clinicId: string;
   patientId?: string;
+  doctorActorId?: string;
   patientName: string;
   doctorName: string;
   date: string; // Time HH:MM
@@ -99,6 +101,7 @@ export interface ClinicalRecord {
   id: string;
   clinicId: string;
   patientId: string;
+  doctorActorId?: string;
   patientName: string;
   doctorName: string;
   content: string;

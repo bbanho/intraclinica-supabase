@@ -30,6 +30,49 @@ export class DatabaseService {
 
   accessibleClinics = computed(() => this.clinics());
 
+  private mapAppointmentRow(row: any): Appointment {
+    return {
+      id: row.id,
+      clinicId: row.clinic_id,
+      patientId: row.patient_id,
+      doctorActorId: row.doctor_actor_id ?? undefined,
+      patientName: row.patient_name ?? row.patient?.actor?.name ?? '',
+      doctorName: 'Profissional',
+      date: row.appointment_date ?? row.date,
+      status: row.status,
+      type: row.type ?? 'Consulta',
+      roomNumber: row.room_number,
+      timestamp: row.timestamp ?? row.created_at
+    };
+  }
+
+  private mapClinicalRecordRow(row: any): ClinicalRecord {
+    return {
+      id: row.id,
+      clinicId: row.clinic_id,
+      patientId: row.patient_id,
+      doctorActorId: row.doctor_actor_id ?? undefined,
+      patientName: row.patient?.actor?.name ?? '',
+      doctorName: 'Profissional',
+      content: row.content,
+      type: row.type,
+      timestamp: row.timestamp ?? row.created_at
+    };
+  }
+
+  private mapAccessRequestRow(row: any) {
+    return {
+      id: row.id,
+      requesterUserId: row.requester_user_id,
+      clinicId: row.clinic_id,
+      clinicName: row.clinic_name,
+      reason: row.reason,
+      status: row.status,
+      createdAt: row.created_at,
+      requestedRoleId: row.requested_role_id
+    };
+  }
+
   constructor(private router: Router) {
     this.supabase = createClient(
       environment['supabaseUrl'] || '',
@@ -90,10 +133,10 @@ export class DatabaseService {
       // AUTO-SELECT CLINIC (FIX FOR ADMINS)
       if (profile.clinicId) {
           this.selectedContextClinic.set(profile.clinicId);
-      } else if (profile.role === 'admin' || profile.role === 'ADMIN' || profile.role === 'SUPER_ADMIN') {
+      } else if (profile.role === 'ADMIN' || profile.role === 'SUPER_ADMIN') {
           // If admin has no specific clinic, select the first available one to avoid empty menu
           setTimeout(async () => {
-              const { data: clinics } = await this.supabase.from('clinics').select('id').limit(1);
+              const { data: clinics } = await this.supabase.from('clinic').select('id').limit(1);
               if (clinics && clinics.length > 0) {
                   console.log('Auto-selecting clinic for Admin:', clinics[0].id);
                   this.selectedContextClinic.set(clinics[0].id);
@@ -103,10 +146,63 @@ export class DatabaseService {
     }
   }
 
+  private async fetchAppointmentsForClinic(clinicId: string) {
+    const { data, error } = await this.supabase
+      .from('appointment')
+      .select(`
+        *,
+        patient:patient_id (
+          actor:id (
+            name
+          )
+        )
+      `)
+      .eq('clinic_id', clinicId)
+      .order('appointment_date', { ascending: true });
+
+    if (error) throw error;
+    return data || [];
+  }
+
+  private async fetchClinicalRecordsForClinic(clinicId: string) {
+    const { data, error } = await this.supabase
+      .from('clinical_record')
+      .select(`
+        *,
+        patient:patient_id (
+          actor:id (
+            name
+          )
+        )
+      `)
+      .eq('clinic_id', clinicId)
+      .order('timestamp', { ascending: false });
+
+    if (error) throw error;
+    return data || [];
+  }
+
+  private async fetchAccessRequestsForClinic(clinicId: string) {
+    const result = await this.supabase
+      .from('access_request')
+      .select('*')
+      .eq('clinic_id', clinicId);
+
+    if (result.error) throw result.error;
+    return result.data || [];
+  }
+
+  private async updateAppointmentFields(id: string, values: Record<string, unknown>) {
+    return this.supabase
+      .from('appointment')
+      .update(values)
+      .eq('id', id);
+  }
+
   private async syncDataForClinic(clinicId: string) {
     const [
       usersRes, clinicsRes, productsRes, txRes,
-      aptsRes, patientsRes, recordsRes, postsRes, reqRes
+      appointmentRows, patientsRes, recordRows, postsRes, requestRows
     ] = await Promise.all([
       // Users with Actor JOIN (filter by actor's clinic)
       this.supabase
@@ -118,7 +214,7 @@ export class DatabaseService {
         .eq('actor.clinic_id', clinicId),
 
       // Clinics (all accessible)
-      this.supabase.from('clinics').select('*'),
+      this.supabase.from('clinic').select('*'),
 
       // Products (active only)
       this.supabase
@@ -130,16 +226,17 @@ export class DatabaseService {
       // Stock Transactions
       this.supabase
         .from('stock_transaction')
-        .select('*')
+        .select(`
+          *,
+          product:product_id (
+            name
+          )
+        `)
         .eq('clinic_id', clinicId)
-        .order('date', { ascending: false }),
+        .order('timestamp', { ascending: false }),
 
       // Appointments
-      this.supabase
-        .from('appointments')
-        .select('*')
-        .eq('clinic_id', clinicId)
-        .order('date', { ascending: true }),
+      this.fetchAppointmentsForClinic(clinicId),
 
       // Patients with Actor JOIN
       this.supabase
@@ -151,23 +248,16 @@ export class DatabaseService {
         .eq('clinic_id', clinicId),
 
       // Clinical Records
-      this.supabase
-        .from('clinical_records')
-        .select('*')
-        .eq('clinic_id', clinicId)
-        .order('created_at', { ascending: false }),
+      this.fetchClinicalRecordsForClinic(clinicId),
 
       // Social Posts
       this.supabase
-        .from('social_posts')
+        .from('social_post')
         .select('*')
         .eq('clinic_id', clinicId),
 
       // Access Requests
-      this.supabase
-        .from('access_request')
-        .select('*')
-        .eq('clinic_id', clinicId)
+      this.fetchAccessRequestsForClinic(clinicId)
     ]);
 
     if (usersRes.data) {
@@ -190,7 +280,7 @@ export class DatabaseService {
         email: c.email,
         plan: c.plan,
         status: c.status,
-        nextBilling: c.next_billing,
+        nextBilling: '',
         createdAt: c.created_at
       })));
     }
@@ -201,14 +291,14 @@ export class DatabaseService {
         clinicId: p.clinic_id,
         name: p.name,
         category: p.category,
-        stock: p.stock,
+        stock: p.current_stock ?? 0,
         minStock: p.min_stock,
         price: p.price,
-        costPrice: p.cost_price,
-        supplier: p.supplier,
-        expiryDate: p.expiry_date,
-        batchNumber: p.batch_number,
-        notes: p.notes,
+        costPrice: p.avg_cost_price ?? 0,
+        supplier: '',
+        expiryDate: undefined,
+        batchNumber: p.barcode ?? undefined,
+        notes: undefined,
         deleted: p.deleted
       })));
     }
@@ -218,27 +308,16 @@ export class DatabaseService {
         id: t.id,
         clinicId: t.clinic_id,
         productId: t.product_id,
-        productName: t.product_name,
+        productName: t.product?.name ?? '',
         type: t.type,
-        quantity: t.quantity,
-        date: t.date,
-        notes: t.notes
+        quantity: t.total_qty,
+        date: t.timestamp,
+        notes: t.reason
       })));
     }
 
-    if (aptsRes.data) {
-      this.appointments.set(aptsRes.data.map((a: any) => ({
-        id: a.id,
-        clinicId: a.clinic_id,
-        patientId: a.patient_id,
-        patientName: a.patient_name,
-        doctorName: a.doctor_name,
-        date: a.date,
-        status: a.status,
-        type: a.type,
-        roomNumber: a.room_number,
-        timestamp: a.created_at
-      })));
+    if (appointmentRows) {
+      this.appointments.set(appointmentRows.map((a: any) => this.mapAppointmentRow(a)));
     }
 
     if (patientsRes.data) {
@@ -253,18 +332,8 @@ export class DatabaseService {
       })));
     }
 
-    if (recordsRes.data) {
-      this.clinicalRecords.set(recordsRes.data.map((r: any) => ({
-        id: r.id,
-        clinicId: r.clinic_id,
-        patientId: r.patient_id,
-        patientName: r.patient_name,
-        doctorName: r.doctor_name,
-        content: r.content,
-        notes: r.notes,
-        type: r.type,
-        timestamp: r.created_at
-      })));
+    if (recordRows) {
+      this.clinicalRecords.set(recordRows.map((r: any) => this.mapClinicalRecordRow(r)));
     }
 
     if (postsRes.data) {
@@ -274,26 +343,15 @@ export class DatabaseService {
         title: p.title,
         content: p.content,
         platform: p.platform,
-        status: p.status,
-        scheduledAt: p.scheduled_at,
-        imageUrl: p.image_url,
+        status: p.status ?? 'draft',
+        scheduledAt: p.scheduled_at ?? undefined,
+        imageUrl: p.image_url ?? undefined,
         timestamp: p.created_at
       })));
     }
 
-    if (reqRes.data) {
-      this.accessRequests.set(reqRes.data.map((r: any) => ({
-        id: r.id,
-        requesterId: r.requester_id,
-        requesterName: r.requester_name,
-        clinicId: r.clinic_id,
-        clinicName: r.clinic_name,
-        reason: r.reason,
-        status: r.status,
-        createdAt: r.created_at,
-        expiresAt: r.expires_at,
-        requestedRoleId: r.requested_role_id
-      })));
+    if (requestRows) {
+      this.accessRequests.set(requestRows.map((r: any) => this.mapAccessRequestRow(r)));
     }
   }
 
@@ -321,15 +379,14 @@ export class DatabaseService {
       .from('product')
       .insert({
         clinic_id: clinicId,
+        barcode: product.batchNumber,
         name: product.name,
         category: product.category,
-        stock: product.stock || 0,
+        current_stock: product.stock || 0,
         min_stock: product.minStock || 0,
         price: product.price || 0,
-        supplier: product.supplier,
-        expiry_date: product.expiryDate,
-        batch_number: product.batchNumber,
-        notes: product.notes
+        avg_cost_price: product.costPrice || 0,
+        deleted: false
       })
       .select()
       .single();
@@ -351,20 +408,15 @@ export class DatabaseService {
     const clinicId = apt.clinicId || this.selectedContextClinic();
     if (!clinicId) throw new Error("Clinic ID is required.");
 
-    const { data, error } = await this.supabase
-      .from('appointments')
-      .insert({
-        clinic_id: clinicId,
-        patient_id: apt.patientId,
-        patient_name: apt.patientName,
-        doctor_name: apt.doctorName || this.currentUser()?.name,
-        date: apt.date,
-        status: apt.status || 'Agendado',
-        type: apt.type,
-        room_number: apt.roomNumber
-      })
-      .select()
-      .single();
+    const { data, error } = await this.supabase.rpc('add_appointment', {
+      p_clinic_id: clinicId,
+      p_patient_id: apt.patientId,
+      p_doctor_actor_id: this.currentUser()?.actor_id,
+      p_date: apt.date,
+      p_status: apt.status || 'Agendado',
+      p_room_number: apt.roomNumber ?? null,
+      p_priority: null
+    });
 
     if (error) throw error;
     return data;
@@ -379,18 +431,16 @@ export class DatabaseService {
     const clinicId = tx.clinicId || this.selectedContextClinic();
     if (!clinicId) throw new Error("Clinic ID is required.");
 
-    const { error } = await this.supabase
-      .from('stock_transaction')
-      .insert({
-        clinic_id: clinicId,
-        product_id: tx.productId,
-        product_name: tx.productName,
-        type: tx.type,
-        quantity: tx.quantity,
-        date: new Date().toISOString(),
-        notes: tx.notes
-      });
-    
+    const { error } = await this.supabase.rpc('add_stock_movement', {
+      p_clinic_id: clinicId,
+      p_product_id: tx.productId,
+      p_type: tx.type,
+      p_qty: tx.quantity,
+      p_reason: tx.notes || 'MANUAL',
+      p_notes: null,
+      p_actor_id: this.currentUser()?.actor_id ?? null
+    });
+
     if (error) throw error;
   }
 
@@ -408,19 +458,16 @@ export class DatabaseService {
   }
 
   async updateAppointmentStatus(id: string, status: string) { 
-    const { error } = await this.supabase
-      .from('appointments')
-      .update({ status })
-      .eq('id', id);
+    const { error } = await this.updateAppointmentFields(id, { status });
     
     if (error) throw error;
   }
 
   async updateAppointmentRoom(id: string, room: string) { 
-    const { error } = await this.supabase
-      .from('appointments')
-      .update({ room_number: room })
-      .eq('id', id);
+    const { error } = await this.updateAppointmentFields(
+      id,
+      { room_number: room }
+    );
     
     if (error) throw error;
   }
@@ -428,7 +475,7 @@ export class DatabaseService {
   async transitionAppointmentStatus(id: string, newStatus: string): Promise<void> {
     // 1. Fetch current status
     const { data: current, error: fetchError } = await this.supabase
-      .from('appointments')
+      .from('appointment')
       .select('status')
       .eq('id', id)
       .single();
@@ -472,10 +519,7 @@ export class DatabaseService {
     }
 
     // 3. Update status
-    const { error: updateError } = await this.supabase
-      .from('appointments')
-      .update({ status: newStatus })
-      .eq('id', id);
+    const { error: updateError } = await this.updateAppointmentFields(id, { status: newStatus });
 
     if (updateError) throw updateError;
   }
@@ -488,11 +532,10 @@ export class DatabaseService {
         clinic_name: clinicName,
         reason: reason,
         requested_role_id: roleId,
-        requester_id: this.currentUser()?.id,
-        requester_name: this.currentUser()?.name,
+        requester_user_id: this.currentUser()?.id,
         status: 'pending'
       });
-    
+
     if (error) throw error;
   }
 
@@ -518,15 +561,12 @@ export class DatabaseService {
     const finalContent = hashtags ? `${rawContent}\n\n${hashtags}` : rawContent;
 
     const { data, error } = await this.supabase
-      .from('social_posts')
+      .from('social_post')
       .insert({
         clinic_id: clinicId,
         title: title,
         content: finalContent,
-        platform: post.platform || 'instagram',
-        status: post.status || 'draft',
-        image_url: post.imageUrl,
-        scheduled_at: post.scheduledAt
+        platform: post.platform || 'instagram'
       })
       .select()
       .single();
@@ -540,9 +580,9 @@ export class DatabaseService {
         title: data.title,
         content: data.content,
         platform: data.platform,
-        status: data.status,
-        imageUrl: data.image_url,
-        scheduledAt: data.scheduled_at,
+        status: data.status ?? 'draft',
+        imageUrl: data.image_url ?? undefined,
+        scheduledAt: data.scheduled_at ?? undefined,
         timestamp: data.created_at
       };
       this.socialPosts.update(list => [...list, newPost]);
@@ -554,36 +594,18 @@ export class DatabaseService {
     const clinicId = rec.clinicId || this.selectedContextClinic();
     if (!clinicId) throw new Error("Clinic ID is required for clinical records");
 
-    const doctorName = rec.doctorName || this.currentUser()?.name || 'Sistema';
+    const { data, error } = await this.supabase.rpc('add_clinical_record', {
+      p_clinic_id: clinicId,
+      p_patient_id: rec.patientId,
+      p_doctor_actor_id: this.currentUser()?.actor_id,
+      p_content: rec.content,
+      p_type: (rec.type || 'EVOLUCAO').toUpperCase()
+    });
 
-    const { data, error } = await this.supabase
-      .from('clinical_records')
-      .insert({
-        clinic_id: clinicId,
-        patient_id: rec.patientId,
-        patient_name: rec.patientName,
-        doctor_name: doctorName,
-        content: rec.content,
-        type: rec.type || 'evolucao',
-        notes: rec.notes
-      })
-      .select()
-      .single();
-    
     if (error) throw error;
 
     if (data) {
-      const newRec: ClinicalRecord = {
-        id: data.id,
-        clinicId: data.clinic_id,
-        patientId: data.patient_id,
-        patientName: data.patient_name,
-        doctorName: data.doctor_name,
-        content: data.content,
-        type: data.type,
-        notes: data.notes,
-        timestamp: data.created_at
-      };
+      const newRec: ClinicalRecord = this.mapClinicalRecordRow(data);
       this.clinicalRecords.update(list => [newRec, ...list]);
     }
     return data;
@@ -591,7 +613,12 @@ export class DatabaseService {
 
 
   async addClinic(c: Partial<Clinic>) { 
-    const { error } = await this.supabase.from('clinics').insert(c);
+    const { error } = await this.supabase.from('clinic').insert({
+      name: c.name,
+      email: c.email,
+      plan: c.plan,
+      status: c.status
+    });
     if (error) {
       if (error.code === '23505') {
         console.error('Duplicate clinic detected:', error);
@@ -603,7 +630,7 @@ export class DatabaseService {
 
   async deleteClinic(id: string) {
     const { error } = await this.supabase
-      .from('clinics')
+      .from('clinic')
       .update({ status: 'inactive' })
       .eq('id', id);
     if (error) throw error;

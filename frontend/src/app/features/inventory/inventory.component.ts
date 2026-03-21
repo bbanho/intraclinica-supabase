@@ -16,11 +16,11 @@ interface ItemFormData {
   unit: string;
   current_stock: number;
   min_stock: number;
-  cost_price: number;
+  avg_cost_price: number;
 }
 
 const DEFAULT_FORM_DATA: ItemFormData = { 
-  id: '', name: '', description: '', unit: 'un', current_stock: 0, min_stock: 10, cost_price: 0 
+  id: '', name: '', description: '', unit: 'un', current_stock: 0, min_stock: 10, avg_cost_price: 0 
 };
 
 @Component({
@@ -158,7 +158,7 @@ export class InventoryComponent {
       unit: item.unit,
       current_stock: item.current_stock,
       min_stock: item.min_stock,
-      cost_price: item.cost_price
+      avg_cost_price: item.avg_cost_price
     };
     this.editingId.set(item.id);
     this.isFormOpen.set(true);
@@ -172,7 +172,7 @@ export class InventoryComponent {
         unit: this.formData.unit,
         current_stock: this.formData.current_stock,
         min_stock: this.formData.min_stock,
-        cost_price: this.formData.cost_price
+        avg_cost_price: this.formData.avg_cost_price
       };
 
       if (this.editingId()) {
