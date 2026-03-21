@@ -1,0 +1,51 @@
+-- DRAFT ONLY
+-- -----------------------------------------------------------------------------
+-- This file is intentionally not executable yet.
+--
+-- Reason:
+-- The live remote database has confirmed schema drift and type inconsistency
+-- across the application surface. The repository contains overlapping models,
+-- and generated remote types alone are not enough to safely infer physical
+-- column types for all write paths.
+--
+-- Current blockers observed during execution attempts:
+-- - `public.clinic.id` behaved as `uuid` while local artifacts suggested `text`
+-- - `public.appointment` comparisons exposed mixed `text`/`uuid` relationships
+--
+-- This draft is preserved as a checklist for the final seed once the canonical
+-- schema is frozen and column types are inspected directly from the live DB.
+-- -----------------------------------------------------------------------------
+
+-- Final seed should cover:
+-- 1. canonical clinic bootstrap
+-- 2. actor/app_user mapping for authenticated operator
+-- 3. patient fixtures
+-- 4. product fixtures
+-- 5. stock_transaction fixtures
+-- 6. optional appointment fixtures after exact type inspection
+-- 7. optional clinical_record fixtures after exact type inspection
+
+-- Required inspection query before implementing the final seed:
+--
+-- select
+--   table_name,
+--   column_name,
+--   data_type,
+--   udt_name
+-- from information_schema.columns
+-- where table_schema = 'public'
+--   and table_name in (
+--     'clinic',
+--     'actor',
+--     'app_user',
+--     'patient',
+--     'product',
+--     'stock_transaction',
+--     'appointment',
+--     'clinical_record',
+--     'access_request'
+--   )
+-- order by table_name, ordinal_position;
+--
+-- After that inspection, replace this draft with a single idempotent seed
+-- targeting the canonical snake_case model only.
