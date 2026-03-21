@@ -2,82 +2,44 @@
 
 _Last updated: 2026-03-21_
 
-## Current State: Identity Bridge Applied ✅
+## Current State: Hard Cleanup Applied ✅
 
-The `identity_bridge` migration (`20260321000000`) has been applied to the remote database.
-All legacy fallback paths have been removed from the frontend service layer.
-The legacy `intraclinica-angular/` directory has been archived.
+All migrations have been applied to the remote database (`prolahgqlwfriwfpzjdm`).
+Legacy tables, legacy columns, and legacy PascalCase duplicates have been removed.
+The frontend service layer has been realigned to the canonical schema.
 
 ---
 
-## Remote Schema Inventory (post identity_bridge)
+## Remote Schema — Canonical Tables (post hard_cleanup)
 
-### Canonical tables (keep, build on)
 | Table | Notes |
 |---|---|
 | `clinic` | Multi-tenant root |
 | `actor` | Domain identity root (users + patients) |
 | `app_user` | Auth-linked user, references `auth.users(id)` |
 | `patient` | References `actor(id)` |
-| `appointment` | Now has `doctor_actor_id uuid` ✅ |
-| `clinical_record` | Now has `doctor_actor_id uuid` ✅ |
-| `access_request` | Now has `requester_user_id uuid` ✅ |
-| `product` | Operational inventory |
-| `stock_transaction` | Stock movements |
+| `appointment` | Uses `doctor_actor_id uuid` (legacy `doctor_id`/`doctor_name` removed) |
+| `clinical_record` | Uses `doctor_actor_id uuid` (legacy `doctor_id` removed) |
+| `access_request` | Uses `requester_user_id uuid` (legacy `requester_id`/`requester_name` removed) |
+| `product` | Canonical inventory (absorbed `inventory_item`) |
+| `stock_transaction` | Stock movements (absorbed `inventory_movement`); trigger syncs `product.current_stock` |
 | `social_post` | Content/marketing |
-| `financial_transaction` | Financial records |
-
-### Procedural subsystem (keep, isolate, do not expand)
-| Table | Notes |
-|---|---|
-| `inventory_item` | Procedure-linked consumables |
-| `inventory_movement` | Procedure consumption events |
 | `procedure_type` | Procedure catalogue |
 | `procedure_recipe` | Procedure → consumable mapping |
 
-### Legacy tables (target for deletion — no legacy clients)
-| Table | Reason |
-|---|---|
-| `public."user"` | Text-id identity, superseded by `app_user` + `actor` |
-| `AccessRequest` (PascalCase) | Duplicate of `access_request` |
-| `Batch` (PascalCase) | Duplicate/unused |
-| `StockTransaction` (PascalCase) | Duplicate of `stock_transaction` |
-| `FinancialTransaction` (PascalCase) | Duplicate of `financial_transaction` |
-| `ProductHistory` (PascalCase) | Orphan view/table |
-| `ApiKey` (PascalCase) | Unclear ownership, no frontend consumer |
-| `AccessBinding` (PascalCase) | Superseded by `iam_bindings` jsonb on `app_user` |
-| `Contact` (PascalCase) | No frontend consumer identified |
-| `FinancialCategory` (PascalCase) | No frontend consumer identified |
-| `batch` (snake_case) | No frontend consumer identified |
+## Removed (hard_cleanup migration)
 
-### Legacy columns (target for deletion)
-| Table | Column | Reason |
+| Object | Type | Reason |
 |---|---|---|
-| `appointment` | `doctor_id text` | References `public."user"`, superseded by `doctor_actor_id` |
-| `appointment` | `doctor_name text` | Denormalized, derivable from actor JOIN |
-| `clinical_record` | `doctor_id text` | References `public."user"`, superseded by `doctor_actor_id` |
-| `access_request` | `requester_id text` | References `public."user"`, superseded by `requester_user_id` |
-
-### Legacy RPCs (review and consolidate)
-| RPC | Status |
-|---|---|
-| `create_user_with_actor` | Keep — used by frontend `saveUser` |
-| `update_user_with_actor` | Keep — used by frontend `saveUser` |
-| `create_patient_with_actor` | Keep — used by frontend `addPatient` |
-| `perform_procedure` | Keep — procedural subsystem |
-| `has_permission` | Keep — IAM check |
-| `is_super_admin` | Keep — IAM check |
-
----
-
-## Frontend Service Layer (post-cleanup)
-
-`database.service.ts` has been cleaned:
-- All fallback queries to plural/legacy table names removed (`appointments`, `clinical_records`)
-- `mapClinicalRecordRow()` no longer reads non-existent `doctor_name` or `notes` columns
-- `insertAppointment`, `insertClinicalRecord`, `selectAppointmentStatus`, `updateAppointmentFields` simplified to single-path canonical queries
-- `requestAccess` fallback removed
-- TypeScript compiles clean (`tsc --noEmit` passes)
+| `public."user"` | Table | Text-id identity — superseded by `app_user` + `actor` |
+| `inventory_item` | Table | Absorbed into `product` |
+| `inventory_movement` | Table | Absorbed into `stock_transaction` |
+| `financial_transaction` | Table | No frontend consumer; no migration path defined |
+| `batch` | Table | Orphan, no consumer |
+| `AccessRequest`, `AccessBinding`, `ApiKey`, `Batch`, `Contact`, `FinancialCategory`, `FinancialTransaction`, `ProductHistory`, `StockTransaction` | Tables (PascalCase) | Legacy duplicates |
+| `appointment.doctor_id`, `appointment.doctor_name` | Columns | Superseded by `doctor_actor_id` |
+| `clinical_record.doctor_id` | Column | Superseded by `doctor_actor_id` |
+| `access_request.requester_id`, `access_request.requester_name` | Columns | Superseded by `requester_user_id` |
 
 ---
 
@@ -85,13 +47,33 @@ The legacy `intraclinica-angular/` directory has been archived.
 
 | Migration | Status | Notes |
 |---|---|---|
-| `20260117121134` | Applied (remote only) | Initial remote baseline, placeholder locally |
-| `20260321000000_identity_bridge` | Applied ✅ | Added `doctor_actor_id`, `requester_user_id`, indexes, FKs |
+| `20260117121134` | Applied | Initial remote baseline |
+| `20260321000000_identity_bridge` | Applied ✅ | Added bridge columns (`doctor_actor_id`, `requester_user_id`), indexes, FKs |
+| `20260321000001_hard_cleanup` | Applied ✅ | Removed all legacy tables, PascalCase duplicates, and legacy columns |
 
 ---
 
-## Next Engineering Phase: Hard Cleanup
+## Available RPCs
 
-Since **this project has no legacy clients**, the transitional bridge columns and legacy tables can be removed in the next migration without a deprecation window.
+| RPC | Status |
+|---|---|
+| `create_user_with_actor` | Active — used by frontend `saveUser` |
+| `update_user_with_actor` | Active — used by frontend `saveUser` |
+| `create_patient_with_actor` | Active — used by frontend `addPatient` |
+| `add_appointment` | Active — used by `database.service.ts` |
+| `add_clinical_record` | Active — used by `database.service.ts` |
+| `add_stock_movement` | Active — used by `inventory.service.ts` |
+| `perform_procedure` | Active — procedural subsystem |
+| `has_permission` | Active — IAM check |
+| `is_super_admin` | Active — IAM check |
 
-See `REPO_CONSOLIDATION_PLAN.md` for the full cleanup roadmap.
+---
+
+## Frontend Service Layer (post hard_cleanup)
+
+- `database.service.ts` — uses RPCs `add_appointment`, `add_clinical_record`; no legacy column writes
+- `inventory.service.ts` — fully rewritten against `product`/`stock_transaction`; uses `add_stock_movement` RPC
+- `patient.service.ts` — removed all fallbacks to legacy plural table names
+- `inventory.types.ts` — `InventoryItem` maps to `product` columns (`avg_cost_price`, `price`, `barcode`)
+- `supabase.ts` — regenerated from live schema (no legacy tables present)
+- `tsc --noEmit` passes with zero errors ✅
