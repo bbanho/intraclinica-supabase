@@ -61,6 +61,16 @@ At the same time, `frontend/` already diverges with additional files and modules
 
 This means the second app is not a clean mirror. It is a stale branch of the product inside the same repository.
 
+Additional finding:
+
+- `intraclinica-angular/src/app` currently has no unique files relative to `frontend/src/app`
+
+This sharply reduces archival risk. The remaining work is mainly:
+
+- removing stale references
+- validating whether any non-`src/app` assets still matter
+- cleaning tracked runtime artifacts and repository damage before the move
+
 ## Consolidation Sequence
 
 1. Freeze `frontend/` as canonical in docs.
@@ -69,6 +79,23 @@ This means the second app is not a clean mirror. It is a stale branch of the pro
 4. Port any still-needed deltas into `frontend/`.
 5. Move `intraclinica-angular/` to an explicit archive location.
 6. Remove stale references from docs and onboarding material.
+
+Current interpretation of step 3:
+
+- application code under `src/app` no longer blocks archival
+- any remaining check should focus on configs, assets, package metadata, and docs
+
+## PR #1 Status
+
+Inventory PR `#1` should be treated as superseded work.
+
+Reason:
+
+- it is conflicting
+- it assumes a stale inventory schema contract
+- it introduces client-side stock mutation where the system now needs an atomic database boundary
+
+The replacement should happen only after the schema track defines the canonical inventory model.
 
 ## Database Track
 
