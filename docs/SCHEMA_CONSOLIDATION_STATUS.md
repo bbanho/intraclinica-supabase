@@ -6,11 +6,11 @@ This document records the current state of the Supabase-backed data model after 
 
 ## Advances Completed
 
-- Linked the local repository to Supabase project `prolahgqlwfriwfpzjdm`.
+- Linked the local repository to the target Supabase project.
 - Confirmed the remote project and generated types from the live `public` schema via Supabase CLI.
 - Verified that the remote database is structurally present but effectively empty from an application-data perspective.
 - Prepared a draft seed scaffold and then explicitly downgraded it to non-executable status after live execution exposed additional type drift:
-  - [database/seeds/demo_front_seed_draft.sql](/var/home/bruno/Documentos/intraclinica-supabase/database/seeds/demo_front_seed_draft.sql)
+  - [database/seeds/demo_front_seed_draft.sql](../database/seeds/demo_front_seed_draft.sql)
 - Confirmed the current frontend auth flow:
   - email/password login through `signInWithPassword`
   - session hydration through `onAuthStateChange`
@@ -60,7 +60,7 @@ The following commands were used successfully against the linked Supabase projec
 
 ```bash
 supabase projects list
-supabase link --project-ref prolahgqlwfriwfpzjdm
+supabase link --project-ref <PROJECT_REF>
 supabase gen types typescript --linked --schema public
 supabase inspect db table-stats --linked
 ```
@@ -112,10 +112,7 @@ And treat these as legacy or deprecation targets:
 
 ## Notes On Auth
 
-Current user confirmed in `auth.users`:
-
-- email: `bmbanho@gmail.com`
-- id: `241d0c33-ebaf-4839-aa1c-96390bff90d1`
+Current operator user was confirmed in `auth.users` during investigation.
 
 However, the existence of an `auth.users` row alone is not enough. The application still requires a clean mapping into the canonical application identity tables.
 

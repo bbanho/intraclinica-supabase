@@ -6,7 +6,7 @@
 
 - Do not add new features here.
 - Do not use this directory as the main application entrypoint.
-- Active implementation should continue in [frontend](/var/home/bruno/Documentos/intraclinica-supabase/frontend).
+- Active implementation should continue in [frontend](../frontend).
 
 ## Why
 
