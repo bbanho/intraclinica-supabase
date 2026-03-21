@@ -23,7 +23,7 @@ export class ReceptionPage {
   }
 
   async goto() {
-    await this.page.goto('/reception');
+    await this.page.goto('/#/reception');
     await this.heading.waitFor({ timeout: 10_000 });
   }
 

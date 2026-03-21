@@ -13,14 +13,12 @@ type AuthFixtures = {
 };
 
 async function loginAs(page: Page, email: string, password: string) {
-  await page.goto('/login');
-  await page.getByLabel(/e-mail|email/i).fill(email);
-  await page.getByLabel(/senha|password/i).fill(password);
-  await page.getByRole('button', { name: /entrar|login/i }).click();
-  // Wait for the main layout sidebar to appear (indicates successful login)
-  await page.waitForSelector('app-main-layout, [data-testid="sidebar"], nav', {
-    timeout: 15_000,
-  });
+  await page.goto('/#/login');
+  await page.locator('input[type="email"]').fill(email);
+  await page.locator('input[type="password"]').fill(password);
+  await page.getByRole('button', { name: /acessar/i }).click();
+  
+  await page.waitForURL(url => !url.href.includes('/login'), { timeout: 15_000 });
 }
 
 export const test = base.extend<AuthFixtures>({

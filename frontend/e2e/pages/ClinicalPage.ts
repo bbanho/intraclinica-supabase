@@ -25,7 +25,7 @@ export class ClinicalPage {
   }
 
   async goto() {
-    await this.page.goto('/clinical');
+    await this.page.goto('/#/clinical');
     await this.heading.waitFor({ timeout: 10_000 });
   }
 }

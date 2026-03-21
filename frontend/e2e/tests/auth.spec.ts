@@ -34,12 +34,11 @@ test.describe('Authentication', () => {
   });
 
   test('should logout and return to login', async ({ authedPage: page }) => {
-    // Already logged in via fixture
-    // Click logout — button text is "Encerrar Sessão"
-    const logoutBtn = page.getByRole('button', { name: /encerrar sessão|sair|logout/i });
+    // Wait for the layout to render the button
+    const logoutBtn = page.locator('button', { hasText: /Encerrar Sessão/i });
     await logoutBtn.click();
 
-    await page.waitForURL('**/login', { timeout: 10_000 });
+    await page.waitForURL(url => url.href.includes('/login'), { timeout: 10_000 });
     expect(page.url()).toContain('/login');
   });
 

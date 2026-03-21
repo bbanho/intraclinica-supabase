@@ -21,7 +21,7 @@ export class InventoryPage {
   }
 
   async goto() {
-    await this.page.goto('/inventory');
+    await this.page.goto('/#/inventory');
     await this.heading.waitFor({ timeout: 10_000 });
   }
 

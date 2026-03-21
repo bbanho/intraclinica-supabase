@@ -11,14 +11,14 @@ export class LoginPage {
 
   constructor(page: Page) {
     this.page      = page;
-    this.emailInput   = page.getByLabel(/e-mail|email/i);
-    this.passwordInput = page.getByLabel(/senha|password/i);
-    this.submitButton  = page.getByRole('button', { name: /entrar|login/i });
-    this.errorMessage  = page.locator('.error, [role="alert"], .alert-error');
+    this.emailInput   = page.locator('input[type="email"]');
+    this.passwordInput = page.locator('input[type="password"]');
+    this.submitButton  = page.getByRole('button', { name: /acessar/i });
+    this.errorMessage  = page.locator('.text-red-600');
   }
 
   async goto() {
-    await this.page.goto('/login');
+    await this.page.goto('/#/login');
   }
 
   async login(email: string, password: string) {
@@ -28,7 +28,7 @@ export class LoginPage {
   }
 
   async waitForRedirect() {
-    await this.page.waitForURL(url => !url.pathname.includes('/login'), {
+    await this.page.waitForURL(url => !url.href.includes('/login'), {
       timeout: 15_000,
     });
   }
