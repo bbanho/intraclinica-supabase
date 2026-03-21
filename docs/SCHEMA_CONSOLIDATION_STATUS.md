@@ -10,7 +10,7 @@ This document records the current state of the Supabase-backed data model after 
 - Confirmed the remote project and generated types from the live `public` schema via Supabase CLI.
 - Verified that the remote database is structurally present but effectively empty from an application-data perspective.
 - Prepared a draft seed scaffold and then explicitly downgraded it to non-executable status after live execution exposed additional type drift:
-  - [database/seeds/demo_front_seed_draft.sql](/var/home/bruno/Documentos/intraclinica-supabase/database/seeds/demo_front_seed_draft.sql)
+  - [database/seeds/demo_front_seed_draft.sql](../database/seeds/demo_front_seed_draft.sql)
 - Confirmed the current frontend auth flow:
   - email/password login through `signInWithPassword`
   - session hydration through `onAuthStateChange`
