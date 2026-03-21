@@ -5,7 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Documentação Estratégica | IntraClinica</title>
     <link rel="icon" type="image/svg+xml" href="favicon.svg">
-    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.tailwindcss.com?plugins=typography"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/framer-motion@10.16.4/dist/framer-motion.js"></script>
@@ -93,6 +94,7 @@
                 { id: 'home', label: 'Visão Geral', group: 'Estratégia' },
                 { id: 'journey', label: 'Jornada do Paciente', group: 'Estratégia' },
                 { id: 'clinical', label: 'Excelência Clínica', group: 'Estratégia' },
+                { id: 'userguide', label: 'Guia do Médico', group: 'Operação' },
                 { id: 'inventory', label: 'Gestão de Insumos', group: 'Operação' },
                 { id: 'security', label: 'Soberania e LGPD', group: 'Operação' },
                 { id: 'architecture', label: 'Arquitetura Técnica', group: 'Engenharia' },
@@ -161,6 +163,7 @@
                                 {activeSection === 'home' && <HomeContent />}
                                 {activeSection === 'journey' && <JourneyContent />}
                                 {activeSection === 'clinical' && <ClinicalContent />}
+                                {activeSection === 'userguide' && <UserGuideContent />}
                                 {activeSection === 'inventory' && <InventoryContent />}
                                 {activeSection === 'security' && <SecurityContent />}
                                 {activeSection === 'architecture' && <ArchitectureContent />}
@@ -169,6 +172,25 @@
                         </AnimatePresence>
                     </main>
                 </div>
+            );
+        };
+
+        const UserGuideContent = () => {
+            const [markdown, setMarkdown] = useState('Carregando guia...');
+            
+            useEffect(() => {
+                fetch('guia-do-usuario.md')
+                    .then(res => res.text())
+                    .then(text => {
+                        setMarkdown(window.marked.parse(text));
+                    })
+                    .catch(err => setMarkdown('Erro ao carregar o guia: ' + err.message));
+            }, []);
+
+            return (
+                <article className="prose prose-slate max-w-none">
+                    <div dangerouslySetInnerHTML={{ __html: markdown }} />
+                </article>
             );
         };
 
