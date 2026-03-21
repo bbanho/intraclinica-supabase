@@ -344,7 +344,8 @@ export class ReceptionComponent {
       // Effect: Sync Patients/Appointments
       effect(() => {
           const clinicId = this.db.selectedContextClinic();
-          if (clinicId) {
+          // 'all' is SUPER_ADMIN global sentinel — not a valid clinic UUID
+          if (clinicId && clinicId !== 'all') {
             this.store.loadPatients(clinicId);
             this.store.loadAppointments(clinicId);
           }
@@ -404,8 +405,8 @@ export class ReceptionComponent {
       let patientName: string = '';
       
       const clinicId = this.db.selectedContextClinic();
-      if (!clinicId) {
-          alert('Selecione uma clínica primeiro.');
+      if (!clinicId || clinicId === 'all') {
+          alert('Selecione uma clínica específica primeiro.');
           this.isLoading.set(false);
           return;
       }

@@ -50,7 +50,7 @@ export class PatientService {
           cpf,
           birth_date,
           gender,
-          actor:id (
+          actor:actor!patient_id_fkey (
             name,
             clinic_id,
             created_at

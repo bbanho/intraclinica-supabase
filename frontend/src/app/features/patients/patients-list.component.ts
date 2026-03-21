@@ -138,7 +138,8 @@ export class PatientsListComponent {
   constructor() {
     effect(() => {
       const clinicId = this.db.selectedContextClinic();
-      if (clinicId) {
+      // 'all' is SUPER_ADMIN global sentinel — not a valid clinic UUID
+      if (clinicId && clinicId !== 'all') {
         this.store.loadPatients(clinicId);
       }
     });
@@ -148,7 +149,7 @@ export class PatientsListComponent {
     if (!this.newPatient.name) return;
     
     const clinicId = this.db.selectedContextClinic();
-    if (!clinicId) return;
+    if (!clinicId || clinicId === 'all') return;
 
     this.isSaving.set(true);
     this.store.createPatient({

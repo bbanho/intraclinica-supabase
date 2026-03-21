@@ -15,6 +15,8 @@ import { authReducer } from './app/core/store/auth/auth.reducer';
 import { AuthEffects } from './app/core/store/auth/auth.effects';
 import { patientReducer, PATIENT_FEATURE_KEY } from './app/core/store/patient/patient.reducer';
 import { PatientEffects } from './app/core/store/patient/patient.effects';
+import { inventoryReducer } from './app/features/inventory/store/inventory.reducer';
+import { InventoryEffects } from './app/features/inventory/store/inventory.effects';
 
 // Polyfill Buffer
 (window as any).Buffer = Buffer;
@@ -28,9 +30,10 @@ bootstrapApplication(AppComponent, {
     // NgRx Store Setup
     provideStore({ 
       auth: authReducer,
-      [PATIENT_FEATURE_KEY]: patientReducer 
+      [PATIENT_FEATURE_KEY]: patientReducer,
+      inventory: inventoryReducer
     }),
-    provideEffects([AuthEffects, PatientEffects]),
+    provideEffects([AuthEffects, PatientEffects, InventoryEffects]),
     provideStoreDevtools({ maxAge: 25, logOnly: !isDevMode() })
   ]
 }).catch(err => console.error(err));

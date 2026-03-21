@@ -11,7 +11,9 @@ export class InventoryService {
   private dbService = inject(DatabaseService);
 
   private get clinicId() {
-    return this.dbService.selectedContextClinic();
+    const ctx = this.dbService.selectedContextClinic();
+    // 'all' is the SUPER_ADMIN global sentinel — not a valid UUID for clinic-scoped queries
+    return ctx === 'all' ? null : ctx;
   }
 
   private get actorId() {

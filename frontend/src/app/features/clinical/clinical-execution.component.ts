@@ -39,7 +39,9 @@ export class ClinicalExecutionComponent implements OnInit {
   }
 
   get clinicId() {
-    return this.dbService.selectedContextClinic();
+    const ctx = this.dbService.selectedContextClinic();
+    // 'all' is SUPER_ADMIN global sentinel — not a valid UUID for clinic-scoped queries
+    return ctx === 'all' ? null : ctx;
   }
 
   async loadProcedureTypes() {

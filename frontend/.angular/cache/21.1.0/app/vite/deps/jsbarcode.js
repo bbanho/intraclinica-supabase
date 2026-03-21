@@ -1,6 +1,6 @@
 import {
   __commonJS
-} from "./chunk-H2SRQSE4.js";
+} from "./chunk-R327OCYJ.js";
 
 // node_modules/jsbarcode/bin/barcodes/Barcode.js
 var require_Barcode = __commonJS({

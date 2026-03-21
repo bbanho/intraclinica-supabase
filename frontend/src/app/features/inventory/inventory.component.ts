@@ -119,7 +119,8 @@ export class InventoryComponent {
   constructor() {
     effect(() => {
       const clinicId = this.db.selectedContextClinic();
-      if (clinicId) {
+      // 'all' is SUPER_ADMIN global sentinel — not a valid clinic UUID for inventory queries
+      if (clinicId && clinicId !== 'all') {
         this.loadItems();
       }
     });

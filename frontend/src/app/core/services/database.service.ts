@@ -93,7 +93,15 @@ export class DatabaseService {
     this.initSession();
     effect(() => {
       const clinicId = this.selectedContextClinic();
-      if (clinicId) this.syncDataForClinic(clinicId);
+      // 'all' is the SUPER_ADMIN global sentinel — only load all clinics, not clinic-specific data
+      if (clinicId && clinicId !== 'all') {
+        this.syncDataForClinic(clinicId);
+      } else if (clinicId === 'all') {
+        // Load all clinics for the global SaaS governance view
+        this.supabase.from('clinic').select('*').then(({ data }) => {
+          if (data) this.clinics.set(data as any[]);
+        });
+      }
     });
   }
 
@@ -143,10 +151,13 @@ export class DatabaseService {
       this.currentUser.set(profile);
       
       // AUTO-SELECT CLINIC (FIX FOR ADMINS)
-      if (profile.clinicId) {
+      if (profile.role === 'SUPER_ADMIN') {
+          // SUPER_ADMIN always defaults to global SaaS view ('all'), regardless of actor.clinic_id
+          this.selectedContextClinic.set('all');
+      } else if (profile.clinicId) {
           this.selectedContextClinic.set(profile.clinicId);
-      } else if (profile.role === 'ADMIN' || profile.role === 'SUPER_ADMIN') {
-          // If admin has no specific clinic, select the first available one to avoid empty menu
+      } else if (profile.role === 'ADMIN') {
+          // ADMIN with no specific clinic: auto-select first available
           setTimeout(async () => {
               const { data: clinics } = await this.supabase.from('clinic').select('id').limit(1);
               if (clinics && clinics.length > 0) {
