@@ -9,6 +9,8 @@ This document records the current state of the Supabase-backed data model after 
 - Linked the local repository to the target Supabase project.
 - Confirmed the remote project and generated types from the live `public` schema via Supabase CLI.
 - Verified that the remote database is structurally present but effectively empty from an application-data perspective.
+- Added the first additive transition migration to bridge legacy `public."user"` references toward canonical identities:
+  - [database/migrations/20260321000000_identity_bridge.sql](../database/migrations/20260321000000_identity_bridge.sql)
 - Prepared a draft seed scaffold and then explicitly downgraded it to non-executable status after live execution exposed additional type drift:
   - [database/seeds/demo_front_seed_draft.sql](../database/seeds/demo_front_seed_draft.sql)
 - Confirmed the current frontend auth flow:
@@ -122,4 +124,8 @@ However, the existence of an `auth.users` row alone is not enough. The applicati
 
 ## Next Task
 
-The next engineering task should be a schema consolidation pass, not feature work.
+The next engineering task should be the second consolidation pass:
+
+1. update frontend code to read and write the canonical bridge columns
+2. validate the transition migration against the remote project
+3. only then remove legacy `public."user"` dependencies
