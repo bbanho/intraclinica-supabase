@@ -1,0 +1,154 @@
+Goal
+Refatorar completamente o frontend do IntraClinica Supabase (SaaS multi-tenant para clínicas médicas, Angular 21 + Supabase/PostgreSQL) seguindo um plano de 4 fases:
+1. Fase 1 — Quick wins: unificar InventoryService duplicado, remover rota morta, completar sidebar, criar domain-constants.ts
+2. Fase 2 — Decompor o God Service (DatabaseService 759L) em serviços focados
+3. Fase 3 — Migrar NgRx → Angular Signals puros
+4. Fase 4 — Config-driven UI: sidebar/módulos/constantes de domínio gerenciados via tabelas no Postgres
+O objetivo é executar tudo hoje (não em dias). A documentação completa do estado atual e do plano já foi commitada.
+---
+Instructions
+- Project ref Supabase: prolahgqlwfriwfpzjdm, token: sbp_5521347c03441f2285708af0eae20967b67efce9
+- Sempre usar SUPABASE_ACCESS_TOKEN=sbp_5521347c03441f2285708af0eae20967b67efce9 ao invocar o CLI
+- Migrations ficam em database/migrations/ (fonte da verdade) e são copiadas para supabase/migrations/
+- Após qualquer migration: regenerar tipos com supabase gen types typescript --linked 2>/dev/null > frontend/src/types/supabase.ts
+- Validar com tsc --noEmit após cada mudança no frontend (rodar de dentro de frontend/)
+- Angular dev server: npm run dev — serve em http://localhost:3000
+- Playwright skill: cd /var/home/bruno/.agents/skills/playwright-skill && node run.js /tmp/script.js
+- Screenshots em /var/home/bruno/Documentos/intraclinica-supabase/docs/screenshots/
+- Service role key: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InByb2xhaGdxbHdmcml3ZnB6amRtIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2ODQyMzQ2MywiZXhwIjoyMDgzOTk5NDYzfQ.nDQaV1h6a3kglpWWk3OGpIo_XVCwDEUh2uGzOkFmM1Q
+- Test credentials: bmbanho@gmail.com / IntraTest2026! (SUPER_ADMIN)
+- Clínica demo ID: cdf8cf49-b559-4c44-8533-38977611e1b4
+- tsc --noEmit zero erros antes de qualquer commit
+- Commit após cada fase completa com mensagem descritiva
+Plano detalhado (ver docs/REFACTORING_PLAN.md para spec completa)
+Fase 1 (em progresso — 1.1 iniciada mas NÃO concluída):
+- 1.1: Adaptar InventoryEffects para usar core/services/inventory.service.ts em vez de features/inventory/data/inventory.service.ts, depois deletar o arquivo duplicado
+- 1.2: Remover rota /clinical-execution de app.routes.ts
+- 1.3: Adicionar links sidebar para /procedures e /pacientes em main-layout.component.ts
+- 1.4: Criar core/config/domain-constants.ts com APPOINTMENT_STATUSES, APPOINTMENT_TYPES, WORKSTATIONS, SAAS_PLANS, SOCIAL_TONES e atualizar os componentes
+Fase 2 — Decompor DatabaseService (759L):
+- 2.1: Criar core/services/auth-state.service.ts (sessão, currentUser, checkPermission)
+- 2.2: Criar core/services/clinic-context.service.ts (selectedClinic signal, accessibleClinics, clinicId getter com guard 'all')
+- 2.3: Unificar AppointmentService — PatientService vira dono, DatabaseService.appointments() delega
+- 2.4: Unificar ClinicalRecordService — mesma abordagem
+- 2.5: DatabaseService → facade fina ≤ 150L com computed() delegando para os novos serviços
+Fase 3 — NgRx → Signals:
+- Migrar slices auth, patient, inventory para services com signals
+- Remover provideStore, provideEffects, provideStoreDevtools de main.ts
+- Deletar core/store/auth/, core/store/patient/, features/inventory/store/, core/store/inventory.store.ts, core/store/patient.store.ts
+Fase 4 — Config-driven (Postgres):
+- Migration: criar tabelas ui_module, clinic_module, clinic_config
+- RPC get_clinic_ui_config(p_clinic_id uuid) returns jsonb
+- Seed: 8 módulos padrão + habilitar todos para clínica demo
+- core/services/ui-config.service.ts com signals + effect reativo ao ClinicContextService
+- MainLayoutComponent data-driven: @for (item of enabledModules()) no sidebar
+- Admin Panel: UI para habilitar/desabilitar módulos por clínica
+- clinic_config para appointment_types e workstations
+---
+Discoveries
+Problema central: God Service + 3 padrões de state
+DatabaseService (759L) faz tudo: auth, state de 10 entidades, mappers, RPCs, permission check, context switch. Três padrões de state coexistem sem dono claro: DatabaseService signals, NgRx, e direct service calls.
+Dois InventoryService com responsabilidades sobrepostas
+- core/services/inventory.service.ts — usado por InventoryComponent, ClinicalExecutionComponent, ProcedureRecipeComponent. Retorna tipo InventoryItem.
+- features/inventory/data/inventory.service.ts — usado por InventoryEffects (NgRx). Retorna tipo Product. Tem getProducts, getTransactions, addProduct, deleteProduct.
+O InventoryEffects precisa ser reescrito para usar core/services/inventory.service.ts. O mapeamento de tipos precisa ser reconciliado: Product (em types.ts) usa stock/minStock/costPrice/batchNumber (camelCase), enquanto InventoryItem (em inventory.types.ts) usa campos ligeiramente diferentes. Verificar o que InventoryStore facade e ReportsComponent esperam antes de alterar os tipos.
+Sentinel 'all' — convenção crítica
+selectedContextClinic usa null (não inicializado), 'all' (SUPER_ADMIN global — não é UUID válido), ou UUID. Todo código que passa esse valor para Supabase DEVE guardar !== 'all'.
+Rotas problemáticas identificadas
+- /clinical-execution → duplicata de /clinical (mesmo componente)
+- /procedures, /pacientes, /consultas → sem link no sidebar, inacessíveis pela UI
+IAM frontend-only
+db.checkPermission() roda no browser. Sem RLS correspondente verificado — risco de segurança não corrigido neste plano (anotado para depois).
+State machine de agendamento frontend-only
+DatabaseService.transitionAppointmentStatus() existe mas ReceptionComponent usa store.updateAppointmentStatus() que bypassa a validação — inconsistência a resolver na Fase 2.
+Fase 4: Schema das novas tabelas (já especificado em REFACTORING_PLAN.md)
+ui_module (id, key unique, label, icon, route, description, created_at)
+clinic_module (id, clinic_id FK→clinic, module_key FK→ui_module.key, enabled, sort_order)
+clinic_config (id, clinic_id FK→clinic, key, value jsonb)
+RPC get_clinic_ui_config retorna { modules: UiModule[], config: Record<string, unknown> }.
+---
+Accomplished
+Concluído ✅
+- 12 bugs corrigidos (BUG-001 a BUG-012) — detalhes em docs/ISSUES_FOUND.md
+- Playwright E2E suite criada (frontend/e2e/) com 5 Page Object Models e 20 testes
+- @playwright/test@1.58.2 instalado, playwright.config.ts criado
+- docs/ARCHITECTURE.md — análise completa do estado atual
+- docs/REFACTORING_PLAN.md — plano consolidado Fases 1-4 com spec detalhada
+- docs/EXECUTION_LOG.md — log de execução criado, Fase 1 marcada como iniciada (2026-03-21T20:50:54Z)
+- tsc --noEmit → zero erros
+- Commits b9f64ae, 595723b, 47fe96d — tudo no GitHub bbanho/intraclinica-supabase branch main
+Em progresso 🔄
+- Fase 1.1 — leitura de features/inventory/data/inventory.service.ts e inventory.effects.ts concluída, mas a edição/deleção ainda NÃO foi feita. O agente foi interrompido após ler os arquivos.
+Pendente ❌
+- Fase 1.1: adaptar InventoryEffects + deletar features/inventory/data/inventory.service.ts
+- Fase 1.2: remover rota /clinical-execution
+- Fase 1.3: adicionar links sidebar
+- Fase 1.4: criar domain-constants.ts
+- Commit Fase 1
+- Fases 2, 3, 4 completas
+---
+Relevant files / directories
+/var/home/bruno/Documentos/intraclinica-supabase/
+├── docs/
+│   ├── ARCHITECTURE.md           ← ✅ criado — estado atual completo
+│   ├── REFACTORING_PLAN.md       ← ✅ criado — spec das 4 fases
+│   ├── EXECUTION_LOG.md          ← ✅ criado — log de progresso (Fase 1 em andamento)
+│   ├── ISSUES_FOUND.md           ← ✅ criado — 12 bugs catalogados
+│   └── screenshots/              ← 17 screenshots exploração
+├── frontend/
+│   ├── src/
+│   │   ├── main.ts               ← será modificado na Fase 3 (remover NgRx)
+│   │   ├── types/supabase.ts     ← regenerar após migrations da Fase 4
+│   │   └── app/
+│   │       ├── app.routes.ts     ← Fase 1.2: remover /clinical-execution
+│   │       ├── core/
+│   │       │   ├── config/
+│   │       │   │   ├── iam-roles.ts
+│   │       │   │   └── domain-constants.ts   ← ❌ CRIAR (Fase 1.4)
+│   │       │   ├── models/
+│   │       │   │   ├── types.ts              ← Product, StockTransaction (NgRx usa estes)
+│   │       │   │   └── inventory.types.ts    ← InventoryItem, ProcedureType
+│   │       │   └── services/
+│   │       │       ├── database.service.ts   ← Fase 2: decompor (759L atual)
+│   │       │       ├── inventory.service.ts  ← KEEPER — este fica, o outro vai
+│   │       │       ├── patient.service.ts    ← Fase 2: absorve appointments + clinical records
+│   │       │       ├── supabase.service.ts
+│   │       │       ├── auth-state.service.ts      ← ❌ CRIAR (Fase 2.1)
+│   │       │       ├── clinic-context.service.ts  ← ❌ CRIAR (Fase 2.2)
+│   │       │       └── ui-config.service.ts       ← ❌ CRIAR (Fase 4.3)
+│   │       │   └── store/
+│   │       │       ├── auth/            ← ❌ DELETAR na Fase 3
+│   │       │       ├── patient/         ← ❌ DELETAR na Fase 3
+│   │       │       ├── inventory.store.ts  ← ❌ DELETAR na Fase 3
+│   │       │       └── patient.store.ts   ← ❌ DELETAR na Fase 3
+│   │       ├── features/
+│   │       │   ├── admin-panel/admin-panel.component.ts  ← Fase 1.4: usar domain-constants; Fase 4.5: UI módulos
+│   │       │   ├── inventory/
+│   │       │   │   ├── data/inventory.service.ts  ← ❌ DELETAR (Fase 1.1)
+│   │       │   │   └── store/
+│   │       │   │       ├── inventory.effects.ts   ← ❌ MODIFICAR (Fase 1.1) — trocar import
+│   │       │   │       ├── inventory.actions.ts   ← lido, sem alteração prevista na Fase 1
+│   │       │   │       └── inventory.reducer.ts   ← lido, sem alteração prevista na Fase 1
+│   │       │   ├── reception/reception.component.ts   ← Fase 1.4: usar domain-constants
+│   │       │   ├── social/social.component.ts         ← Fase 1.4: usar domain-constants
+│   │       │   ├── clinical/clinical-execution.component.ts
+│   │       │   ├── reports/reports.component.ts
+│   │       │   └── patients/patients-list.component.ts
+│   │       └── layout/main-layout.component.ts  ← Fase 1.3: sidebar; Fase 4.4: data-driven
+│   ├── e2e/                      ← ✅ Playwright suite completa
+│   └── playwright.config.ts
+└── database/migrations/          ← Fase 4: novas migrations (ui_module, clinic_module, clinic_config)
+Arquivos já lidos nesta sessão (prontos para edição imediata)
+- features/inventory/data/inventory.service.ts — 101L, tem getProducts, getTransactions, addProduct, deleteProduct, retorna Product e StockTransaction
+- features/inventory/store/inventory.effects.ts — 43L, importa de ../data/inventory.service, chama getProducts, getTransactions, addProduct, deleteProduct
+- features/inventory/store/inventory.actions.ts — usa Product e StockTransaction de core/models/types
+- features/inventory/store/inventory.reducer.ts — usa Product e StockTransaction, estado { products, transactions, loading, error }
+Comandos úteis
+# TypeScript check
+cd /var/home/bruno/Documentos/intraclinica-supabase/frontend && ./node_modules/.bin/tsc --noEmit
+# Dev server (já deve estar rodando)
+curl -s http://localhost:3000 | head -1
+# Git
+cd /var/home/bruno/Documentos/intraclinica-supabase && git log --oneline -5
+# Regenerar tipos após migration
+SUPABASE_ACCESS_TOKEN=sbp_5521347c03441f2285708af0eae20967b67efce9 supabase gen types typescript --linked 2>/dev/null > frontend/src/types/supabase.ts

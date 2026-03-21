@@ -6,6 +6,8 @@ import { DatabaseService } from '../../core/services/database.service';
 import { PatientStore } from '../../core/store/patient.store';
 import { IAM_PERMISSIONS } from '../../core/config/iam-roles';
 
+import { APPOINTMENT_STATUSES, APPOINTMENT_TYPES, WORKSTATIONS } from '../../core/config/domain-constants';
+
 @Component({
   selector: 'app-reception',
   standalone: true,
@@ -254,9 +256,9 @@ import { IAM_PERMISSIONS } from '../../core/config/iam-roles';
                             <div>
                                 <label class="text-[10px] font-black uppercase text-slate-400 mb-1 block">Tipo</label>
                                 <select [(ngModel)]="appointmentData.type" class="w-full bg-slate-50 border border-slate-100 rounded-xl p-3 outline-none focus:ring-2 focus:ring-teal-500 font-bold appearance-none">
-                                    <option value="Consulta">Consulta</option>
-                                    <option value="Procedimento">Procedimento</option>
-                                    <option value="Retorno">Retorno</option>
+                                    @for (type of APPOINTMENT_TYPES; track type) {
+                                        <option [value]="type">{{type}}</option>
+                                    }
                                 </select>
                             </div>
                         </div>
@@ -335,6 +337,10 @@ export class ReceptionComponent {
 
   time = signal(new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}));
   date = signal(new Date().toLocaleDateString('pt-BR', {weekday: 'long', day:'numeric', month:'long'}));
+
+  APPOINTMENT_STATUSES = APPOINTMENT_STATUSES;
+  APPOINTMENT_TYPES = APPOINTMENT_TYPES;
+  WORKSTATIONS = WORKSTATIONS;
 
   constructor() {
       setInterval(() => {

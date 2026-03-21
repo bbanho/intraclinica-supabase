@@ -25,11 +25,11 @@ export const routes: Routes = [
         loadComponent: () => import('./features/procedures/procedure-recipe.component').then(m => m.ProcedureRecipeComponent)
       },
       {
-        path: 'pacientes',
+        path: 'patients',
         loadChildren: () => import('./features/patients/patients.routes').then(r => r.PATIENT_ROUTES)
       },
       {
-        path: 'consultas',
+        path: 'appointments',
         loadChildren: () => import('./features/appointments/appointments.routes').then(r => r.APPOINTMENT_ROUTES)
       },
       { 
@@ -38,10 +38,6 @@ export const routes: Routes = [
       },
       { 
         path: 'clinical', 
-        loadComponent: () => import('./features/clinical/clinical-execution.component').then(m => m.ClinicalExecutionComponent) 
-      },
-      { 
-        path: 'clinical-execution', 
         loadComponent: () => import('./features/clinical/clinical-execution.component').then(m => m.ClinicalExecutionComponent) 
       },
       { 

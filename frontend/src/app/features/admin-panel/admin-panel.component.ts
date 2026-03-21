@@ -6,6 +6,8 @@ import { DatabaseService } from '../../core/services/database.service';
 import { Clinic, UserProfile, UserRole, IamBinding } from '../../core/models/types';
 import { IAM_ROLES, IAM_PERMISSIONS, getDisplayRole } from '../../core/config/iam-roles';
 
+import { SAAS_PLANS } from '../../core/config/domain-constants';
+
 @Component({
   selector: 'app-admin-panel',
   standalone: true,
@@ -436,9 +438,9 @@ import { IAM_ROLES, IAM_PERMISSIONS, getDisplayRole } from '../../core/config/ia
                         <div>
                             <label class="text-[10px] font-black uppercase text-slate-400 mb-2 block tracking-widest">Plano SaaS</label>
                             <select [(ngModel)]="newClinicData.plan" class="w-full bg-slate-50 border border-slate-100 rounded-2xl p-4 outline-none font-bold appearance-none">
-                                <option value="Starter">Starter</option>
-                                <option value="Pro">Pro</option>
-                                <option value="Enterprise">Enterprise</option>
+                                @for (plan of SAAS_PLANS; track plan) {
+                                    <option [value]="plan">{{plan}}</option>
+                                }
                             </select>
                         </div>
                         <div>
@@ -657,6 +659,7 @@ import { IAM_ROLES, IAM_PERMISSIONS, getDisplayRole } from '../../core/config/ia
 })
 export class AdminPanelComponent {
   db = inject(DatabaseService);
+  SAAS_PLANS = SAAS_PLANS;
   
   activeTab = signal<string>('global');
 

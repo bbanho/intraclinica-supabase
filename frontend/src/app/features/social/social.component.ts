@@ -6,6 +6,8 @@ import { DatabaseService } from '../../core/services/database.service';
 import { LucideAngularModule, Share2, Send, Instagram, Copy, Image as ImageIcon, Sparkles, Clock, History, ShieldAlert } from 'lucide-angular';
 import { IAM_PERMISSIONS } from '../../core/config/iam-roles';
 
+import { SOCIAL_TONES, SocialToneValue } from '../../core/config/domain-constants';
+
 @Component({
   selector: 'app-social',
   standalone: true,
@@ -55,9 +57,9 @@ import { IAM_PERMISSIONS } from '../../core/config/iam-roles';
                         [(ngModel)]="tone"
                         class="w-full border border-slate-100 bg-slate-50 rounded-2xl p-4 outline-none focus:ring-2 focus:ring-pink-500 appearance-none font-bold text-slate-700"
                     >
-                        <option value="friendly">Amigável e Acolhedor (Dra. Aryane)</option>
-                        <option value="professional">Profissional e Técnico</option>
-                        <option value="urgent">Alerta / Importante</option>
+                        @for (t of SOCIAL_TONES; track t.value) {
+                            <option [value]="t.value">{{t.label}}</option>
+                        }
                     </select>
                     </div>
 
@@ -172,7 +174,8 @@ export class SocialComponent {
 
   // State
   topic = '';
-  tone = 'friendly';
+  tone: SocialToneValue = 'friendly';
+  SOCIAL_TONES = SOCIAL_TONES;
   generatedPost = signal<any>(null);
   isLoading = signal(false);
 
