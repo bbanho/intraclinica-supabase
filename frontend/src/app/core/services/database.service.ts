@@ -28,16 +28,27 @@ export class DatabaseService {
   currentUser = signal<UserProfile | null>(null);
   selectedContextClinic = signal<string | null>(null);
 
+  // SaaS global metrics (static placeholders — no billing backend yet)
+  globalArr = signal<number>(0);
+  globalUptime = signal<number>(99.9);
+
   accessibleClinics = computed(() => this.clinics());
 
+  private resolveDoctorName(actorId: string | undefined): string {
+    if (!actorId) return 'Profissional';
+    const match = this.users().find(u => u.actor_id === actorId);
+    return match?.name ?? 'Profissional';
+  }
+
   private mapAppointmentRow(row: any): Appointment {
+    const doctorActorId: string | undefined = row.doctor_actor_id ?? undefined;
     return {
       id: row.id,
       clinicId: row.clinic_id,
       patientId: row.patient_id,
-      doctorActorId: row.doctor_actor_id ?? undefined,
+      doctorActorId,
       patientName: row.patient_name ?? row.patient?.actor?.name ?? '',
-      doctorName: 'Profissional',
+      doctorName: this.resolveDoctorName(doctorActorId),
       date: row.appointment_date ?? row.date,
       status: row.status,
       type: row.type ?? 'Consulta',
@@ -47,13 +58,14 @@ export class DatabaseService {
   }
 
   private mapClinicalRecordRow(row: any): ClinicalRecord {
+    const doctorActorId: string | undefined = row.doctor_actor_id ?? undefined;
     return {
       id: row.id,
       clinicId: row.clinic_id,
       patientId: row.patient_id,
-      doctorActorId: row.doctor_actor_id ?? undefined,
+      doctorActorId,
       patientName: row.patient?.actor?.name ?? '',
-      doctorName: 'Profissional',
+      doctorName: this.resolveDoctorName(doctorActorId),
       content: row.content,
       type: row.type,
       timestamp: row.timestamp ?? row.created_at
@@ -687,8 +699,8 @@ export class DatabaseService {
       }
       
     } else {
-      if (!u.email || !pw || !u.clinicId || !u.name) {
-        throw new Error('Email, Password, Name and Clinic are required for new users');
+      if (!u.email || !pw || !u.name) {
+        throw new Error('Email, Password and Name are required for new users');
       }
       
       const { data: authData, error: authError } = await this.supabase.auth.signUp({

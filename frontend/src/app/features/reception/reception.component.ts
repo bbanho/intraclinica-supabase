@@ -311,7 +311,7 @@ export class ReceptionComponent {
   newPatientData = { name: '', cpf: '', phone: '' };
   
   appointmentData = {
-    doctorName: 'Dra. Aryane',
+    doctorName: '',
     date: '',
     type: 'Consulta',
     status: 'Agendado'
@@ -473,6 +473,6 @@ export class ReceptionComponent {
       this.selectedPatient = null;
       this.isCreatingPatient.set(false);
       this.newPatientData = { name: '', cpf: '', phone: '' };
-      this.appointmentData = { doctorName: 'Dra. Aryane', date: '', type: 'Consulta', status: 'Agendado' };
+      this.appointmentData = { doctorName: this.db.currentUser()?.name ?? '', date: '', type: 'Consulta', status: 'Agendado' };
   }
 }

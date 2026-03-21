@@ -387,18 +387,20 @@ export class ClinicalComponent implements OnDestroy {
   // Computed: Waiting List (from PatientStore)
   waitingList = computed(() => {
     const user = this.db.currentUser();
-    return this.patientStore.appointments().filter(a => 
-      (a.status === 'Aguardando' || a.status === 'Chamado') && 
-      (a.doctorName === user?.name || user?.role === 'ADMIN' || user?.role === 'SUPER_ADMIN' || user?.role === 'CONSULTANT')
+    const isManager = user?.role === 'ADMIN' || user?.role === 'SUPER_ADMIN' || user?.role === 'CONSULTANT';
+    return this.patientStore.appointments().filter(a =>
+      (a.status === 'Aguardando' || a.status === 'Chamado') &&
+      (isManager || a.doctorActorId === user?.actor_id)
     );
   });
 
   // Computed: Get active patient (from PatientStore)
   currentPatient = computed(() => {
     const user = this.db.currentUser();
-    return this.patientStore.appointments().find(a => 
-      a.status === 'Em Atendimento' && 
-      (a.doctorName === user?.name || user?.role === 'ADMIN' || user?.role === 'SUPER_ADMIN' || user?.role === 'CONSULTANT')
+    const isManager = user?.role === 'ADMIN' || user?.role === 'SUPER_ADMIN' || user?.role === 'CONSULTANT';
+    return this.patientStore.appointments().find(a =>
+      a.status === 'Em Atendimento' &&
+      (isManager || a.doctorActorId === user?.actor_id)
     );
   });
 

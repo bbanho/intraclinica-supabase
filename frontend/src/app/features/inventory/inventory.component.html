@@ -116,7 +116,7 @@
                 </td>
                 <td class="px-6 py-4 text-center text-xs text-slate-400">{{ item.min_stock }}</td>
                 <td class="px-6 py-4 text-right text-xs font-medium text-slate-600">
-                  {{ item.cost_price | currency:'BRL' }}
+                  {{ item.avg_cost_price | currency:'BRL' }}
                 </td>
                 <td class="px-6 py-4 text-right flex items-center justify-end gap-1">
                   <button (click)="addToQueue(item)" class="p-2 text-slate-300 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-all" title="Etiqueta"><lucide-icon [img]="Printer" [size]="16"></lucide-icon></button>

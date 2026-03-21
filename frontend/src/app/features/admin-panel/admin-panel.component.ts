@@ -795,7 +795,9 @@ ORDER BY created_at DESC;`;
       const isSaaSModal = this.isSaaSTeamModalOpen();
       
       if (isSaaSModal) {
-          clinicId = 'all';
+          // SaaS operators have no clinic — pass null so the RPC skips actor creation
+          // and creates a user with SUPER_ADMIN/SUPPORT role at global scope
+          clinicId = null;
       }
 
       if (!clinicId) return;
