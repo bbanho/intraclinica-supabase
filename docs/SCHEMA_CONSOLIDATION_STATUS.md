@@ -2,7 +2,7 @@
 
 _Last updated: 2026-03-21_
 
-## Current State: Hard Cleanup Applied ✅
+## Current State: Hard Cleanup Applied + Frontend Bugs Fixed ✅
 
 All migrations have been applied to the remote database (`prolahgqlwfriwfpzjdm`).
 Legacy tables, legacy columns, and legacy PascalCase duplicates have been removed.
@@ -50,6 +50,7 @@ The frontend service layer has been realigned to the canonical schema.
 | `20260117121134` | Applied | Initial remote baseline |
 | `20260321000000_identity_bridge` | Applied ✅ | Added bridge columns (`doctor_actor_id`, `requester_user_id`), indexes, FKs |
 | `20260321000001_hard_cleanup` | Applied ✅ | Removed all legacy tables, PascalCase duplicates, and legacy columns |
+| `20260321000002_fix_add_appointment_cast` | Applied ✅ | Fixed `text→timestamptz` cast bug in `add_appointment` RPC |
 
 ---
 
@@ -69,11 +70,32 @@ The frontend service layer has been realigned to the canonical schema.
 
 ---
 
-## Frontend Service Layer (post hard_cleanup)
+## Frontend Service Layer (post hard_cleanup + bug fixes)
 
 - `database.service.ts` — uses RPCs `add_appointment`, `add_clinical_record`; no legacy column writes
+  - `resolveDoctorName()` helper resolves actor name from `users()` signal via `doctor_actor_id`
+  - `globalArr` and `globalUptime` signals added (referenced by admin-panel template)
+  - SaaS operator creation: `clinicId` correctly set to `null` (not string `'all'`)
 - `inventory.service.ts` — fully rewritten against `product`/`stock_transaction`; uses `add_stock_movement` RPC
 - `patient.service.ts` — removed all fallbacks to legacy plural table names
 - `inventory.types.ts` — `InventoryItem` maps to `product` columns (`avg_cost_price`, `price`, `barcode`)
+- `inventory.component.html` — field reference corrected to `avg_cost_price`
+- `clinical.component.ts` — `waitingList`/`currentPatient` now filter by `doctorActorId === user.actor_id` (not broken `doctorName` string comparison)
+- `reception.component.ts` — `appointmentData.doctorName` initialises from `currentUser().name`; no hardcoded value
 - `supabase.ts` — regenerated from live schema (no legacy tables present)
 - `tsc --noEmit` passes with zero errors ✅
+
+## Live Data (IntraClinica Demo clinic)
+
+| Entity | Count |
+|---|---|
+| clinic | 2 |
+| actor | 9 |
+| app_user | 2 |
+| patient | 2 |
+| appointment | 4 |
+| clinical_record | 3 |
+| product | 4 |
+| stock_transaction | 6 |
+
+Test logins: `bmbanho@gmail.com` (SUPER_ADMIN), `motto@axio.eng.br` (admin) — both on clinic `cdf8cf49-b559-4c44-8533-38977611e1b4`.
