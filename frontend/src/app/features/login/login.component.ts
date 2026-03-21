@@ -1,8 +1,7 @@
 import { Component, inject, signal, OnInit, effect } from '@angular/core';
 import { Router } from '@angular/router';
-import { Store } from '@ngrx/store';
-import { login } from '../../core/store/auth/auth.actions';
-import { selectAuthLoading, selectAuthError } from '../../core/store/auth/auth.selectors';
+import { AuthService } from '../../core/services/auth.service';
+import { AuthStateService } from '../../core/services/auth-state.service';
 import { UserProfile } from '../../core/models/types';
 import {
   LucideAngularModule,
@@ -255,7 +254,8 @@ import { FormsModule } from '@angular/forms';
   ],
 })
 export class LoginComponent implements OnInit {
-  private store = inject(Store);
+  private authService = inject(AuthService);
+  private authState = inject(AuthStateService);
   private router = inject(Router);
   
   selectedUser = signal<UserProfile | null>(null);
@@ -264,9 +264,8 @@ export class LoginComponent implements OnInit {
   email = '';
   password = '';
 
-  // NgRx Signals
-  loading = this.store.selectSignal(selectAuthLoading);
-  error = this.store.selectSignal(selectAuthError);
+  loading = signal(false);
+  error = signal<string | null>(null);
 
   // Icons
   readonly Stethoscope = Stethoscope;
@@ -324,10 +323,27 @@ export class LoginComponent implements OnInit {
     localStorage.removeItem('sc_recent_users');
   }
 
-  onSubmit(event: Event) {
+  async onSubmit(event: Event) {
     event.preventDefault();
     if (!this.email || !this.password) return;
-    this.store.dispatch(login({ email: this.email, password: this.password }));
+    
+    this.loading.set(true);
+    this.error.set(null);
+
+    const success = await this.authService.login(this.email, this.password);
+    
+    if (success) {
+      // Waiting a moment for the AuthStateService onAuthStateChange to load profile
+      setTimeout(() => {
+         const user = this.authState.currentUser();
+         if (user) this.saveToRecent(user);
+         this.router.navigate(['/']);
+         this.loading.set(false);
+      }, 800);
+    } else {
+      this.error.set('E-mail ou senha incorretos.');
+      this.loading.set(false);
+    }
   }
 
   // Google login temporariamente desabilitado até implementação no NgRx/Supabase

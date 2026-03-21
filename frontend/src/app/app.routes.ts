@@ -1,9 +1,6 @@
 import { Routes } from '@angular/router';
 import { authGuard } from './core/guards/auth.guard';
 import { MainLayoutComponent } from './layout/main-layout.component';
-import { provideState } from '@ngrx/store';
-import { provideEffects } from '@ngrx/effects';
-// Imports removed as NgRx is not used for Inventory anymore
 
 export const routes: Routes = [
   { 

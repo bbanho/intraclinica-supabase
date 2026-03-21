@@ -7,15 +7,6 @@ import { provideHttpClient } from '@angular/common/http';
 import { MarkdownModule } from 'ngx-markdown';
 import { Buffer } from 'buffer';
 
-// NgRx
-import { provideStore } from '@ngrx/store';
-import { provideEffects } from '@ngrx/effects';
-import { provideStoreDevtools } from '@ngrx/store-devtools';
-import { authReducer } from './app/core/store/auth/auth.reducer';
-import { AuthEffects } from './app/core/store/auth/auth.effects';
-import { inventoryReducer } from './app/features/inventory/store/inventory.reducer';
-import { InventoryEffects } from './app/features/inventory/store/inventory.effects';
-
 // Polyfill Buffer
 (window as any).Buffer = Buffer;
 
@@ -25,12 +16,5 @@ bootstrapApplication(AppComponent, {
     provideRouter(routes, withHashLocation()),
     provideHttpClient(),
     importProvidersFrom(MarkdownModule.forRoot()),
-    // NgRx Store Setup
-    provideStore({ 
-      auth: authReducer,
-      inventory: inventoryReducer
-    }),
-    provideEffects([AuthEffects, InventoryEffects]),
-    provideStoreDevtools({ maxAge: 25, logOnly: !isDevMode() })
   ]
 }).catch(err => console.error(err));

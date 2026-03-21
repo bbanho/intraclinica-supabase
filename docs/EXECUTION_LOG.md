@@ -23,3 +23,10 @@
 ### Próximos Passos
 - Concluir a Fase 3 (remover diretórios NgRx restantes).
 - Iniciar a **Fase 4**: Criar tabelas Postgres e integrar UI Config.
+
+### Fase 3 Concluída
+- [x] **Fase 3: Remoção do NgRx (Signals Migration)**
+  - [x] Refatorado `LoginComponent` para usar `AuthService` em vez do store e disparado o cleanup do módulo `Auth`.
+  - [x] Refatorado `InventoryStore` para uma facade magra sobre `DatabaseService` e deletado o módulo `Inventory` do NgRx.
+  - [x] Removido NgRx completamente de `main.ts`.
+  - [x] Desinstalado `@ngrx/store`, `@ngrx/effects`, e `@ngrx/store-devtools` do `package.json`.
