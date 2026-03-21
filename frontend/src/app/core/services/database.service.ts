@@ -239,9 +239,14 @@ export class DatabaseService {
       // Stock Transactions
       this.supabase
         .from('stock_transaction')
-        .select('*')
+        .select(`
+          *,
+          product:product_id (
+            name
+          )
+        `)
         .eq('clinic_id', clinicId)
-        .order('date', { ascending: false }),
+        .order('timestamp', { ascending: false }),
 
       // Appointments
       this.fetchAppointmentsForClinic(clinicId),
@@ -299,14 +304,14 @@ export class DatabaseService {
         clinicId: p.clinic_id,
         name: p.name,
         category: p.category,
-        stock: p.stock,
+        stock: p.current_stock ?? 0,
         minStock: p.min_stock,
         price: p.price,
-        costPrice: p.cost_price,
-        supplier: p.supplier,
-        expiryDate: p.expiry_date,
-        batchNumber: p.batch_number,
-        notes: p.notes,
+        costPrice: p.avg_cost_price ?? 0,
+        supplier: '',
+        expiryDate: undefined,
+        batchNumber: p.barcode ?? undefined,
+        notes: undefined,
         deleted: p.deleted
       })));
     }
@@ -316,11 +321,11 @@ export class DatabaseService {
         id: t.id,
         clinicId: t.clinic_id,
         productId: t.product_id,
-        productName: t.product_name,
+        productName: t.product?.name ?? '',
         type: t.type,
-        quantity: t.quantity,
-        date: t.date,
-        notes: t.notes
+        quantity: t.total_qty,
+        date: t.timestamp,
+        notes: t.reason
       })));
     }
 
@@ -387,15 +392,14 @@ export class DatabaseService {
       .from('product')
       .insert({
         clinic_id: clinicId,
+        barcode: product.batchNumber,
         name: product.name,
         category: product.category,
-        stock: product.stock || 0,
+        current_stock: product.stock || 0,
         min_stock: product.minStock || 0,
         price: product.price || 0,
-        supplier: product.supplier,
-        expiry_date: product.expiryDate,
-        batch_number: product.batchNumber,
-        notes: product.notes
+        avg_cost_price: product.costPrice || 0,
+        deleted: false
       })
       .select()
       .single();
@@ -476,11 +480,10 @@ export class DatabaseService {
       .insert({
         clinic_id: clinicId,
         product_id: tx.productId,
-        product_name: tx.productName,
         type: tx.type,
-        quantity: tx.quantity,
-        date: new Date().toISOString(),
-        notes: tx.notes
+        total_qty: tx.quantity,
+        timestamp: new Date().toISOString(),
+        reason: tx.notes
       });
     
     if (error) throw error;

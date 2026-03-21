@@ -6,86 +6,93 @@ import { Product, StockTransaction } from '../../../core/models/types';
 export class InventoryService {
   private supabase = inject(SupabaseService);
 
+  private mapProductRow(row: any): Product {
+    return {
+      id: row.id,
+      clinicId: row.clinic_id,
+      name: row.name,
+      category: row.category,
+      stock: row.current_stock ?? 0,
+      minStock: row.min_stock ?? 0,
+      price: row.price,
+      costPrice: row.avg_cost_price ?? 0,
+      supplier: '',
+      expiryDate: undefined,
+      batchNumber: row.barcode ?? undefined,
+      notes: undefined,
+      deleted: row.deleted
+    };
+  }
+
+  private mapTransactionRow(row: any): StockTransaction {
+    return {
+      id: row.id,
+      clinicId: row.clinic_id,
+      productId: row.product_id,
+      productName: row.product?.name ?? '',
+      type: row.type,
+      quantity: row.total_qty,
+      date: row.timestamp,
+      notes: row.reason
+    };
+  }
+
   async getProducts(clinicId: string): Promise<Product[]> {
     const { data, error } = await this.supabase
-      .from('products')
+      .from('product')
       .select('*')
       .eq('clinic_id', clinicId);
 
     if (error) throw error;
-    
-    // Mapeamento Snake Case (DB) -> Camel Case (App)
-    // Assumindo que o DB retorna snake_case. Se o cliente supabase estiver tipado, isso pode ser ajustado.
-    return (data || []).map((p: any) => ({
-      ...p,
-      clinicId: p.clinic_id,
-      minStock: p.min_stock,
-      costPrice: p.cost_price,
-      expiryDate: p.expiry_date,
-      batchNumber: p.batch_number
-    })) as Product[];
+
+    return (data || []).map((p: any) => this.mapProductRow(p));
   }
 
   async getTransactions(clinicId: string): Promise<StockTransaction[]> {
     const { data, error } = await this.supabase
-      .from('stock_transactions')
-      .select('*')
+      .from('stock_transaction')
+      .select(`
+        *,
+        product:product_id (
+          name
+        )
+      `)
       .eq('clinic_id', clinicId)
-      .order('date', { ascending: false });
+      .order('timestamp', { ascending: false });
 
     if (error) throw error;
-    
-    return (data || []).map((t: any) => ({
-      id: t.id,
-      clinicId: t.clinic_id,
-      productId: t.product_id,
-      productName: t.product_name,
-      type: t.type,
-      quantity: t.quantity,
-      date: t.date,
-      notes: t.notes
-    })) as StockTransaction[];
+
+    return (data || []).map((t: any) => this.mapTransactionRow(t));
   }
 
   async addProduct(product: Partial<Product>): Promise<Product> {
-    // Converter Camel -> Snake
     const dbPayload = {
       id: product.id,
       clinic_id: product.clinicId,
+      barcode: product.batchNumber,
       name: product.name,
       category: product.category,
-      stock: product.stock,
+      current_stock: product.stock,
       min_stock: product.minStock,
       price: product.price,
-      cost_price: product.costPrice,
-      supplier: product.supplier,
-      expiry_date: product.expiryDate,
-      batch_number: product.batchNumber,
-      notes: product.notes
+      avg_cost_price: product.costPrice,
+      deleted: false
     };
 
     const { data, error } = await this.supabase
-      .from('products')
+      .from('product')
       .insert(dbPayload)
       .select()
       .single();
 
     if (error) throw error;
 
-    const p: any = data;
-    return {
-      ...p,
-      clinicId: p.clinic_id,
-      minStock: p.min_stock,
-      costPrice: p.cost_price,
-      expiryDate: p.expiry_date,
-      batchNumber: p.batch_number
-    } as Product;
+    return this.mapProductRow(data);
   }
 
   async deleteProduct(id: string): Promise<void> {
     const { error } = await this.supabase
-      .from('products')
+      .from('product')
       .update({ deleted: true })
       .eq('id', id);
     
