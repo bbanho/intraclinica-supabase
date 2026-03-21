@@ -1,0 +1,57 @@
+name: 🚀 CI/CD IntraClinica & Documentação
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📥 Checkout do Repositório
+        uses: actions/checkout@v4
+
+      # -- PARTE 1: COMPILAR OS ARQUIVOS .TEX (ABNT2) PARA PDF --
+      - name: 📝 Compilar Documentação LaTeX (IntraClinica Master Report)
+        uses: xu-cheng/latex-action@v3
+        with:
+          working_directory: documentacao
+          root_file: intraclinica-master-report.tex
+          compiler: pdflatex
+          args: "-interaction=nonstopmode -halt-on-error"
+
+      # -- PARTE 2: COMPILAR O SAAS (ANGULAR 21) --
+      - name: ⚙️ Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: 📦 Build Frontend (Angular)
+        run: |
+          cd frontend
+          npm ci
+          npm run build -- --configuration=production
+
+      # -- PARTE 3: MERGE DE ASSETS (APP + DOCS + PDFs) --
+      - name: 🔄 Integrar Documentação com o App Compilado
+        run: |
+          # Cria a pasta /documentacao/ dentro da pasta de publicação final do Angular
+          mkdir -p frontend/dist/documentacao
+          
+          # Copia o portal React (index.html), os arquivos .md e o PDF gerado
+          cp -r documentacao/* frontend/dist/documentacao/
+
+      # -- PARTE 4: PUBLICAÇÃO (CLOUDFLARE PAGES) --
+      # Substitua isso pelo seu provedor (Vercel, GitHub Pages, etc.)
+      # - name: ☁️ Deploy no Cloudflare Pages
+      #   uses: cloudflare/pages-action@v1
+      #   with:
+      #     apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      #     accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      #     projectName: 'intraclinica'
+      #     directory: 'frontend/dist'
+      #     gitHubToken: ${{ secrets.GITHUB_TOKEN }}
+      #     branch: main
