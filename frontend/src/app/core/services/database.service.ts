@@ -30,6 +30,53 @@ export class DatabaseService {
 
   accessibleClinics = computed(() => this.clinics());
 
+  private mapAppointmentRow(row: any): Appointment {
+    return {
+      id: row.id,
+      clinicId: row.clinic_id,
+      patientId: row.patient_id,
+      doctorActorId: row.doctor_actor_id ?? undefined,
+      patientName: row.patient_name ?? row.patient?.actor?.name ?? '',
+      doctorName: row.doctor_name ?? 'Profissional',
+      date: row.appointment_date ?? row.date,
+      status: row.status,
+      type: row.type ?? 'Consulta',
+      roomNumber: row.room_number,
+      timestamp: row.timestamp ?? row.created_at
+    };
+  }
+
+  private mapClinicalRecordRow(row: any): ClinicalRecord {
+    return {
+      id: row.id,
+      clinicId: row.clinic_id,
+      patientId: row.patient_id,
+      doctorActorId: row.doctor_actor_id ?? undefined,
+      patientName: row.patient_name ?? row.patient?.actor?.name ?? '',
+      doctorName: row.doctor_name ?? 'Profissional',
+      content: row.content,
+      notes: row.notes,
+      type: row.type,
+      timestamp: row.timestamp ?? row.created_at
+    };
+  }
+
+  private mapAccessRequestRow(row: any) {
+    return {
+      id: row.id,
+      requesterId: row.requester_id,
+      requesterUserId: row.requester_user_id,
+      requesterName: row.requester_name,
+      clinicId: row.clinic_id,
+      clinicName: row.clinic_name,
+      reason: row.reason,
+      status: row.status,
+      createdAt: row.created_at,
+      expiresAt: row.expires_at,
+      requestedRoleId: row.requested_role_id
+    };
+  }
+
   constructor(private router: Router) {
     this.supabase = createClient(
       environment['supabaseUrl'] || '',
@@ -90,7 +137,7 @@ export class DatabaseService {
       // AUTO-SELECT CLINIC (FIX FOR ADMINS)
       if (profile.clinicId) {
           this.selectedContextClinic.set(profile.clinicId);
-      } else if (profile.role === 'admin' || profile.role === 'ADMIN' || profile.role === 'SUPER_ADMIN') {
+      } else if (profile.role === 'ADMIN' || profile.role === 'SUPER_ADMIN') {
           // If admin has no specific clinic, select the first available one to avoid empty menu
           setTimeout(async () => {
               const { data: clinics } = await this.supabase.from('clinics').select('id').limit(1);
@@ -103,10 +150,72 @@ export class DatabaseService {
     }
   }
 
+  private async fetchAppointmentsForClinic(clinicId: string) {
+    const canonical = await this.supabase
+      .from('appointment')
+      .select(`
+        *,
+        patient:patient_id (
+          actor:id (
+            name
+          )
+        )
+      `)
+      .eq('clinic_id', clinicId)
+      .order('appointment_date', { ascending: true });
+
+    if (!canonical.error) return canonical.data || [];
+
+    const legacy = await this.supabase
+      .from('appointments')
+      .select('*')
+      .eq('clinic_id', clinicId)
+      .order('date', { ascending: true });
+
+    if (legacy.error) throw legacy.error;
+    return legacy.data || [];
+  }
+
+  private async fetchClinicalRecordsForClinic(clinicId: string) {
+    const canonical = await this.supabase
+      .from('clinical_record')
+      .select(`
+        *,
+        patient:patient_id (
+          actor:id (
+            name
+          )
+        )
+      `)
+      .eq('clinic_id', clinicId)
+      .order('timestamp', { ascending: false });
+
+    if (!canonical.error) return canonical.data || [];
+
+    const legacy = await this.supabase
+      .from('clinical_records')
+      .select('*')
+      .eq('clinic_id', clinicId)
+      .order('created_at', { ascending: false });
+
+    if (legacy.error) throw legacy.error;
+    return legacy.data || [];
+  }
+
+  private async fetchAccessRequestsForClinic(clinicId: string) {
+    const result = await this.supabase
+      .from('access_request')
+      .select('*')
+      .eq('clinic_id', clinicId);
+
+    if (result.error) throw result.error;
+    return result.data || [];
+  }
+
   private async syncDataForClinic(clinicId: string) {
     const [
       usersRes, clinicsRes, productsRes, txRes,
-      aptsRes, patientsRes, recordsRes, postsRes, reqRes
+      appointmentRows, patientsRes, recordRows, postsRes, requestRows
     ] = await Promise.all([
       // Users with Actor JOIN (filter by actor's clinic)
       this.supabase
@@ -135,11 +244,7 @@ export class DatabaseService {
         .order('date', { ascending: false }),
 
       // Appointments
-      this.supabase
-        .from('appointments')
-        .select('*')
-        .eq('clinic_id', clinicId)
-        .order('date', { ascending: true }),
+      this.fetchAppointmentsForClinic(clinicId),
 
       // Patients with Actor JOIN
       this.supabase
@@ -151,11 +256,7 @@ export class DatabaseService {
         .eq('clinic_id', clinicId),
 
       // Clinical Records
-      this.supabase
-        .from('clinical_records')
-        .select('*')
-        .eq('clinic_id', clinicId)
-        .order('created_at', { ascending: false }),
+      this.fetchClinicalRecordsForClinic(clinicId),
 
       // Social Posts
       this.supabase
@@ -164,10 +265,7 @@ export class DatabaseService {
         .eq('clinic_id', clinicId),
 
       // Access Requests
-      this.supabase
-        .from('access_request')
-        .select('*')
-        .eq('clinic_id', clinicId)
+      this.fetchAccessRequestsForClinic(clinicId)
     ]);
 
     if (usersRes.data) {
@@ -226,19 +324,8 @@ export class DatabaseService {
       })));
     }
 
-    if (aptsRes.data) {
-      this.appointments.set(aptsRes.data.map((a: any) => ({
-        id: a.id,
-        clinicId: a.clinic_id,
-        patientId: a.patient_id,
-        patientName: a.patient_name,
-        doctorName: a.doctor_name,
-        date: a.date,
-        status: a.status,
-        type: a.type,
-        roomNumber: a.room_number,
-        timestamp: a.created_at
-      })));
+    if (appointmentRows) {
+      this.appointments.set(appointmentRows.map((a: any) => this.mapAppointmentRow(a)));
     }
 
     if (patientsRes.data) {
@@ -253,18 +340,8 @@ export class DatabaseService {
       })));
     }
 
-    if (recordsRes.data) {
-      this.clinicalRecords.set(recordsRes.data.map((r: any) => ({
-        id: r.id,
-        clinicId: r.clinic_id,
-        patientId: r.patient_id,
-        patientName: r.patient_name,
-        doctorName: r.doctor_name,
-        content: r.content,
-        notes: r.notes,
-        type: r.type,
-        timestamp: r.created_at
-      })));
+    if (recordRows) {
+      this.clinicalRecords.set(recordRows.map((r: any) => this.mapClinicalRecordRow(r)));
     }
 
     if (postsRes.data) {
@@ -281,19 +358,8 @@ export class DatabaseService {
       })));
     }
 
-    if (reqRes.data) {
-      this.accessRequests.set(reqRes.data.map((r: any) => ({
-        id: r.id,
-        requesterId: r.requester_id,
-        requesterName: r.requester_name,
-        clinicId: r.clinic_id,
-        clinicName: r.clinic_name,
-        reason: r.reason,
-        status: r.status,
-        createdAt: r.created_at,
-        expiresAt: r.expires_at,
-        requestedRoleId: r.requested_role_id
-      })));
+    if (requestRows) {
+      this.accessRequests.set(requestRows.map((r: any) => this.mapAccessRequestRow(r)));
     }
   }
 
@@ -351,20 +417,46 @@ export class DatabaseService {
     const clinicId = apt.clinicId || this.selectedContextClinic();
     if (!clinicId) throw new Error("Clinic ID is required.");
 
-    const { data, error } = await this.supabase
-      .from('appointments')
+    const doctorName = apt.doctorName || this.currentUser()?.name || 'Profissional';
+    const doctorActorId = this.currentUser()?.actor_id;
+    const doctorId = this.currentUser()?.id;
+
+    let data: any = null;
+    let error: any = null;
+
+    ({ data, error } = await this.supabase
+      .from('appointment')
       .insert({
         clinic_id: clinicId,
         patient_id: apt.patientId,
+        doctor_id: doctorId,
+        doctor_actor_id: doctorActorId,
         patient_name: apt.patientName,
-        doctor_name: apt.doctorName || this.currentUser()?.name,
-        date: apt.date,
+        doctor_name: doctorName,
+        appointment_date: apt.date,
         status: apt.status || 'Agendado',
-        type: apt.type,
-        room_number: apt.roomNumber
+        room_number: apt.roomNumber,
+        timestamp: new Date().toISOString()
       })
       .select()
-      .single();
+      .single());
+
+    if (error) {
+      ({ data, error } = await this.supabase
+        .from('appointments')
+        .insert({
+          clinic_id: clinicId,
+          patient_id: apt.patientId,
+          patient_name: apt.patientName,
+          doctor_name: doctorName,
+          date: apt.date,
+          status: apt.status || 'Agendado',
+          type: apt.type,
+          room_number: apt.roomNumber
+        })
+        .select()
+        .single());
+    }
 
     if (error) throw error;
     return data;
@@ -408,30 +500,59 @@ export class DatabaseService {
   }
 
   async updateAppointmentStatus(id: string, status: string) { 
-    const { error } = await this.supabase
-      .from('appointments')
+    let error: any = null;
+
+    ({ error } = await this.supabase
+      .from('appointment')
       .update({ status })
-      .eq('id', id);
+      .eq('id', id));
+
+    if (error) {
+      ({ error } = await this.supabase
+        .from('appointments')
+        .update({ status })
+        .eq('id', id));
+    }
     
     if (error) throw error;
   }
 
   async updateAppointmentRoom(id: string, room: string) { 
-    const { error } = await this.supabase
-      .from('appointments')
+    let error: any = null;
+
+    ({ error } = await this.supabase
+      .from('appointment')
       .update({ room_number: room })
-      .eq('id', id);
+      .eq('id', id));
+
+    if (error) {
+      ({ error } = await this.supabase
+        .from('appointments')
+        .update({ room_number: room })
+        .eq('id', id));
+    }
     
     if (error) throw error;
   }
 
   async transitionAppointmentStatus(id: string, newStatus: string): Promise<void> {
     // 1. Fetch current status
-    const { data: current, error: fetchError } = await this.supabase
-      .from('appointments')
+    let current: any = null;
+    let fetchError: any = null;
+
+    ({ data: current, error: fetchError } = await this.supabase
+      .from('appointment')
       .select('status')
       .eq('id', id)
-      .single();
+      .single());
+
+    if (fetchError) {
+      ({ data: current, error: fetchError } = await this.supabase
+        .from('appointments')
+        .select('status')
+        .eq('id', id)
+        .single());
+    }
 
     if (fetchError || !current) {
       throw new Error(`Appointment not found: ${id}`);
@@ -472,16 +593,27 @@ export class DatabaseService {
     }
 
     // 3. Update status
-    const { error: updateError } = await this.supabase
-      .from('appointments')
+    let updateError: any = null;
+
+    ({ error: updateError } = await this.supabase
+      .from('appointment')
       .update({ status: newStatus })
-      .eq('id', id);
+      .eq('id', id));
+
+    if (updateError) {
+      ({ error: updateError } = await this.supabase
+        .from('appointments')
+        .update({ status: newStatus })
+        .eq('id', id));
+    }
 
     if (updateError) throw updateError;
   }
 
   async requestAccess(clinicId: string, clinicName: string, reason: string, roleId: string = 'roles/viewer') { 
-    const { error } = await this.supabase
+    let error: any = null;
+
+    ({ error } = await this.supabase
       .from('access_request')
       .insert({
         clinic_id: clinicId,
@@ -489,9 +621,24 @@ export class DatabaseService {
         reason: reason,
         requested_role_id: roleId,
         requester_id: this.currentUser()?.id,
+        requester_user_id: this.currentUser()?.id,
         requester_name: this.currentUser()?.name,
         status: 'pending'
-      });
+      }));
+
+    if (error) {
+      ({ error } = await this.supabase
+        .from('access_request')
+        .insert({
+          clinic_id: clinicId,
+          clinic_name: clinicName,
+          reason: reason,
+          requested_role_id: roleId,
+          requester_id: this.currentUser()?.id,
+          requester_name: this.currentUser()?.name,
+          status: 'pending'
+        }));
+    }
     
     if (error) throw error;
   }
@@ -555,35 +702,53 @@ export class DatabaseService {
     if (!clinicId) throw new Error("Clinic ID is required for clinical records");
 
     const doctorName = rec.doctorName || this.currentUser()?.name || 'Sistema';
+    const doctorActorId = this.currentUser()?.actor_id;
+    const doctorId = this.currentUser()?.id;
 
-    const { data, error } = await this.supabase
-      .from('clinical_records')
+    let data: any = null;
+    let error: any = null;
+
+    ({ data, error } = await this.supabase
+      .from('clinical_record')
       .insert({
         clinic_id: clinicId,
         patient_id: rec.patientId,
-        patient_name: rec.patientName,
-        doctor_name: doctorName,
+        doctor_id: doctorId,
+        doctor_actor_id: doctorActorId,
         content: rec.content,
-        type: rec.type || 'evolucao',
-        notes: rec.notes
+        type: (rec.type || 'evolucao').toUpperCase(),
+        timestamp: new Date().toISOString()
       })
-      .select()
-      .single();
+      .select(`
+        *,
+        patient:patient_id (
+          actor:id (
+            name
+          )
+        )
+      `)
+      .single());
+
+    if (error) {
+      ({ data, error } = await this.supabase
+        .from('clinical_records')
+        .insert({
+          clinic_id: clinicId,
+          patient_id: rec.patientId,
+          patient_name: rec.patientName,
+          doctor_name: doctorName,
+          content: rec.content,
+          type: rec.type || 'evolucao',
+          notes: rec.notes
+        })
+        .select()
+        .single());
+    }
     
     if (error) throw error;
 
     if (data) {
-      const newRec: ClinicalRecord = {
-        id: data.id,
-        clinicId: data.clinic_id,
-        patientId: data.patient_id,
-        patientName: data.patient_name,
-        doctorName: data.doctor_name,
-        content: data.content,
-        type: data.type,
-        notes: data.notes,
-        timestamp: data.created_at
-      };
+      const newRec: ClinicalRecord = this.mapClinicalRecordRow(data);
       this.clinicalRecords.update(list => [newRec, ...list]);
     }
     return data;

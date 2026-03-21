@@ -1,5 +1,6 @@
 import { Injectable, inject } from '@angular/core';
 import { SupabaseService } from './supabase.service';
+import { DatabaseService } from './database.service';
 import { Patient, ClinicalRecord, Appointment } from '../models/types';
 import { from, Observable, map } from 'rxjs';
 
@@ -8,6 +9,39 @@ import { from, Observable, map } from 'rxjs';
 })
 export class PatientService {
   private supabase = inject(SupabaseService);
+  private db = inject(DatabaseService);
+
+  private mapAppointmentRow(row: any): Appointment {
+    return {
+      id: row.id,
+      clinicId: row.clinic_id,
+      patientId: row.patient_id,
+      doctorActorId: row.doctor_actor_id ?? undefined,
+      patientName: row.patient_name ?? row.patient?.actor?.name ?? '',
+      doctorName: row.doctor_name ?? 'Profissional',
+      date: row.appointment_date ?? row.date,
+      status: row.status,
+      type: row.type ?? 'Consulta',
+      roomNumber: row.room_number,
+      timestamp: row.timestamp ?? row.created_at
+    };
+  }
+
+  private mapClinicalRecordRow(row: any): ClinicalRecord {
+    return {
+      id: row.id,
+      clinicId: row.clinic_id,
+      patientId: row.patient_id,
+      doctorActorId: row.doctor_actor_id ?? undefined,
+      patientName: row.patient_name ?? row.patient?.actor?.name ?? '',
+      doctorName: row.doctor_name ?? 'Profissional',
+      content: row.content,
+      notes: row.notes,
+      type: row.type,
+      timestamp: row.timestamp ?? row.created_at,
+      createdAt: row.timestamp ?? row.created_at
+    } as unknown as ClinicalRecord;
+  }
 
   getPatients(clinicId: string): Observable<Patient[]> {
     // Perform manual JOIN using Supabase syntax to avoid reliance on Views
@@ -43,63 +77,92 @@ export class PatientService {
 
   getAppointments(clinicId: string): Observable<Appointment[]> {
     return from(
-      this.supabase.from('appointments')
-        .select('*')
-        .eq('clinic_id', clinicId)
-        .order('date', { ascending: true })
+      (async () => {
+        const canonical = await this.supabase.from('appointment')
+          .select(`
+            *,
+            patient:patient_id (
+              actor:id (
+                name
+              )
+            )
+          `)
+          .eq('clinic_id', clinicId)
+          .order('appointment_date', { ascending: true });
+
+        if (!canonical.error) return canonical;
+
+        return this.supabase.from('appointments')
+          .select('*')
+          .eq('clinic_id', clinicId)
+          .order('date', { ascending: true });
+      })()
     ).pipe(
       map(({ data, error }) => {
         if (error) throw error;
-        return (data || []).map(a => ({
-          id: a.id,
-          clinicId: a.clinic_id,
-          patientId: a.patient_id,
-          patientName: a.patient_name,
-          doctorName: a.doctor_name,
-          date: a.date,
-          status: a.status,
-          type: a.type,
-          roomNumber: a.room_number,
-          timestamp: a.created_at
-        })) as Appointment[];
+        return (data || []).map(a => this.mapAppointmentRow(a)) as Appointment[];
       })
     );
   }
 
   updateAppointmentStatus(id: string, status: string): Observable<void> {
     return from(
-      this.supabase.from('appointments')
-        .update({ status })
-        .eq('id', id)
+      (async () => {
+        const canonical = await this.supabase.from('appointment')
+          .update({ status })
+          .eq('id', id);
+
+        if (!canonical.error) return canonical;
+
+        return this.supabase.from('appointments')
+          .update({ status })
+          .eq('id', id);
+      })()
     ).pipe(map(({ error }) => { if (error) throw error; }));
   }
 
   updateAppointmentRoom(id: string, roomNumber: string): Observable<void> {
     return from(
-      this.supabase.from('appointments')
-        .update({ room_number: roomNumber })
-        .eq('id', id)
+      (async () => {
+        const canonical = await this.supabase.from('appointment')
+          .update({ room_number: roomNumber })
+          .eq('id', id);
+
+        if (!canonical.error) return canonical;
+
+        return this.supabase.from('appointments')
+          .update({ room_number: roomNumber })
+          .eq('id', id);
+      })()
     ).pipe(map(({ error }) => { if (error) throw error; }));
   }
 
   getClinicalRecords(patientId: string): Observable<ClinicalRecord[]> {
     return from(
-      this.supabase.from('clinical_records')
-        .select('*')
-        .eq('patient_id', patientId)
-        .order('created_at', { ascending: false })
+      (async () => {
+        const canonical = await this.supabase.from('clinical_record')
+          .select(`
+            *,
+            patient:patient_id (
+              actor:id (
+                name
+              )
+            )
+          `)
+          .eq('patient_id', patientId)
+          .order('timestamp', { ascending: false });
+
+        if (!canonical.error) return canonical;
+
+        return this.supabase.from('clinical_records')
+          .select('*')
+          .eq('patient_id', patientId)
+          .order('created_at', { ascending: false });
+      })()
     ).pipe(
       map(({ data, error }) => {
         if (error) throw error;
-        return (data || []).map(r => ({
-          ...r,
-          clinicId: r.clinic_id,
-          patientId: r.patient_id,
-          patientName: r.patient_name,
-          doctorName: r.doctor_name,
-          createdAt: r.created_at,
-          timestamp: r.created_at 
-        })) as ClinicalRecord[];
+        return (data || []).map(r => this.mapClinicalRecordRow(r)) as ClinicalRecord[];
       })
     );
   }
@@ -123,11 +186,28 @@ export class PatientService {
   }
 
   createAppointment(appointment: Omit<Appointment, 'id' | 'timestamp'>): Observable<Appointment> {
-    const dbAppointment = {
+    const doctorName = appointment.doctorName || this.db.currentUser()?.name || 'Profissional';
+    const doctorActorId = this.db.currentUser()?.actor_id;
+    const doctorId = this.db.currentUser()?.id;
+
+    const canonicalAppointment = {
       clinic_id: appointment.clinicId,
       patient_id: appointment.patientId,
       patient_name: appointment.patientName,
-      doctor_name: appointment.doctorName,
+      doctor_id: doctorId,
+      doctor_actor_id: doctorActorId,
+      doctor_name: doctorName,
+      appointment_date: appointment.date,
+      status: appointment.status,
+      room_number: appointment.roomNumber,
+      timestamp: new Date().toISOString()
+    };
+
+    const legacyAppointment = {
+      clinic_id: appointment.clinicId,
+      patient_id: appointment.patientId,
+      patient_name: appointment.patientName,
+      doctor_name: doctorName,
       date: appointment.date,
       status: appointment.status,
       type: appointment.type,
@@ -136,35 +216,47 @@ export class PatientService {
     };
 
     return from(
-      this.supabase.from('appointments')
-        .insert(dbAppointment)
-        .select()
-        .single()
+      (async () => {
+        const canonical = await this.supabase.from('appointment')
+          .insert(canonicalAppointment)
+          .select()
+          .single();
+
+        if (!canonical.error) return canonical;
+
+        return this.supabase.from('appointments')
+          .insert(legacyAppointment)
+          .select()
+          .single();
+      })()
     ).pipe(
       map(({ data, error }) => {
         if (error) throw error;
-        return {
-          id: data.id,
-          clinicId: data.clinic_id,
-          patientId: data.patient_id,
-          patientName: data.patient_name,
-          doctorName: data.doctor_name,
-          date: data.date,
-          status: data.status,
-          type: data.type,
-          roomNumber: data.room_number,
-          timestamp: data.created_at
-        } as Appointment;
+        return this.mapAppointmentRow(data);
       })
     );
   }
 
   createClinicalRecord(record: Omit<ClinicalRecord, 'id' | 'timestamp'>): Observable<ClinicalRecord> {
-    const dbRecord = {
+    const doctorName = record.doctorName || this.db.currentUser()?.name || 'Profissional';
+    const doctorActorId = this.db.currentUser()?.actor_id;
+    const doctorId = this.db.currentUser()?.id;
+
+    const canonicalRecord = {
+      clinic_id: record.clinicId,
+      patient_id: record.patientId,
+      doctor_id: doctorId,
+      doctor_actor_id: doctorActorId,
+      content: record.content,
+      type: record.type,
+      timestamp: new Date().toISOString()
+    };
+
+    const legacyRecord = {
       clinic_id: record.clinicId,
       patient_id: record.patientId,
       patient_name: record.patientName,
-      doctor_name: record.doctorName,
+      doctor_name: doctorName,
       content: record.content,
       notes: record.notes,
       type: record.type,
@@ -172,25 +264,30 @@ export class PatientService {
     };
 
     return from(
-      this.supabase.from('clinical_records')
-        .insert(dbRecord)
-        .select()
-        .single()
+      (async () => {
+        const canonical = await this.supabase.from('clinical_record')
+          .insert(canonicalRecord)
+          .select(`
+            *,
+            patient:patient_id (
+              actor:id (
+                name
+              )
+            )
+          `)
+          .single();
+
+        if (!canonical.error) return canonical;
+
+        return this.supabase.from('clinical_records')
+          .insert(legacyRecord)
+          .select()
+          .single();
+      })()
     ).pipe(
       map(({ data, error }) => {
         if (error) throw error;
-        return {
-          id: data.id,
-          clinicId: data.clinic_id,
-          patientId: data.patient_id,
-          patientName: data.patient_name,
-          doctorName: data.doctor_name,
-          content: data.content,
-          notes: data.notes,
-          type: data.type,
-          timestamp: data.created_at,
-          createdAt: data.created_at 
-        } as unknown as ClinicalRecord;
+        return this.mapClinicalRecordRow(data);
       })
     );
   }
