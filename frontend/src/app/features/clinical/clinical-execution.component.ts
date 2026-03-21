@@ -64,10 +64,9 @@ export class ClinicalExecutionComponent implements OnInit {
     const cid = this.clinicId;
     if (!cid) return;
     
-    this.patientService.getPatients(cid).subscribe({
-      next: (data) => this.patients = data,
-      error: (err) => console.error('Failed to load patients', err)
-    });
+    // In Phase 2 patients are loaded automatically via ClinicContext/PatientService
+    // We just point our array to the signal.
+    this.patients = this.patientService.patients();
   }
 
   async perform() {

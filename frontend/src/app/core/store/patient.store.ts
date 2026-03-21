@@ -1,54 +1,73 @@
-import { Injectable, inject } from '@angular/core';
-import { Store } from '@ngrx/store';
+import { Injectable, inject, computed, signal } from '@angular/core';
 import { Patient, ClinicalRecord, Appointment } from '../models/types';
-import * as PatientActions from './patient/patient.actions';
-import * as PatientSelectors from './patient/patient.selectors';
+import { PatientService } from '../services/patient.service';
 
 @Injectable({
   providedIn: 'root'
 })
 export class PatientStore {
-  private store = inject(Store);
+  private patientService = inject(PatientService);
 
-  // Read-only Signals
-  readonly patients = this.store.selectSignal(PatientSelectors.selectAllPatients);
-  readonly records = this.store.selectSignal(PatientSelectors.selectAllClinicalRecords);
-  readonly appointments = this.store.selectSignal(PatientSelectors.selectAllAppointments);
-  readonly loading = this.store.selectSignal(PatientSelectors.selectPatientLoading);
-  readonly error = this.store.selectSignal(PatientSelectors.selectPatientError);
+  // Read-only Signals from PatientService
+  readonly patients = computed(() => this.patientService.patients());
+  readonly records = computed(() => this.patientService.clinicalRecords());
+  readonly appointments = computed(() => this.patientService.appointments());
+  
+  // Faking loading and error for backwards compatibility with components
+  readonly loading = signal(false);
+  readonly error = signal<string | null>(null);
 
   // Computed
-  readonly patientCount = this.store.selectSignal(PatientSelectors.selectPatientCount);
+  readonly patientCount = computed(() => this.patients().length);
 
-  loadPatients(clinicId: string) {
-    this.store.dispatch(PatientActions.loadPatients({ clinicId }));
+  // Data is auto-synced by context now. 
+  // We keep these methods to prevent components from breaking.
+  loadPatients(clinicId: string) { }
+  loadAppointments(clinicId: string) { }
+  loadClinicalRecords(patientId: string) { }
+
+  async createPatient(patient: Omit<Patient, 'id' | 'createdAt'>) {
+    this.loading.set(true);
+    try {
+      await this.patientService.createPatient(patient);
+      this.error.set(null);
+    } catch (e: any) {
+      this.error.set(e.message);
+    } finally {
+      this.loading.set(false);
+    }
   }
 
-  loadAppointments(clinicId: string) {
-    this.store.dispatch(PatientActions.loadAppointments({ clinicId }));
+  async createAppointment(appointment: Omit<Appointment, 'id' | 'timestamp'>) {
+    this.loading.set(true);
+    try {
+      await this.patientService.createAppointment(appointment);
+      this.error.set(null);
+    } catch (e: any) {
+      this.error.set(e.message);
+    } finally {
+      this.loading.set(false);
+    }
   }
 
-  loadClinicalRecords(patientId: string) {
-    this.store.dispatch(PatientActions.loadClinicalRecords({ patientId }));
+  async createRecord(record: Omit<ClinicalRecord, 'id' | 'timestamp'>) {
+    this.loading.set(true);
+    try {
+      await this.patientService.createClinicalRecord(record);
+      this.error.set(null);
+    } catch (e: any) {
+      this.error.set(e.message);
+    } finally {
+      this.loading.set(false);
+    }
   }
 
-  createPatient(patient: Omit<Patient, 'id' | 'createdAt'>) {
-    this.store.dispatch(PatientActions.createPatient({ patient }));
+  async updateAppointmentStatus(id: string, status: string) {
+    // Uses the transition validator!
+    await this.patientService.transitionAppointmentStatus(id, status);
   }
 
-  createAppointment(appointment: Omit<Appointment, 'id' | 'timestamp'>) {
-    this.store.dispatch(PatientActions.createAppointment({ appointment }));
-  }
-
-  createRecord(record: Omit<ClinicalRecord, 'id' | 'timestamp'>) {
-    this.store.dispatch(PatientActions.createClinicalRecord({ record }));
-  }
-
-  updateAppointmentStatus(id: string, status: string) {
-    this.store.dispatch(PatientActions.updateAppointmentStatus({ id, status }));
-  }
-
-  updateAppointmentRoom(id: string, roomNumber: string) {
-    this.store.dispatch(PatientActions.updateAppointmentRoom({ id, roomNumber }));
+  async updateAppointmentRoom(id: string, roomNumber: string) {
+    await this.patientService.updateAppointmentRoom(id, roomNumber);
   }
 }

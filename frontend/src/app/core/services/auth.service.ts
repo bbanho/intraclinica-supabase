@@ -1,25 +1,16 @@
 import { Injectable, inject } from '@angular/core';
 import { SupabaseService } from './supabase.service';
-import { DatabaseService } from './database.service';
-import { Router } from '@angular/router';
+import { AuthStateService } from './auth-state.service';
 
 @Injectable({
   providedIn: 'root',
 })
 export class AuthService {
   private supabase = inject(SupabaseService);
-  private dbService = inject(DatabaseService);
-  private router = inject(Router);
+  private authState = inject(AuthStateService);
 
   constructor() {
-    this.supabase.auth.onAuthStateChange(async (event, session) => {
-      if (session?.user) {
-        await this.dbService.loadUserProfile(session.user.id);
-      } else {
-        this.dbService.currentUser.set(null);
-        this.dbService.selectedContextClinic.set(null);
-      }
-    });
+    // Session init is handled by AuthStateService constructor automatically.
   }
 
   async login(email: string, password: string): Promise<boolean> {
@@ -29,7 +20,6 @@ export class AuthService {
   }
 
   async logout() {
-    await this.supabase.auth.signOut();
-    this.router.navigate(['/login']);
+    await this.authState.logout();
   }
 }

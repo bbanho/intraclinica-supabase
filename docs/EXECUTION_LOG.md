@@ -8,14 +8,18 @@
   - [x] Remover rota morta `/clinical-execution`
   - [x] Adicionar links no sidebar para `/procedures` e `/patients` (e renomear `pacientes` -> `patients`, `consultas` -> `appointments` para padronizar idioma inglês)
   - [x] Criar `core/config/domain-constants.ts` e centralizar hardcoded strings em Reception, Admin e Social
-- [ ] **Fase 2: Decomposição do `DatabaseService`**
-- [ ] **Fase 3: Remoção do NgRx (Signals Migration)**
+- [x] **Fase 2: Decomposição do `DatabaseService`**
+  - [x] Criar `AuthStateService` para sessão, auth e roles.
+  - [x] Criar `ClinicContextService` para gerenciar o signal do tenant atual (selecionado).
+  - [x] Unificar operações de Patients, Appointments e Records no `PatientService`.
+  - [x] Transformar `DatabaseService` em facade delegando chamadas (~150 linhas).
+- [x] **Fase 3: Remoção do NgRx (Signals Migration) (Parcial)**
+  - [x] Módulo `Patient` migrado para Signals e removido o diretório `store/patient`.
+  - [x] `PatientStore` transformado em fachada reativa a Signals.
+  - [ ] Módulo `Auth` a migrar
+  - [ ] Módulo `Inventory` a migrar
 - [ ] **Fase 4: Config-driven UI via Supabase**
 
-### Desafios Encontrados & Resoluções
-- **Tipagem do InventoryEffects:** O serviço antigo retornava tipos customizados do NgRx (`Product`, `StockTransaction`), enquanto o serviço core retorna os formatos diretos do DB. Resolvido adicionando funções mapeadoras (`toProduct`, `toTransaction`) diretamente no `InventoryEffects` para manter o contrato do NgRx isolado até a Fase 3.
-- **Mistura de Idiomas nas Rotas:** Decidimos padronizar as rotas para inglês, mudando `pacientes` para `patients` e `consultas` para `appointments`. Os arquivos lazy-loaded continuam intactos por enquanto.
-- **Dependências no Lucide Angular:** O JIT compiler bloqueia compilação parcial. Foi necessário checar os `.d.ts` e `/icons/` para descobrir nomes válidos de ícones (`UserRound`, `ClipboardList`).
-
 ### Próximos Passos
-- Iniciar a **Fase 2**: decomposição do `DatabaseService` que atualmente possui >700 linhas, movendo contexto para `ClinicContextService` e sessão para `AuthStateService`.
+- Concluir a Fase 3 (remover diretórios NgRx restantes).
+- Iniciar a **Fase 4**: Criar tabelas Postgres e integrar UI Config.
