@@ -88,15 +88,15 @@
         const { motion, AnimatePresence } = Motion;
 
         const App = () => {
-            const [activeSection, setActiveSection] = useState('home');
+            const [activeSection, setActiveSection] = useState('userguide');
 
             const menu = [
-                { id: 'home', label: 'Visão Geral', group: 'Estratégia' },
-                { id: 'journey', label: 'Jornada do Paciente', group: 'Estratégia' },
-                { id: 'clinical', label: 'Excelência Clínica', group: 'Estratégia' },
-                { id: 'userguide', label: 'Guia do Médico', group: 'Operação' },
+                { id: 'userguide', label: 'O Produto na Prática', group: 'Visão de Produto' },
+                { id: 'home', label: 'Tese Estratégica', group: 'Visão de Produto' },
+                { id: 'journey', label: 'Jornada do Paciente', group: 'Operação' },
+                { id: 'clinical', label: 'Excelência Clínica', group: 'Operação' },
                 { id: 'inventory', label: 'Gestão de Insumos', group: 'Operação' },
-                { id: 'security', label: 'Soberania e LGPD', group: 'Operação' },
+                { id: 'security', label: 'Soberania e LGPD', group: 'Governança' },
                 { id: 'architecture', label: 'Arquitetura Técnica', group: 'Engenharia' },
                 { id: 'nexus', label: 'Governança Nexus', group: 'Engenharia' },
             ];
@@ -119,7 +119,7 @@
                         </div>
 
                         <nav className="flex-1 space-y-8 overflow-y-auto pr-2">
-                            {['Estratégia', 'Operação', 'Engenharia'].map(group => (
+                            {['Visão de Produto', 'Operação', 'Governança', 'Engenharia'].map(group => (
                                 <div key={group}>
                                     <h3 className="text-[11px] uppercase tracking-[0.2em] text-slate-400 mb-4 font-extrabold">{group}</h3>
                                     <ul className="space-y-1">
