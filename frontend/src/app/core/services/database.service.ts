@@ -140,7 +140,7 @@ export class DatabaseService {
       } else if (profile.role === 'ADMIN' || profile.role === 'SUPER_ADMIN') {
           // If admin has no specific clinic, select the first available one to avoid empty menu
           setTimeout(async () => {
-              const { data: clinics } = await this.supabase.from('clinics').select('id').limit(1);
+              const { data: clinics } = await this.supabase.from('clinic').select('id').limit(1);
               if (clinics && clinics.length > 0) {
                   console.log('Auto-selecting clinic for Admin:', clinics[0].id);
                   this.selectedContextClinic.set(clinics[0].id);
@@ -227,7 +227,7 @@ export class DatabaseService {
         .eq('actor.clinic_id', clinicId),
 
       // Clinics (all accessible)
-      this.supabase.from('clinics').select('*'),
+      this.supabase.from('clinic').select('*'),
 
       // Products (active only)
       this.supabase
@@ -265,7 +265,7 @@ export class DatabaseService {
 
       // Social Posts
       this.supabase
-        .from('social_posts')
+        .from('social_post')
         .select('*')
         .eq('clinic_id', clinicId),
 
@@ -293,7 +293,7 @@ export class DatabaseService {
         email: c.email,
         plan: c.plan,
         status: c.status,
-        nextBilling: c.next_billing,
+        nextBilling: '',
         createdAt: c.created_at
       })));
     }
@@ -356,9 +356,9 @@ export class DatabaseService {
         title: p.title,
         content: p.content,
         platform: p.platform,
-        status: p.status,
-        scheduledAt: p.scheduled_at,
-        imageUrl: p.image_url,
+        status: p.status ?? 'draft',
+        scheduledAt: p.scheduled_at ?? undefined,
+        imageUrl: p.image_url ?? undefined,
         timestamp: p.created_at
       })));
     }
@@ -668,15 +668,12 @@ export class DatabaseService {
     const finalContent = hashtags ? `${rawContent}\n\n${hashtags}` : rawContent;
 
     const { data, error } = await this.supabase
-      .from('social_posts')
+      .from('social_post')
       .insert({
         clinic_id: clinicId,
         title: title,
         content: finalContent,
-        platform: post.platform || 'instagram',
-        status: post.status || 'draft',
-        image_url: post.imageUrl,
-        scheduled_at: post.scheduledAt
+        platform: post.platform || 'instagram'
       })
       .select()
       .single();
@@ -690,9 +687,9 @@ export class DatabaseService {
         title: data.title,
         content: data.content,
         platform: data.platform,
-        status: data.status,
-        imageUrl: data.image_url,
-        scheduledAt: data.scheduled_at,
+        status: data.status ?? 'draft',
+        imageUrl: data.image_url ?? undefined,
+        scheduledAt: data.scheduled_at ?? undefined,
         timestamp: data.created_at
       };
       this.socialPosts.update(list => [...list, newPost]);
@@ -759,7 +756,12 @@ export class DatabaseService {
 
 
   async addClinic(c: Partial<Clinic>) { 
-    const { error } = await this.supabase.from('clinics').insert(c);
+    const { error } = await this.supabase.from('clinic').insert({
+      name: c.name,
+      email: c.email,
+      plan: c.plan,
+      status: c.status
+    });
     if (error) {
       if (error.code === '23505') {
         console.error('Duplicate clinic detected:', error);
@@ -771,7 +773,7 @@ export class DatabaseService {
 
   async deleteClinic(id: string) {
     const { error } = await this.supabase
-      .from('clinics')
+      .from('clinic')
       .update({ status: 'inactive' })
       .eq('id', id);
     if (error) throw error;
