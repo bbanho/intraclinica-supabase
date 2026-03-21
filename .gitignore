@@ -3,4 +3,6 @@ frontend/.vite/
 frontend/node_modules/
 backend/node_modules/
 backend/dist/
+intraclinica-angular/.angular/
+intraclinica-angular/node_modules/
 supabase/.temp/

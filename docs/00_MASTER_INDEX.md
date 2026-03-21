@@ -7,6 +7,11 @@ Bem-vindo ao nexo de conhecimento do **IntraClinica**. Este repositório de docu
 ## 📂 1. Documentação Técnica (The Architect's Core)
 *Para engenheiros e auditores de sistemas.*
 
+Status operacional atual:
+
+*   **[Schema Consolidation Status](SCHEMA_CONSOLIDATION_STATUS.md):** Diagnóstico do schema remoto real, drift confirmado e ordem correta de saneamento.
+*   **[Repo Consolidation Plan](REPO_CONSOLIDATION_PLAN.md):** Decisão de manter `frontend/` como canônico e tratar `intraclinica-angular/` como legado.
+
 *   **[Axio Nexus v3 Architecture](../memory/PLAN_AXIO_V3.md):** Detalhamento da malha neural, indexação de fragmentos e síntese de essências.
 *   **[Diagrama de Banco de Dados (ER)](DATABASE_SCHEMA.md):** Visualização das entidades e relacionamentos do Supabase. 📊
 *   **[Diagramas UML e Fluxos](SYSTEM_UML.md):** Comportamento da lógica de estoque e máquina de estados de agendamento. ⚙️
