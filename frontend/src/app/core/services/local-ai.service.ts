@@ -1,7 +1,5 @@
 import { Injectable, signal } from '@angular/core';
 import * as webllm from '@mlc-ai/web-llm';
-import * as tf from '@tensorflow/tfjs';
-import '@tensorflow/tfjs-backend-webgpu';
 
 export interface LocalModel {
   id: string;
@@ -34,7 +32,9 @@ export class LocalAiService {
         return;
       }
 
-      // Fallback: Use TensorFlow.js to probe
+      // Fallback: Use TensorFlow.js to probe (loaded dynamically to avoid breaking lazy routes)
+      const tf = await import('@tensorflow/tfjs');
+      await import('@tensorflow/tfjs-backend-webgpu');
       const supported = await tf.setBackend('webgpu');
       if (supported) {
         console.log('WebGPU support confirmed via Tensor.js');
