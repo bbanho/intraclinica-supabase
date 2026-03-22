@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, Input, effect, signal, computed } from '@angular/core';
+import { Component, OnInit, OnChanges, SimpleChanges, inject, Input, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { InventoryService } from '../../core/services/inventory.service';
@@ -140,9 +140,9 @@ import { LucideAngularModule, FlaskConical, AlertTriangle, User, FileText, Activ
                     <td class="p-4 text-xs whitespace-nowrap">
                       <div class="flex items-center gap-2">
                         <div class="w-5 h-5 rounded-md bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold text-[9px]">
-                          {{ (log as any).actor?.name?.charAt(0) || 'D' }}
+                          {{ log.actor?.name?.charAt(0) || 'D' }}
                         </div>
-                        {{ (log as any).actor?.name || 'Desconhecido' }}
+                        {{ log.actor?.name || 'Desconhecido' }}
                       </div>
                     </td>
                     <td class="p-4 text-xs max-w-[300px] truncate" [title]="log.notes || 'Procedimento realizado'">
@@ -178,7 +178,7 @@ import { LucideAngularModule, FlaskConical, AlertTriangle, User, FileText, Activ
     .custom-scrollbar::-webkit-scrollbar-corner { background: transparent; }
   `]
 })
-export class ClinicalExecutionComponent implements OnInit {
+export class ClinicalExecutionComponent implements OnInit, OnChanges {
   private inventoryService = inject(InventoryService);
   private patientService = inject(PatientService);
   private dbService = inject(DatabaseService);
@@ -186,7 +186,7 @@ export class ClinicalExecutionComponent implements OnInit {
   @Input() activePatientId: string = '';
 
   procedureTypes = signal<ProcedureType[]>([]);
-  auditLog = signal<InventoryMovement[]>([]);
+  auditLog = signal<(InventoryMovement & { actor?: { name: string } })[]>([]);
   
   // Expose patients signal directly from service
   patients = computed(() => this.patientService.patients());
@@ -208,17 +208,16 @@ export class ClinicalExecutionComponent implements OnInit {
   readonly Loader2 = Loader2;
   readonly CheckCircle2 = CheckCircle2;
 
-  constructor() {
-    // When the activePatientId Input changes, auto-select it
-    effect(() => {
-      const pid = this.activePatientId;
+  ngOnChanges(changes: SimpleChanges) {
+    if (changes['activePatientId']) {
+      const pid = changes['activePatientId'].currentValue;
       if (pid) {
-        // Must defer slightly to prevent ExpressionChangedAfterItHasBeenCheckedError in some sync flows
-        setTimeout(() => {
-          this.selectedPatientId = pid;
-        });
+        this.selectedPatientId = pid;
+      } else if (!this.selectedPatientId || this.selectedPatientId === changes['activePatientId'].previousValue) {
+        // If the context patient changes to none, and we were previously locked to them, clear it.
+        this.selectedPatientId = '';
       }
-    });
+    }
   }
 
   async ngOnInit() {
@@ -246,7 +245,7 @@ export class ClinicalExecutionComponent implements OnInit {
   async loadAuditLog() {
     try {
       const logs = await this.inventoryService.getProcedureAuditLog();
-      this.auditLog.set(logs as any[]);
+      this.auditLog.set(logs);
     } catch (err: any) {
       console.error('Failed to load audit log', err);
     }
@@ -276,6 +275,9 @@ export class ClinicalExecutionComponent implements OnInit {
       this.message.set('Procedimento registrado com sucesso! Insumos deduzidos do estoque.');
       this.notes = '';
       this.selectedProcedureId = '';
+      if (!this.activePatientId) {
+        this.selectedPatientId = '';
+      }
       await this.loadAuditLog(); // Refresh log
     } catch (err: any) {
       this.error.set('Erro ao registrar procedimento: ' + (err.message || err));
