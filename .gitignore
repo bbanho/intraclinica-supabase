@@ -6,3 +6,12 @@ backend/dist/
 intraclinica-angular/.angular/
 intraclinica-angular/node_modules/
 supabase/.temp/
+
+# Local testing and secrets
+.env
+.env.*
+*-local.mjs
+*-test.mjs
+*seed*.mjs
+*check*.mjs
+
