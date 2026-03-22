@@ -1,86 +1,62 @@
-# Manual de Operação e Governança Clínica: IntraClinica
+# IntraClinica NEXUS: Resolução Ativa de Cenários Críticos
 
-Este documento constitui a documentação oficial de operação do **IntraClinica**, detalhando os fluxos de trabalho, a arquitetura de permissões e a integração entre os módulos do sistema. Ele foi redigido para fornecer a gestores, médicos e parceiros estratégicos uma compreensão profunda de como a plataforma orquestra a jornada do paciente e a administração da unidade de saúde.
+A maioria dos sistemas médicos do mercado (SaaS genéricos) são passivos: eles esperam você digitar algo e armazenam a informação passivamente numa tabela. O **IntraClinica**, através de sua camada de governança inteligente (**NEXUS**), é um sistema **ativo**. Ele prevê o caos da operação clínica antes dele acontecer.
 
----
-
-## 1. Visão Geral do Ecossistema
-
-O IntraClinica não é apenas uma agenda digital; é um ecossistema **SaaS Multi-Tenant** e **AI-First**. Ele foi projetado para eliminar a fragmentação de dados que ocorre quando clínicas usam softwares diferentes para recepção, prontuário e controle de estoque.
-
-A premissa central do sistema é a **Interoperabilidade de Módulos**: uma ação que ocorre na recepção reflete instantaneamente na tela do médico, e uma ação do médico (como a realização de um procedimento) reflete instantaneamente na baixa de custos do estoque.
-
-### 1.1. Arquitetura de Módulos (Config-Driven UI)
-A plataforma adapta-se à realidade de cada clínica. Através de um painel de governança, administradores podem habilitar ou desabilitar módulos específicos (ex: uma clínica de psicologia pode desabilitar o módulo de "Estoque e Procedimentos", mantendo apenas "Prontuário" e "Agenda"). A interface do sistema se reconfigura em tempo real com base nestas permissões.
+Abaixo, documentamos os **Piores Casos** da rotina médica que destroem o faturamento e a experiência do paciente — e como o IntraClinica age para resolvê-los na prática, de forma autônoma.
 
 ---
 
-## 2. Perfis de Acesso e Governança (IAM)
+## Cenário Crítico 1: O "Efeito Dominó" das Faltas (No-Shows)
 
-A segurança e a responsabilidade das ações são garantidas por um sistema de controle de acesso baseado em funções (RBAC). Cada usuário possui uma visão restrita às suas necessidades operacionais.
+**A Realidade do Mercado:**
+Chove forte numa sexta-feira. Três pacientes enviam mensagens cancelando consultas de alto valor em cima da hora. O consultório fica ocioso por 2 horas, a recepcionista entra em pânico tentando ligar para 10 pessoas da lista de espera (que não atendem ou não podem ir), resultando em um prejuízo silencioso de R$ 2.000,00 no dia.
 
-*   **Recepção (`RECEPTION`):** Focada no fluxo do dia. Tem acesso à criação de pacientes, agendamentos, e alteração de status de atendimento (Check-in). Não possui acesso a dados financeiros ou prontuários clínicos.
-*   **Médico / Especialista (`DOCTOR`):** Acesso total à execução clínica. Pode visualizar a fila de espera, iniciar atendimentos, redigir evoluções (com ou sem IA) e dar baixa em procedimentos.
-*   **Gestor de Estoque (`STOCK_MANAGER`):** Focado no *Backoffice*. Controla entradas de notas fiscais, níveis mínimos de segurança e custos médios de produtos.
-*   **Administrador da Clínica (`CLINIC_ADMIN`):** Visão 360º da unidade. Acesso aos relatórios gerenciais (BI), controle de equipe e faturamento.
-
----
-
-## 3. A Jornada do Paciente (Passo a Passo Operacional)
-
-A operação do sistema segue uma linha do tempo clara, desenhada para evitar gargalos físicos na clínica.
-
-### Fase 1: Agendamento e Chegada (`/reception` & `/appointments`)
-1. **Cadastro:** O paciente é registrado no banco de dados único da clínica (CPF, Data de Nascimento, Contato).
-2. **Marcação:** O atendimento é agendado (Consulta, Retorno, Exame ou Procedimento) e alocado para um profissional específico. O status inicial é **"Agendado"**.
-3. **Check-in (A Chegada):** Quando o paciente cruza a porta da clínica, a recepção localiza o agendamento no painel do dia e altera o status para **"Aguardando"**. Opcionalmente, informa-se em qual guichê ou sala de triagem o paciente está.
-   * *Impacto no Sistema:* Neste exato segundo, o nome do paciente aparece na tela do médico dentro do consultório, na lista de "Pacientes em Espera".
-
-### Fase 2: O Atendimento Clínico (`/clinical`)
-O módulo clínico foi desenhado para ser "ergonômico". Médicos têm pouco tempo entre pacientes e não devem focar em burocracia sistêmica.
-
-1. **Chamada:** O médico clica em **"Chamar Paciente"**. O status muda para **"Chamado"** (notificando a recepção) e, em seguida, para **"Em Atendimento"**.
-2. **O Prontuário IA:** O núcleo do sistema. Em vez de preencher dezenas de campos manuais, o médico pode utilizar o motor de Inteligência Artificial nativo.
-   * *A Dinâmica:* O médico dita ou digita de forma bruta suas observações (ex: "Paciente relata dor lombar há 2 semanas, piora ao curvar. Solicito ressonância e prescrevo miorrelaxante").
-   * *O Processamento:* A IA processa a entrada e estrutura o texto no padrão **SOAP** (Subjetivo, Objetivo, Avaliação, Plano), gerando um documento médico formal, claro e padronizado.
-3. **Assinatura e Imutabilidade:** Ao finalizar, a evolução é gravada no banco de dados com um *timestamp* irreversível e atrelada ao identificador (ID) do médico, garantindo segurança jurídica.
-
-### Fase 3: Procedimentos e Baixa de Estoque (`/procedures` & `/inventory`)
-Este é o diferencial de clínicas de alta performance, onde o controle de custos é vital (ex: Harmonização Facial, Dermatologia, Odontologia).
-
-1. **Receita do Procedimento:** Previamente, o gestor configura "Receitas". Por exemplo, o procedimento *Aplicação de Toxina Botulínica* exige 1 Seringa, 1 Agulha e 1 Frasco de Toxina.
-2. **Execução:** Quando o médico finaliza o atendimento clínico e marca que o procedimento "X" foi realizado, o IntraClinica entra em ação no background.
-3. **Dedução Automática:** O sistema vai até o módulo de Estoque, localiza os lotes dos produtos configurados na receita e subtrai as quantidades exatas.
-4. **Alerta de Ruptura:** Se o frasco de Toxina Botulínica atingir o "Estoque Mínimo" pré-definido, o painel do `STOCK_MANAGER` emite um alerta de reposição, evitando que a clínica tenha que cancelar pacientes no dia seguinte por falta de insumos.
+**A Solução IntraClinica (NEXUS + WhatsApp):**
+No momento em que a recepcionista altera o status do paciente 1 para **"Cancelado"** no módulo de *Recepção*, o sistema não apenas muda a cor de um quadrado. A governança NEXUS entra em ação:
+1. **Identificação da Lacuna:** O sistema mapeia que um slot de 1 hora foi aberto às 15:00.
+2. **Varredura Inteligente:** A IA busca na lista de espera pacientes que solicitaram encaixe para aquele mesmo tipo de procedimento ou consulta.
+3. **Comunicação Ativa:** Sem intervenção humana, o sistema dispara uma mensagem de WhatsApp humanizada para os 3 primeiros da lista: *"Olá [Nome], a Dra. Mariana teve um cancelamento agora às 15h. Gostaria de antecipar sua avaliação?"*
+4. **Resolução:** O primeiro paciente que responder "Sim", tem a vaga confirmada, o status no sistema muda para **"Agendado"** automaticamente, e o médico não fica um segundo ocioso.
 
 ---
 
-## 4. Governança e Inteligência de Negócio
+## Cenário Crítico 2: A Ruptura Oculta de Estoque (Alto Custo)
 
-Para que a clínica seja lucrativa, a operação deve gerar dados que se transformam em decisões.
+**A Realidade do Mercado:**
+A paciente está sentada na cadeira da clínica dermatológica, com anestésico no rosto, pronta para uma harmonização facial. O médico abre o armário e percebe que a última seringa de Ácido Hialurônico venceu semana passada ou foi usada em outro paciente e a recepcionista esqueceu de avisar. O constrangimento é imediato, a venda é perdida e a confiança quebrada.
 
-### 4.1. Indicadores de Performance (`/reports`)
-O painel de BI da clínica consome os dados dos módulos acima em tempo real para responder perguntas críticas:
-* Qual o volume de consultas realizadas vs. canceladas (No-shows)?
-* Qual o procedimento mais rentável da unidade?
-* Qual profissional possui o maior tempo de atendimento?
-
-**Insight IA:** Além dos gráficos, o sistema possui um "Conselheiro Virtual". O gestor pode solicitar à IA que analise os números do mês e redija um sumário executivo com recomendações de melhoria de eficiência.
-
-### 4.2. Marketing Médico Autônomo (`/social`)
-Clínicas modernas dependem de captação contínua de pacientes particulares via redes sociais. O módulo Social resolve o problema do "bloqueio criativo" da equipe de marketing ou do próprio médico.
-* O usuário insere um tema técnico (Ex: *Cuidados com a pele no outono*).
-* Define a "Persona" da clínica (Ex: *Acolhedor e Amigável* ou *Técnico e Científico*).
-* A IA conectada ao Gemini gera textos completos para Instagram ou LinkedIn, aplicando gatilhos de engajamento, chamadas para ação (CTAs) para agendamento e as hashtags com maior tração no momento.
+**A Solução IntraClinica (Integração Procedimento ⇄ Estoque):**
+O módulo de *Estoque* conversa em tempo real com as *Receitas de Procedimento*.
+1. **Dedução Direta:** Cada vez que o médico finaliza uma aplicação no *Prontuário*, o sistema desconta a seringa do estoque automaticamente, usando a regra *FIFO* (Primeiro a Vencer, Primeiro a Sair).
+2. **Previsibilidade NEXUS:** O sistema não espera o produto acabar para avisar. A IA olha para a **agenda da próxima semana**. Se você tem 10 aplicações de Toxina Botulínica agendadas, mas o estoque atual é de 8 frascos, o painel do administrador emite um Alerta Crítico (vermelho) **cinco dias antes**, permitindo compras *Just-in-Time* sem prender capital de giro desnecessariamente.
 
 ---
 
-## 5. Arquitetura Técnica e Segurança (Resumo para Investidores)
+## Cenário Crítico 3: Prontuário Complexo vs. Tempo de Consulta Curto
 
-* **Zero-Trust & RLS:** O sistema não confia cegamente no painel do usuário. A segurança é aplicada na raiz do banco de dados (Row Level Security no PostgreSQL). Mesmo que um usuário mal-intencionado tente forçar uma requisição, o banco de dados rejeita se ele não pertencer à clínica específica daquele dado.
-* **Escalabilidade (State Management):** A arquitetura de frontend foi modernizada para utilizar **Angular Signals**. Isso significa que o aplicativo não sofre "reloads" pesados e consome o mínimo de memória do computador da recepção ou do tablet do médico. A sincronização de telas é quase instantânea.
-* **Governança Global:** Caso o modelo de negócio expanda para franquias, o sistema conta com um perfil `SUPER_ADMIN` que pode visualizar a saúde (ARR, Churn, Uptime) de múltiplas clínicas simultaneamente, criando novas unidades e distribuindo licenças em segundos através de um painel de controle SaaS unificado.
+**A Realidade do Mercado:**
+Entra um paciente idoso, poliqueixoso, com um histórico de 4 anos na clínica e 12 consultas anteriores. A consulta dura 15 minutos. O médico não tem tempo físico para ler o histórico completo, resultando em perguntas repetidas, perda de rapport e o médico passando a consulta inteira olhando para o teclado, digitando.
+
+**A Solução IntraClinica (Resumo Clínico e Evolução IA):**
+A IA não é um "chat" para brincar; ela é um assistente de leitura e escrita médica.
+1. **Síntese Instantânea (Resumo Nexus):** Antes do paciente entrar, o médico aperta um botão. A IA lê os 4 anos de prontuários em milissegundos e gera um parágrafo de 4 linhas: *"Paciente hipertenso, alérgico a dipirona. Última consulta (há 3 meses) ajustou a dose de Losartana. Queixa crônica de dor lombar irradidada. Atenção para a pressão arterial."*
+2. **O Fim da Digitação:** Durante o atendimento, o médico mantém contato visual com o paciente 100% do tempo. Ao final, ele clica em "Ditado" e narra um fluxo de consciência bagunçado no microfone: *"O seu João relatou que a dor lombar piorou, vou pedir ressonância, manter a losartana e adicionar miorrelaxante à noite."*
+3. **Documentação Médico-Legal:** O motor IA converte esse áudio na estrutura oficial **SOAP** (Subjetivo, Objetivo, Avaliação, Plano), pronta para ser salva com assinatura digital e *timestamp* no banco de dados isolado da clínica.
 
 ---
 
-*IntraClinica — Inteligência, Controle e Cuidado.*
+## Cenário Crítico 4: O "Bloqueio Criativo" do Marketing Médico
+
+**A Realidade do Mercado:**
+Clínicas privadas vivem de atração de novos pacientes pelo Instagram. Porém, os médicos encerram o dia às 19h exaustos. Ninguém tem energia para pensar em pautas de conteúdo, redigir roteiros e estudar algoritmos. O marketing morre e a agenda esvazia no longo prazo.
+
+**A Solução IntraClinica (Social IA):**
+A aba de *Marketing IA* transforma o conhecimento técnico do médico em autoridade digital sem fricção.
+1. O médico digita apenas: *"Quero falar sobre a importância do protetor solar em dias nublados"*.
+2. Ele escolhe o tom de voz da clínica (ex: *"Profissional e Acolhedor"*).
+3. O IntraClinica gera não apenas uma legenda pronta com as hashtags corretas, mas o roteiro de um vídeo (Reels) em três atos (Gancho, Retenção, Chamada para Ação).
+4. O conteúdo fica salvo no cronograma do sistema, pronto para ser aprovado e publicado.
+
+---
+
+*Estas são as fundações de um software que ultrapassa a mera "digitalização do papel". O IntraClinica, guiado pela infraestrutura NEXUS, é um motor de geração de receita, mitigação de riscos operacionais e devolução do tempo ao profissional de saúde.*
