@@ -238,12 +238,16 @@ export class ProcedureRecipeComponent {
         this.loadProcedures();
         this.loadInventoryItems();
       } else {
-        this.procedures.set([]);
-        this.inventoryItems.set([]);
-        this.selectedProcedure.set(null);
-        this.recipes.set([]);
+        this.resetState();
       }
     });
+  }
+
+  private resetState(): void {
+    this.procedures.set([]);
+    this.inventoryItems.set([]);
+    this.selectedProcedure.set(null);
+    this.recipes.set([]);
   }
 
   async loadProcedures() {

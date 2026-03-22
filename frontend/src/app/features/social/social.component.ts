@@ -201,6 +201,7 @@ export class SocialComponent {
     
     const clinicId = this.db.selectedContextClinic();
     if (!clinicId || clinicId === 'all') {
+      // TODO: Substituir alert() por um componente de notificação (ex: Toast/Snackbar) para melhor UX.
       alert("Selecione uma clínica específica no menu lateral antes de gerar conteúdo.");
       return;
     }
