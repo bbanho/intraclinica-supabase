@@ -304,6 +304,11 @@ import { AgendaCalendarComponent } from './agenda-calendar.component';
                 </div>
 
                 <div class="p-6 border-t border-slate-100 bg-slate-50">
+                  @if (saveError()) {
+                    <div class="mb-3 px-4 py-3 rounded-xl bg-red-50 border border-red-200 text-red-700 text-sm font-medium">
+                      {{ saveError() }}
+                    </div>
+                  }
                     <button (click)="handleSave()" [disabled]="isLoading() || (!selectedPatient && !isCreatingPatient()) || !appointmentData.date" class="w-full bg-teal-600 text-white py-4 rounded-2xl font-bold uppercase tracking-widest hover:bg-teal-700 transition-all shadow-xl shadow-teal-100 disabled:opacity-50 disabled:shadow-none flex items-center justify-center gap-2">
                         @if (isLoading()) {
                             <div class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
@@ -336,6 +341,7 @@ export class ReceptionComponent {
   
   searchTerm = signal('');
   isModalOpen = signal(false);
+  saveError = signal<string | null>(null);
   
   // Patient Search Logic
   patientSearch = '';
@@ -459,13 +465,14 @@ export class ReceptionComponent {
   isLoading = signal(false);
 
   async handleSave() {
+      this.saveError.set(null);
       this.isLoading.set(true);
       let patientId: string = '';
       let patientName: string = '';
       
       const clinicId = this.db.selectedContextClinic();
       if (!clinicId || clinicId === 'all') {
-          alert('Selecione uma clínica específica primeiro.');
+          this.saveError.set('Selecione uma clínica específica primeiro.');
           this.isLoading.set(false);
           return;
       }
@@ -474,7 +481,7 @@ export class ReceptionComponent {
           if (this.isCreatingPatient()) {
               const newPatient = { ...this.newPatientData };
               if (!newPatient.name) {
-                  alert('Por favor, informe o nome do paciente.');
+                  this.saveError.set('Por favor, informe o nome do paciente.');
                   this.isLoading.set(false);
                   return;
               }
@@ -520,9 +527,14 @@ export class ReceptionComponent {
           alert('Agendamento realizado com sucesso!');
           this.isModalOpen.set(false);
           this.resetForm();
-      } catch (error) {
+      } catch (error: unknown) {
           console.error("Erro ao agendar:", error);
-          alert('Ocorreu um erro ao salvar. Tente novamente.');
+          const msg = error instanceof Error ? error.message : 'Ocorreu um erro ao salvar. Tente novamente.';
+          if (msg.includes('Conflito de horário') || (error as { code?: string })?.code === 'P0001') {
+            this.saveError.set(msg);
+          } else {
+            this.saveError.set('Ocorreu um erro ao salvar. Tente novamente.');
+          }
       } finally {
           this.isLoading.set(false);
       }
@@ -532,6 +544,7 @@ export class ReceptionComponent {
       this.patientSearch = '';
       this.selectedPatient = null;
       this.isCreatingPatient.set(false);
+      this.saveError.set(null);
       this.newPatientData = { name: '', cpf: '', phone: '' };
       this.appointmentData = { doctorName: this.db.currentUser()?.name ?? '', date: '', fullDate: undefined, type: 'Consulta', status: 'Agendado' };
   }

@@ -158,7 +158,8 @@ export class PatientService {
       p_date: apt.date,
       p_status: apt.status || 'Agendado',
       p_room_number: apt.roomNumber ?? null,
-      p_priority: null
+      p_priority: null,
+      p_duration_minutes: apt.durationMinutes ?? 60
     });
 
     if (error) throw error;
