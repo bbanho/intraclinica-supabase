@@ -1,62 +1,89 @@
-# IntraClinica NEXUS: Resolução Ativa de Cenários Críticos
+# O Sistema na Prática: Fluxos Operacionais Críticos
 
 A maioria dos sistemas médicos do mercado (SaaS genéricos) são passivos: eles esperam você digitar algo e armazenam a informação passivamente numa tabela. O **IntraClinica**, através de sua camada de governança inteligente (**NEXUS**), é um sistema **ativo**. Ele prevê o caos da operação clínica antes dele acontecer.
 
-Abaixo, documentamos os **Piores Casos** da rotina médica que destroem o faturamento e a experiência do paciente — e como o IntraClinica age para resolvê-los na prática, de forma autônoma.
+Para tangibilizar essa afirmação e não depender apenas da imaginação de quem lê "caixas de texto vazias", populamos a base de dados da Clínica Piloto simulando os **Piores Casos** (agendas atrasadas, faltas, ruptura de alto custo) e fotografamos o comportamento real do software sob estresse de operação.
 
 ---
 
-## Cenário Crítico 1: O "Efeito Dominó" das Faltas (No-Shows)
+## 1. O Caos da Recepção (O "Efeito Dominó" e Faltas)
 
-**A Realidade do Mercado:**
-Chove forte numa sexta-feira. Três pacientes enviam mensagens cancelando consultas de alto valor em cima da hora. O consultório fica ocioso por 2 horas, a recepcionista entra em pânico tentando ligar para 10 pessoas da lista de espera (que não atendem ou não podem ir), resultando em um prejuízo silencioso de R$ 2.000,00 no dia.
+**A Realidade (O Gargalo):**
+Chove forte numa sexta-feira. A recepção lota com pacientes de consultas longas que atrasaram. Dois pacientes enviam mensagens cancelando consultas de alto valor em cima da hora. O consultório fica ocioso por 2 horas, resultando num prejuízo de R$ 1.500 no dia, enquanto a recepcionista perde tempo tentando ligar para a lista de espera.
 
-**A Solução IntraClinica (NEXUS + WhatsApp):**
-No momento em que a recepcionista altera o status do paciente 1 para **"Cancelado"** no módulo de *Recepção*, o sistema não apenas muda a cor de um quadrado. A governança NEXUS entra em ação:
-1. **Identificação da Lacuna:** O sistema mapeia que um slot de 1 hora foi aberto às 15:00.
-2. **Varredura Inteligente:** A IA busca na lista de espera pacientes que solicitaram encaixe para aquele mesmo tipo de procedimento ou consulta.
-3. **Comunicação Ativa:** Sem intervenção humana, o sistema dispara uma mensagem de WhatsApp humanizada para os 3 primeiros da lista: *"Olá [Nome], a Dra. Mariana teve um cancelamento agora às 15h. Gostaria de antecipar sua avaliação?"*
-4. **Resolução:** O primeiro paciente que responder "Sim", tem a vaga confirmada, o status no sistema muda para **"Agendado"** automaticamente, e o médico não fica um segundo ocioso.
+**A Resolução Ativa do Sistema:**
+No módulo de *Recepção*, abandonamos a clássica e engessada "tabela do dia". Substituímos pelo modelo de Fluxo (Kanban Clínico) em tempo real:
 
----
+![Recepção e Triagem](assets/03-reception-board.png)
 
-## Cenário Crítico 2: A Ruptura Oculta de Estoque (Alto Custo)
-
-**A Realidade do Mercado:**
-A paciente está sentada na cadeira da clínica dermatológica, com anestésico no rosto, pronta para uma harmonização facial. O médico abre o armário e percebe que a última seringa de Ácido Hialurônico venceu semana passada ou foi usada em outro paciente e a recepcionista esqueceu de avisar. O constrangimento é imediato, a venda é perdida e a confiança quebrada.
-
-**A Solução IntraClinica (Integração Procedimento ⇄ Estoque):**
-O módulo de *Estoque* conversa em tempo real com as *Receitas de Procedimento*.
-1. **Dedução Direta:** Cada vez que o médico finaliza uma aplicação no *Prontuário*, o sistema desconta a seringa do estoque automaticamente, usando a regra *FIFO* (Primeiro a Vencer, Primeiro a Sair).
-2. **Previsibilidade NEXUS:** O sistema não espera o produto acabar para avisar. A IA olha para a **agenda da próxima semana**. Se você tem 10 aplicações de Toxina Botulínica agendadas, mas o estoque atual é de 8 frascos, o painel do administrador emite um Alerta Crítico (vermelho) **cinco dias antes**, permitindo compras *Just-in-Time* sem prender capital de giro desnecessariamente.
+1. **Gestão Visual Intuitiva:** Com um clique, a recepcionista move o paciente de "Agendado" (cinza) para "Aguardando" (amarelo) no momento que ele entra na clínica.
+2. **Sincronia Instantânea:** Na mesma fração de segundo em que a recepção clica em "Aguardando", o nome do paciente **pisca na tela do médico** (dentro do consultório), indicando que a triagem foi feita. Não há necessidade de telefonemas ou papéis passando de mão em mão.
+3. **NEXUS Automático (A Máquina de Vendas):** Caso a paciente *Mariana Fontes* tenha sido marcada como "Cancelada" (Vermelho na imagem), a inteligência do sistema lê o calendário, acha o "buraco" de 1 hora e aciona o robô do WhatsApp. Uma mensagem humanizada é disparada para a lista de espera ("Olá João, tivemos um cancelamento da Dra. agora às 14h, você gostaria de antecipar seu retorno?"). A vaga é preenchida passivamente, salvando o faturamento do dia.
 
 ---
 
-## Cenário Crítico 3: Prontuário Complexo vs. Tempo de Consulta Curto
+## 2. A "Ruptura Oculta" de Insumos (Alto Custo)
 
-**A Realidade do Mercado:**
-Entra um paciente idoso, poliqueixoso, com um histórico de 4 anos na clínica e 12 consultas anteriores. A consulta dura 15 minutos. O médico não tem tempo físico para ler o histórico completo, resultando em perguntas repetidas, perda de rapport e o médico passando a consulta inteira olhando para o teclado, digitando.
+**A Realidade (O Prejuízo):**
+A paciente está sentada na cadeira da clínica dermatológica, com o rosto preparado para uma harmonização. O médico abre a gaveta e percebe que a última seringa de *Ácido Hialurônico (Juvederm)* venceu semana passada ou já foi usada. O constrangimento é imediato, a venda de R$ 2.000 é perdida, e o estoque "de papel" falhou.
 
-**A Solução IntraClinica (Resumo Clínico e Evolução IA):**
-A IA não é um "chat" para brincar; ela é um assistente de leitura e escrita médica.
-1. **Síntese Instantânea (Resumo Nexus):** Antes do paciente entrar, o médico aperta um botão. A IA lê os 4 anos de prontuários em milissegundos e gera um parágrafo de 4 linhas: *"Paciente hipertenso, alérgico a dipirona. Última consulta (há 3 meses) ajustou a dose de Losartana. Queixa crônica de dor lombar irradidada. Atenção para a pressão arterial."*
-2. **O Fim da Digitação:** Durante o atendimento, o médico mantém contato visual com o paciente 100% do tempo. Ao final, ele clica em "Ditado" e narra um fluxo de consciência bagunçado no microfone: *"O seu João relatou que a dor lombar piorou, vou pedir ressonância, manter a losartana e adicionar miorrelaxante à noite."*
-3. **Documentação Médico-Legal:** O motor IA converte esse áudio na estrutura oficial **SOAP** (Subjetivo, Objetivo, Avaliação, Plano), pronta para ser salva com assinatura digital e *timestamp* no banco de dados isolado da clínica.
+**A Resolução Ativa do Sistema:**
+O IntraClinica amarra de forma indissociável o *Estoque* com o *Prontuário Médico* (Módulo de Procedimentos).
 
----
+![Estoque Crítico Alerta](assets/02-inventory-products.png)
 
-## Cenário Crítico 4: O "Bloqueio Criativo" do Marketing Médico
-
-**A Realidade do Mercado:**
-Clínicas privadas vivem de atração de novos pacientes pelo Instagram. Porém, os médicos encerram o dia às 19h exaustos. Ninguém tem energia para pensar em pautas de conteúdo, redigir roteiros e estudar algoritmos. O marketing morre e a agenda esvazia no longo prazo.
-
-**A Solução IntraClinica (Social IA):**
-A aba de *Marketing IA* transforma o conhecimento técnico do médico em autoridade digital sem fricção.
-1. O médico digita apenas: *"Quero falar sobre a importância do protetor solar em dias nublados"*.
-2. Ele escolhe o tom de voz da clínica (ex: *"Profissional e Acolhedor"*).
-3. O IntraClinica gera não apenas uma legenda pronta com as hashtags corretas, mas o roteiro de um vídeo (Reels) em três atos (Gancho, Retenção, Chamada para Ação).
-4. O conteúdo fica salvo no cronograma do sistema, pronto para ser aprovado e publicado.
+1. **O Alerta Visual Inteligente:** Como visto no painel acima, os produtos não são uma tabela inerte. O sistema acende uma luz vermelha de Pânico sempre que o saldo toca o `min_stock` de segurança configurado pelo gestor. A Toxina Botulínica e os Fios de PDO estão "zerados", sinalizando urgência.
+2. **Dedução Automática (Mágica da Receita):** A recepcionista ou o médico não precisam lembrar de ir no estoque "dar baixa" na seringa ao fim do dia. Ao criar uma "Receita" prévia (ex: Harmonização = 1 Seringa + 1 Anestésico), quando o médico clica em **"Procedimento Realizado"** no prontuário, a quantidade exata é varrida do almoxarifado.
+3. **Alerta NEXUS de Previsibilidade:** O sistema lê a **agenda da próxima semana**. Se há 4 aplicações de Botox agendadas, mas o estoque é de 2 frascos, o gestor recebe a notificação push/WhatsApp hoje, forçando uma compra *Just-in-Time* sem prender capital de giro da clínica no armário.
 
 ---
 
-*Estas são as fundações de um software que ultrapassa a mera "digitalização do papel". O IntraClinica, guiado pela infraestrutura NEXUS, é um motor de geração de receita, mitigação de riscos operacionais e devolução do tempo ao profissional de saúde.*
+## 3. Prontuário Longo vs. Tempo Curto (A Cura da Burocracia)
+
+**A Realidade (A Burocracia):**
+Um paciente poliqueixoso, com um histórico de 4 anos e dezenas de queixas, entra na sala. O tempo da consulta é de exatos 15 minutos. O médico passa 10 minutos focado em tentar ler e achar algo no histórico (ou pior, passa a consulta toda ignorando o paciente e teclando). O paciente se sente ignorado.
+
+**A Resolução Ativa do Sistema:**
+A IA do IntraClinica é uma aliada médico-legal estruturada.
+
+![Prontuário IA](assets/05-clinical-execution-main.png)
+
+1. **Histórico Consolidado e Imutável:** Como mostra a imagem, cada retorno, evolução e exame inserido é empilhado de forma auditável. Cada registro recebe assinatura do profissional e data inviolável.
+2. **O Fim da Digitação:** O médico foca 100% no olhar do paciente. Apenas ao final da consulta, ele clica no microfone da IA e fala frases desconexas: *"O Carlos voltou hoje. A dor lombar piorou ao deitar, ele é alérgico a dipirona, prescrevi relaxante e marquei ressonância"*.
+3. **Formatação Automática (Padrão SOAP):** Em dois segundos, o modelo IA (conectado ao Gemini) engole o áudio, estrutura a anamnese no formato oficial **SOAP** (Subjetivo, Objetivo, Avaliação, Plano), extrai alergias para caixas de alerta vermelhas no topo do paciente, e gera o documento final que será salvo.
+
+---
+
+## 4. O "Bloqueio Criativo" do Marketing Médico
+
+**A Realidade (A Fricção):**
+Clínicas privadas dependem do *Instagram* para faturamento particular constante. Mas após um dia exaustivo, o médico não tem energia mental para escrever "roteiros para o Instagram". A agência cobra caro, erra os termos técnicos, e a atração de clientes despenca.
+
+**A Resolução Ativa do Sistema:**
+O Módulo *Social IA* transforma o jargão técnico em autoridade de marketing em segundos.
+
+![Marketing IA](assets/09-social-generator.png)
+
+1. O médico (ou a gestora da clínica) insere uma ideia bruta de cinco palavras (ex: *"Diferença de preenchimento labial e fio de PDO"*).
+2. Escolhe o **Tom de Voz** exato da Clínica (ex: *Profissional e Técnico* ou *Humano e Acolhedor*).
+3. A IA não só gera uma legenda pronta (com chamadas para ação e as hashtags corretas da cidade e do nicho), como pode entregar o roteiro exato (Cena 1, Cena 2, Gancho) para um vídeo de Reels ou TikTok, tudo isso sem sair do SaaS. O marketing volta a tracionar em menos de 1 minuto.
+
+---
+
+## 5. Governança e a Tela Mágica (SaaS Config)
+
+**A Realidade (Engessamento):**
+Sistemas médicos são cheios de botões e abas que 90% das clínicas nunca usam. Isso gera poluição visual e curva de aprendizado demorada para novas recepcionistas.
+
+**A Resolução Ativa do Sistema:**
+A infraestrutura Config-Driven UI do IntraClinica resolve isso em tempo real no nível da Administração.
+
+![Painel de Configurações SaaS](assets/10-admin-ui-config.png)
+
+1. Na aba "Configurações SaaS", o investidor/super admin vê todas as *features* disponíveis.
+2. É uma clínica de psicologia que não vende produtos nem faz pequenas cirurgias? Basta **desmarcar o Checkbox** "Gestão de Insumos" e "Procedimentos".
+3. **Efeito Imediato:** Esses botões e rotas **desaparecem** do sistema daquela clínica instantaneamente. A interface fica limpa, minimalista e focada unicamente na operação que realmente dá lucro.
+
+---
+
+*Estas imagens capturam a operação rodando no seu limite. O IntraClinica, guiado pela infraestrutura inteligente NEXUS, é o motor de geração de receita, mitigação de riscos e devolução do tempo aos profissionais de saúde.*
