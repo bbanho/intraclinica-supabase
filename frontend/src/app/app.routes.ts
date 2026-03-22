@@ -27,7 +27,7 @@ export const routes: Routes = [
       },
       {
         path: 'appointments',
-        loadChildren: () => import('./features/appointments/appointments.routes').then(r => r.APPOINTMENT_ROUTES)
+        redirectTo: 'reception'
       },
       { 
         path: 'reception', 
