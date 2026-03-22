@@ -392,11 +392,19 @@ export class ReceptionComponent {
   }
 
   doctors = computed(() => {
-    return this.db.users().filter(u => u.role === 'DOCTOR' || u.role === 'ADMIN');
+    const clinicId = this.db.selectedContextClinic();
+    return this.db.users().filter(u => 
+      (u.role === 'DOCTOR' || u.role === 'ADMIN') &&
+      (!clinicId || clinicId === 'all' || u.clinicId === clinicId)
+    );
   });
 
   doctorsWithRooms = computed(() => {
-      return this.db.users().filter(u => u.role === 'DOCTOR' || u.role === 'ADMIN');
+      const clinicId = this.db.selectedContextClinic();
+      return this.db.users().filter(u => 
+        (u.role === 'DOCTOR' || u.role === 'ADMIN') &&
+        (!clinicId || clinicId === 'all' || u.clinicId === clinicId)
+      );
   });
 
   filteredAppointments = computed(() => {

@@ -2,6 +2,7 @@ import { Component, computed, inject, signal, effect } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { InventoryService } from '../../core/services/inventory.service';
+import { DatabaseService } from '../../core/services/database.service';
 import { ProcedureType, ProcedureRecipe, InventoryItem } from '../../core/models/inventory.types';
 import { LucideAngularModule, Plus, Trash2, Edit3, Save, XCircle, Search, Pill, Stethoscope, ChevronRight } from 'lucide-angular';
 
@@ -55,7 +56,9 @@ import { LucideAngularModule, Plus, Trash2, Edit3, Save, XCircle, Search, Pill, 
                 </div>
                 <div class="mt-2 flex items-center gap-2 text-xs font-medium text-slate-500">
                   <span class="text-emerald-600 font-bold">{{ proc.price | currency:'BRL' }}</span>
-                  <span *ngIf="!proc.active" class="text-rose-500 bg-rose-50 px-1.5 rounded text-[10px] font-bold">INATIVO</span>
+                  @if (!proc.active) {
+                    <span class="text-rose-500 bg-rose-50 px-1.5 rounded text-[10px] font-bold">INATIVO</span>
+                  }
                 </div>
               </div>
             }
@@ -199,6 +202,7 @@ import { LucideAngularModule, Plus, Trash2, Edit3, Save, XCircle, Search, Pill, 
 })
 export class ProcedureRecipeComponent {
   private inventoryService = inject(InventoryService);
+  private db = inject(DatabaseService);
 
   // Signals
   procedures = signal<ProcedureType[]>([]);
@@ -228,8 +232,18 @@ export class ProcedureRecipeComponent {
 
   // Effects & Constructor
   constructor() {
-    this.loadProcedures();
-    this.loadInventoryItems();
+    effect(() => {
+      const clinicId = this.db.selectedContextClinic();
+      if (clinicId && clinicId !== 'all') {
+        this.loadProcedures();
+        this.loadInventoryItems();
+      } else {
+        this.procedures.set([]);
+        this.inventoryItems.set([]);
+        this.selectedProcedure.set(null);
+        this.recipes.set([]);
+      }
+    });
   }
 
   async loadProcedures() {
