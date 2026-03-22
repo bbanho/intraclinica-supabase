@@ -154,20 +154,14 @@ import { APPOINTMENT_STATUSES, APPOINTMENT_TYPES, WORKSTATIONS } from '../../cor
                          </div>
                      }
                      @if (app.status === 'Chamado') {
-                         <div class="flex flex-col gap-2">
-                            <span class="text-[10px] text-indigo-600 font-black uppercase flex items-center gap-2 w-full justify-center bg-indigo-50 py-3 rounded-xl border border-indigo-100">
-                                <lucide-icon [img]="Clock" [size]="14" class="animate-pulse"></lucide-icon> Paciente Chamado {{ app.roomNumber ? '• ' + app.roomNumber : '' }}
-                            </span>
-                            <button (click)="updateStatus(app.id, 'Em Atendimento')" class="w-full bg-blue-600 text-white py-2 rounded-lg text-[10px] font-black uppercase hover:bg-blue-700 transition-all">Confirmar Entrada</button>
-                         </div>
+                         <span class="text-[10px] text-indigo-600 font-black uppercase flex items-center gap-2 w-full justify-center bg-indigo-50 py-3 rounded-xl border border-indigo-100">
+                             <lucide-icon [img]="Clock" [size]="14" class="animate-pulse"></lucide-icon> Chamado p/ {{ app.roomNumber || 'Consultório' }}
+                         </span>
                      }
                      @if (app.status === 'Em Atendimento') {
-                         <div class="flex-1 flex flex-col gap-2">
-                            <span class="text-[10px] text-blue-600 font-black uppercase flex items-center gap-2 w-full justify-center bg-blue-50 py-3 rounded-xl border border-blue-100">
-                                <lucide-icon [img]="Clock" [size]="14" class="animate-pulse"></lucide-icon> Em Consulta {{ app.roomNumber ? '• ' + app.roomNumber : '' }}
-                            </span>
-                            <button (click)="updateStatus(app.id, 'Realizado')" class="w-full bg-emerald-500 text-white py-2 rounded-lg text-[10px] font-black uppercase hover:bg-emerald-600 transition-all">Finalizar</button>
-                         </div>
+                         <span class="text-[10px] text-blue-600 font-black uppercase flex items-center gap-2 w-full justify-center bg-blue-50 py-3 rounded-xl border border-blue-100">
+                             <lucide-icon [img]="Clock" [size]="14" class="animate-pulse"></lucide-icon> Em Consulta {{ app.roomNumber ? '• ' + app.roomNumber : '' }}
+                         </span>
                      }
                  </div>
              </div>

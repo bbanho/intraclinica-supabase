@@ -5,9 +5,10 @@ import { GeminiService } from '../../core/services/gemini.service';
 import { DatabaseService } from '../../core/services/database.service';
 import { PatientStore } from '../../core/store/patient.store';
 import { LocalAiService, LocalModel } from '../../core/services/local-ai.service';
-import { LucideAngularModule, FileText, Clock, Save, History, PlusCircle, Mic, MicOff, Loader2, Shield, Cloud, Monitor, Settings2, Download, DoorOpen, Users, User, ArrowRight, CheckCircle2, Wand2, Trash2 } from 'lucide-angular';
+import { LucideAngularModule, FileText, Clock, Save, History, PlusCircle, Mic, MicOff, Loader2, Shield, Cloud, Monitor, Settings2, Download, DoorOpen, Users, User, ArrowRight, CheckCircle2, Wand2, Trash2, Stethoscope, FlaskConical } from 'lucide-angular';
 import { LiveServerMessage } from "@google/genai";
 import { IAM_PERMISSIONS } from '../../core/config/iam-roles';
+import { ClinicalExecutionComponent } from './clinical-execution.component';
 
 // Helper for Audio Blobs
 function createBlob(data: Float32Array): { data: string; mimeType: string } {
@@ -31,7 +32,7 @@ function createBlob(data: Float32Array): { data: string; mimeType: string } {
 @Component({
   selector: 'app-clinical',
   standalone: true,
-  imports: [CommonModule, FormsModule, LucideAngularModule],
+  imports: [CommonModule, FormsModule, LucideAngularModule, ClinicalExecutionComponent],
   template: `
     <div class="space-y-6 p-6 animate-fade-in">
       @if (!canViewClinicalRecords()) {
@@ -134,149 +135,179 @@ function createBlob(data: Float32Array): { data: string; mimeType: string } {
             </div>
         </div>
 
-        <div class="grid lg:grid-cols-4 gap-6">
-            <!-- WAITING LIST SIDEBAR -->
-            <div class="space-y-4">
-                <div class="bg-white p-6 rounded-3xl shadow-sm border border-slate-200 h-[600px] overflow-y-auto custom-scrollbar flex flex-col">
-                    <h3 class="font-black text-slate-400 mb-4 text-[10px] uppercase tracking-widest sticky top-0 bg-white pb-2 border-b border-slate-50 flex items-center gap-2">
-                        <lucide-icon [img]="Users" [size]="14"></lucide-icon> Pacientes em Espera
-                    </h3>
-                    
-                    <div class="space-y-3 flex-1">
-                        @for (app of waitingList(); track app.id) {
-                            <div class="p-4 rounded-2xl border border-slate-100 bg-slate-50/50 hover:bg-indigo-50 hover:border-indigo-100 transition-all group relative overflow-hidden">
-                                @if (app.status === 'Chamado') {
-                                    <div class="absolute top-0 left-0 w-1 h-full bg-indigo-500"></div>
-                                }
-                                <div class="flex justify-between items-start mb-2">
-                                    <span class="text-xs font-black text-slate-800">{{app.date}}</span>
-                                    <span class="text-[8px] font-black uppercase px-2 py-0.5 rounded" 
-                                          [class.bg-indigo-100]="app.status === 'Chamado'" [class.text-indigo-600]="app.status === 'Chamado'" 
-                                          [class.bg-amber-100]="app.status === 'Aguardando'" [class.text-amber-600]="app.status === 'Aguardando'">
-                                        {{app.status}}
-                                    </span>
-                                </div>
-                                <div class="font-bold text-slate-700 text-sm mb-3 flex items-center gap-2">
-                                    <lucide-icon [img]="User" [size]="14" class="text-slate-400"></lucide-icon>
-                                    {{app.patientName}}
-                                </div>
-                                
-                                <div class="flex gap-2">
-                                    @if (app.status === 'Aguardando') {
-                                        <button (click)="callPatient(app)" class="flex-1 py-2 bg-indigo-600 text-white rounded-lg text-[10px] font-black uppercase hover:bg-indigo-700 transition-all flex items-center justify-center gap-2 shadow-lg shadow-indigo-100 opacity-0 group-hover:opacity-100">
-                                            <lucide-icon [img]="Monitor" [size]="12"></lucide-icon> Chamar
-                                        </button>
-                                    }
-                                    
-                                    @if (app.status === 'Chamado') {
-                                        <button (click)="startConsultation(app)" class="flex-1 py-2 bg-emerald-600 text-white rounded-lg text-[10px] font-black uppercase hover:bg-emerald-700 transition-all flex items-center justify-center gap-2 shadow-lg shadow-emerald-100 animate-pulse">
-                                            Iniciar <lucide-icon [img]="ArrowRight" [size]="12"></lucide-icon>
-                                        </button>
-                                    }
-                                </div>
-                            </div>
-                        } @empty {
-                            <div class="flex flex-col items-center justify-center py-10 text-slate-300 text-center">
-                                <lucide-icon [img]="Users" [size]="32" class="opacity-20 mb-2"></lucide-icon>
-                                <p class="text-[10px] font-bold uppercase tracking-widest">Nenhum paciente aguardando seu atendimento</p>
-                            </div>
-                        }
-                    </div>
-                </div>
-            </div>
+        <!-- MODULE TABS -->
+        <div class="flex gap-1 bg-slate-100 p-1 rounded-2xl border border-slate-200 w-fit">
+            <button 
+                (click)="activeTab.set('prontuario')"
+                [class.bg-white]="activeTab() === 'prontuario'"
+                [class.shadow-sm]="activeTab() === 'prontuario'"
+                [class.text-indigo-600]="activeTab() === 'prontuario'"
+                class="flex items-center gap-2 px-5 py-2.5 rounded-xl text-[10px] font-black uppercase transition-all text-slate-500"
+            >
+                <lucide-icon [img]="Stethoscope" [size]="14"></lucide-icon> Evolução Clínica
+            </button>
+            <button 
+                (click)="activeTab.set('procedimentos')"
+                [class.bg-white]="activeTab() === 'procedimentos'"
+                [class.shadow-sm]="activeTab() === 'procedimentos'"
+                [class.text-indigo-600]="activeTab() === 'procedimentos'"
+                class="flex items-center gap-2 px-5 py-2.5 rounded-xl text-[10px] font-black uppercase transition-all text-slate-500"
+            >
+                <lucide-icon [img]="FlaskConical" [size]="14"></lucide-icon> Procedimentos
+            </button>
+        </div>
 
-            <!-- MAIN EDITOR -->
-            <div class="lg:col-span-2 space-y-4">
-                <div class="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden flex flex-col h-[600px]">
-                    <div class="p-4 bg-slate-50 border-b border-slate-100 flex items-center justify-between">
-                        <span class="text-xs font-black uppercase text-slate-500 flex items-center gap-2 tracking-widest">
-                            <lucide-icon [img]="FileText" [size]="14"></lucide-icon> Evolução Clínica
-                        </span>
-                        
-                        <div class="flex gap-2">
-                            <button 
-                                (click)="formatProntuario()" 
-                                [disabled]="!currentNotes || isFormatting()"
-                                class="bg-white border border-indigo-200 text-indigo-600 px-4 py-2 rounded-xl text-[10px] font-black uppercase hover:bg-indigo-50 transition-all flex items-center gap-2 disabled:opacity-50"
-                            >
-                                @if (isFormatting()) {
-                                    <lucide-icon [img]="Loader2" [size]="14" class="animate-spin"></lucide-icon> Processando...
-                                } @else {
-                                    <lucide-icon [img]="Wand2" [size]="14"></lucide-icon> Padronizar Documento
-                                }
-                            </button>
-                            @if (aiMode() === 'local' && localAi.isLoaded()) {
-                                <button (click)="refineWithLocalAi()" class="bg-white border border-teal-200 text-teal-600 px-4 py-2 rounded-xl text-[10px] font-black uppercase hover:bg-teal-50 transition-all flex items-center gap-2">
-                                    <lucide-icon [img]="Settings2" [size]="14"></lucide-icon> Refinar Localmente
-                                </button>
-                            }
-                            <button 
-                                (click)="toggleRecording()"
-                                [disabled]="!currentPatient()"
-                                [class.bg-rose-600]="isRecording()"
-                                [class.animate-pulse]="isRecording()"
-                                [class.bg-indigo-600]="!isRecording() && aiMode() === 'cloud'"
-                                [class.bg-teal-600]="!isRecording() && aiMode() === 'local'"
-                                class="flex items-center gap-2 px-4 py-2 rounded-xl text-[10px] font-black uppercase transition-all shadow-sm text-white hover:opacity-90 disabled:opacity-30 disabled:grayscale"
-                            >
-                                @if (isRecording()) {
-                                <lucide-icon [img]="MicOff" [size]="14"></lucide-icon> Gravando...
-                                } @else {
-                                <lucide-icon [img]="Mic" [size]="14"></lucide-icon> Ditado IA
-                                }
-                            </button>
-                        </div>
-                    </div>
-                    <textarea 
-                        class="flex-1 p-8 outline-none resize-none text-slate-700 leading-relaxed text-lg font-medium disabled:bg-slate-50 disabled:text-slate-400"
-                        placeholder="Selecione um paciente na fila ao lado para iniciar a evolução..."
-                        [disabled]="!currentPatient()"
-                        [(ngModel)]="currentNotes"
-                    ></textarea>
-                    <div class="p-4 border-t border-slate-100 flex justify-between items-center bg-slate-50">
-                        <div class="flex gap-2">
-                            @if (currentPatient()) {
-                                <button (click)="finishConsultation()" class="px-6 py-3 bg-white border border-slate-200 text-slate-600 rounded-xl hover:bg-emerald-50 hover:text-emerald-600 hover:border-emerald-200 font-bold text-xs uppercase transition-all flex items-center gap-2">
-                                    <lucide-icon [img]="CheckCircle2" [size]="16"></lucide-icon> Finalizar Consulta
-                                </button>
-                            }
-                        </div>
-                        <button (click)="saveNotes()" [disabled]="!currentPatient() || !currentNotes" class="px-8 py-3 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 font-bold flex items-center gap-2 shadow-lg shadow-emerald-100 transition-all disabled:opacity-50 disabled:shadow-none uppercase text-xs">
-                            <lucide-icon [img]="Save" [size]="18"></lucide-icon> Salvar Evolução
-                        </button>
-                    </div>
-                </div>
-            </div>
-
-            <!-- HISTORY SIDEBAR -->
-            <div class="space-y-4">
-                <div class="bg-white p-6 rounded-3xl shadow-sm border border-slate-200 h-[600px] overflow-y-auto custom-scrollbar flex flex-col">
-                    <h3 class="font-black text-slate-400 mb-4 text-[10px] uppercase tracking-widest sticky top-0 bg-white pb-2 border-b border-slate-50">Histórico Recente</h3>
-                    
-                    @if (patientHistory().length > 0) {
-                      <div class="space-y-6 relative mt-4 flex-1">
-                          <div class="absolute left-1.5 top-2 bottom-2 w-0.5 bg-slate-100"></div>
-                          @for (hist of patientHistory(); track hist.id) {
-                              <div class="relative pl-6 animate-fade-in">
-                                  <div class="absolute left-0 top-1 w-3 h-3 rounded-full border-2 border-indigo-500 bg-white"></div>
-                                  <div class="text-[10px] font-black text-slate-400 mb-1">
-                                    {{hist.timestamp | date:'short'}} • {{hist.type | uppercase}}
+        <!-- TAB: PRONTUÁRIO -->
+        @if (activeTab() === 'prontuario') {
+          <div class="grid lg:grid-cols-4 gap-6">
+              <!-- WAITING LIST SIDEBAR -->
+              <div class="space-y-4">
+                  <div class="bg-white p-6 rounded-3xl shadow-sm border border-slate-200 h-[600px] overflow-y-auto custom-scrollbar flex flex-col">
+                      <h3 class="font-black text-slate-400 mb-4 text-[10px] uppercase tracking-widest sticky top-0 bg-white pb-2 border-b border-slate-50 flex items-center gap-2">
+                          <lucide-icon [img]="Users" [size]="14"></lucide-icon> Pacientes em Espera
+                      </h3>
+                      
+                      <div class="space-y-3 flex-1">
+                          @for (app of waitingList(); track app.id) {
+                              <div class="p-4 rounded-2xl border border-slate-100 bg-slate-50/50 hover:bg-indigo-50 hover:border-indigo-100 transition-all group relative overflow-hidden">
+                                  @if (app.status === 'Chamado') {
+                                      <div class="absolute top-0 left-0 w-1 h-full bg-indigo-500"></div>
+                                  }
+                                  <div class="flex justify-between items-start mb-2">
+                                      <span class="text-xs font-black text-slate-800">{{app.date}}</span>
+                                      <span class="text-[8px] font-black uppercase px-2 py-0.5 rounded" 
+                                            [class.bg-indigo-100]="app.status === 'Chamado'" [class.text-indigo-600]="app.status === 'Chamado'" 
+                                            [class.bg-amber-100]="app.status === 'Aguardando'" [class.text-amber-600]="app.status === 'Aguardando'">
+                                          {{app.status}}
+                                      </span>
                                   </div>
-                                  <p class="text-xs text-slate-700 bg-slate-50 p-3 rounded-xl border border-slate-100 italic font-medium">
-                                      "{{hist.content}}"
-                                  </p>
+                                  <div class="font-bold text-slate-700 text-sm mb-3 flex items-center gap-2">
+                                      <lucide-icon [img]="User" [size]="14" class="text-slate-400"></lucide-icon>
+                                      {{app.patientName}}
+                                  </div>
+                                  
+                                  <div class="flex gap-2">
+                                      @if (app.status === 'Aguardando') {
+                                          <button (click)="callPatient(app)" class="flex-1 py-2 bg-indigo-600 text-white rounded-lg text-[10px] font-black uppercase hover:bg-indigo-700 transition-all flex items-center justify-center gap-2 shadow-lg shadow-indigo-100 opacity-0 group-hover:opacity-100">
+                                              <lucide-icon [img]="Monitor" [size]="12"></lucide-icon> Chamar
+                                          </button>
+                                      }
+                                      
+                                      @if (app.status === 'Chamado') {
+                                          <button (click)="startConsultation(app)" class="flex-1 py-2 bg-emerald-600 text-white rounded-lg text-[10px] font-black uppercase hover:bg-emerald-700 transition-all flex items-center justify-center gap-2 shadow-lg shadow-emerald-100 animate-pulse">
+                                              Iniciar <lucide-icon [img]="ArrowRight" [size]="12"></lucide-icon>
+                                          </button>
+                                      }
+                                  </div>
+                              </div>
+                          } @empty {
+                              <div class="flex flex-col items-center justify-center py-10 text-slate-300 text-center">
+                                  <lucide-icon [img]="Users" [size]="32" class="opacity-20 mb-2"></lucide-icon>
+                                  <p class="text-[10px] font-bold uppercase tracking-widest">Nenhum paciente aguardando seu atendimento</p>
                               </div>
                           }
                       </div>
-                    } @else {
-                      <div class="flex flex-col items-center justify-center flex-1 text-slate-300">
-                        <lucide-icon [img]="History" [size]="48" class="opacity-20 mb-2"></lucide-icon>
-                        <p class="text-[10px] font-bold text-center uppercase tracking-widest">Sem histórico prévio</p>
+                  </div>
+              </div>
+
+              <!-- MAIN EDITOR -->
+              <div class="lg:col-span-2 space-y-4">
+                  <div class="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden flex flex-col h-[600px]">
+                      <div class="p-4 bg-slate-50 border-b border-slate-100 flex items-center justify-between">
+                          <span class="text-xs font-black uppercase text-slate-500 flex items-center gap-2 tracking-widest">
+                              <lucide-icon [img]="FileText" [size]="14"></lucide-icon> Evolução Clínica
+                          </span>
+                          
+                          <div class="flex gap-2">
+                              <button 
+                                  (click)="formatProntuario()" 
+                                  [disabled]="!currentNotes || isFormatting()"
+                                  class="bg-white border border-indigo-200 text-indigo-600 px-4 py-2 rounded-xl text-[10px] font-black uppercase hover:bg-indigo-50 transition-all flex items-center gap-2 disabled:opacity-50"
+                              >
+                                  @if (isFormatting()) {
+                                      <lucide-icon [img]="Loader2" [size]="14" class="animate-spin"></lucide-icon> Processando...
+                                  } @else {
+                                      <lucide-icon [img]="Wand2" [size]="14"></lucide-icon> Padronizar Documento
+                                  }
+                              </button>
+                              @if (aiMode() === 'local' && localAi.isLoaded()) {
+                                  <button (click)="refineWithLocalAi()" class="bg-white border border-teal-200 text-teal-600 px-4 py-2 rounded-xl text-[10px] font-black uppercase hover:bg-teal-50 transition-all flex items-center gap-2">
+                                      <lucide-icon [img]="Settings2" [size]="14"></lucide-icon> Refinar Localmente
+                                  </button>
+                              }
+                              <button 
+                                  (click)="toggleRecording()"
+                                  [disabled]="!currentPatient()"
+                                  [class.bg-rose-600]="isRecording()"
+                                  [class.animate-pulse]="isRecording()"
+                                  [class.bg-indigo-600]="!isRecording() && aiMode() === 'cloud'"
+                                  [class.bg-teal-600]="!isRecording() && aiMode() === 'local'"
+                                  class="flex items-center gap-2 px-4 py-2 rounded-xl text-[10px] font-black uppercase transition-all shadow-sm text-white hover:opacity-90 disabled:opacity-30 disabled:grayscale"
+                              >
+                                  @if (isRecording()) {
+                                  <lucide-icon [img]="MicOff" [size]="14"></lucide-icon> Gravando...
+                                  } @else {
+                                  <lucide-icon [img]="Mic" [size]="14"></lucide-icon> Ditado IA
+                                  }
+                              </button>
+                          </div>
                       </div>
-                    }
-                </div>
-            </div>
-        </div>
+                      <textarea 
+                          class="flex-1 p-8 outline-none resize-none text-slate-700 leading-relaxed text-lg font-medium disabled:bg-slate-50 disabled:text-slate-400"
+                          placeholder="Selecione um paciente na fila ao lado para iniciar a evolução..."
+                          [disabled]="!currentPatient()"
+                          [(ngModel)]="currentNotes"
+                      ></textarea>
+                      <div class="p-4 border-t border-slate-100 flex justify-between items-center bg-slate-50">
+                          <div class="flex gap-2">
+                              @if (currentPatient()) {
+                                  <button (click)="finishConsultation()" class="px-6 py-3 bg-white border border-slate-200 text-slate-600 rounded-xl hover:bg-emerald-50 hover:text-emerald-600 hover:border-emerald-200 font-bold text-xs uppercase transition-all flex items-center gap-2">
+                                      <lucide-icon [img]="CheckCircle2" [size]="16"></lucide-icon> Finalizar Consulta
+                                  </button>
+                              }
+                          </div>
+                          <button (click)="saveNotes()" [disabled]="!currentPatient() || !currentNotes" class="px-8 py-3 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 font-bold flex items-center gap-2 shadow-lg shadow-emerald-100 transition-all disabled:opacity-50 disabled:shadow-none uppercase text-xs">
+                              <lucide-icon [img]="Save" [size]="18"></lucide-icon> Salvar Evolução
+                          </button>
+                      </div>
+                  </div>
+              </div>
+
+              <!-- HISTORY SIDEBAR -->
+              <div class="space-y-4">
+                  <div class="bg-white p-6 rounded-3xl shadow-sm border border-slate-200 h-[600px] overflow-y-auto custom-scrollbar flex flex-col">
+                      <h3 class="font-black text-slate-400 mb-4 text-[10px] uppercase tracking-widest sticky top-0 bg-white pb-2 border-b border-slate-50">Histórico Recente</h3>
+                      
+                      @if (patientHistory().length > 0) {
+                        <div class="space-y-6 relative mt-4 flex-1">
+                            <div class="absolute left-1.5 top-2 bottom-2 w-0.5 bg-slate-100"></div>
+                            @for (hist of patientHistory(); track hist.id) {
+                                <div class="relative pl-6 animate-fade-in">
+                                    <div class="absolute left-0 top-1 w-3 h-3 rounded-full border-2 border-indigo-500 bg-white"></div>
+                                    <div class="text-[10px] font-black text-slate-400 mb-1">
+                                      {{hist.timestamp | date:'short'}} • {{hist.type | uppercase}}
+                                    </div>
+                                    <p class="text-xs text-slate-700 bg-slate-50 p-3 rounded-xl border border-slate-100 italic font-medium">
+                                        "{{hist.content}}"
+                                    </p>
+                                </div>
+                            }
+                        </div>
+                      } @else {
+                        <div class="flex flex-col items-center justify-center flex-1 text-slate-300">
+                          <lucide-icon [img]="History" [size]="48" class="opacity-20 mb-2"></lucide-icon>
+                          <p class="text-[10px] font-bold text-center uppercase tracking-widest">Sem histórico prévio</p>
+                        </div>
+                      }
+                  </div>
+              </div>
+          </div>
+        }
+
+        <!-- TAB: PROCEDIMENTOS -->
+        @if (activeTab() === 'procedimentos') {
+          <app-clinical-execution></app-clinical-execution>
+        }
       }
     </div>
   `,
@@ -306,6 +337,7 @@ export class ClinicalComponent implements OnDestroy {
 
   // State
   aiMode = signal<'cloud' | 'local'>('cloud');
+  activeTab = signal<'prontuario' | 'procedimentos'>('prontuario');
   audioSource = signal<'native' | 'live'>('native');
   currentNotes = '';
   isRecording = signal(false);
@@ -415,6 +447,7 @@ export class ClinicalComponent implements OnDestroy {
   Shield = Shield; Cloud = Cloud; Monitor = Monitor; Download = Download;
   Settings2 = Settings2; DoorOpen = DoorOpen; Users = Users; User = User; ArrowRight = ArrowRight;
   CheckCircle2 = CheckCircle2; Wand2 = Wand2; Trash2 = Trash2;
+  Stethoscope = Stethoscope; FlaskConical = FlaskConical;
 
   // Audio Refs (Gemini Live)
   private audioContext: AudioContext | null = null;
