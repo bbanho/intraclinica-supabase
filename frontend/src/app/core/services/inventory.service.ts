@@ -1,23 +1,23 @@
 import { Injectable, inject } from '@angular/core';
 import { SupabaseService } from './supabase.service';
-import { DatabaseService } from './database.service';
 import { ProcedureType, ProcedureRecipe } from '../models/inventory.types';
+import { ClinicContextService } from './clinic-context.service';
+import { AuthStateService } from './auth-state.service';
 
 @Injectable({
   providedIn: 'root'
 })
 export class InventoryService {
   private supabase = inject(SupabaseService);
-  private dbService = inject(DatabaseService);
+  private context = inject(ClinicContextService);
+  private auth = inject(AuthStateService);
 
   private get clinicId() {
-    const ctx = this.dbService.selectedContextClinic();
-    // 'all' is the SUPER_ADMIN global sentinel — not a valid UUID for clinic-scoped queries
-    return ctx === 'all' ? null : ctx;
+    return this.context.clinicId();
   }
 
   private get actorId() {
-    return this.dbService.currentUser()?.actor_id ?? null;
+    return this.auth.currentUser()?.actor_id ?? null;
   }
 
   // --- Products (canonical inventory) ---
