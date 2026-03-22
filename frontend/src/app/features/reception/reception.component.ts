@@ -347,6 +347,7 @@ export class ReceptionComponent {
   appointmentData = {
     doctorName: '',
     date: '',
+    fullDate: undefined as string | undefined,
     type: 'Consulta',
     status: 'Agendado'
   };
@@ -431,17 +432,10 @@ export class ReceptionComponent {
       this.isModalOpen.set(true);
       this.resetForm();
       
-      // event.date is "YYYY-MM-DDTHH:MM:SS"
-      // Wait, appointmentData.date expects "HH:MM" in the current UI (type="time")
-      // But we probably want to support actual dates now that we have a weekly calendar!
-      // Let's set it anyway. If the input is just type="time", it only uses the HH:MM part.
-      // Ideally we would change the input to type="datetime-local" but for now let's extract HH:MM:
       const timeStr = event.date.split('T')[1].substring(0, 5); // "HH:MM"
       
       this.appointmentData.date = timeStr; // For legacy compatibility with the current form
-      
-      // In a real app we need a full date field. Let's append it to the hidden state:
-      (this.appointmentData as any).fullDate = event.date;
+      this.appointmentData.fullDate = event.date;
 
       if (event.doctorName) {
           this.appointmentData.doctorName = event.doctorName;
@@ -533,6 +527,6 @@ export class ReceptionComponent {
       this.selectedPatient = null;
       this.isCreatingPatient.set(false);
       this.newPatientData = { name: '', cpf: '', phone: '' };
-      this.appointmentData = { doctorName: this.db.currentUser()?.name ?? '', date: '', type: 'Consulta', status: 'Agendado' };
+      this.appointmentData = { doctorName: this.db.currentUser()?.name ?? '', date: '', fullDate: undefined, type: 'Consulta', status: 'Agendado' };
   }
 }

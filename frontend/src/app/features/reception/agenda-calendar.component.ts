@@ -144,17 +144,21 @@ export class AgendaCalendarComponent {
   doctors = computed(() => this.db.users().filter(u => u.role === 'DOCTOR' || u.role === 'ADMIN'));
 
   weekDays = computed(() => {
-    const curr = new Date(this.currentDate());
-    const firstDay = curr.getDate() - curr.getDay() + 1; // Start on Monday
     const days = [];
-    
     const dayNames = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'];
+    const current = new Date(this.currentDate());
+    
+    // Find Monday of the current week safely without mutating the original Date object
+    const dayIndex = current.getDay(); // 0=Sun, 1=Mon...
+    const diffToMonday = current.getDate() - dayIndex + (dayIndex === 0 ? -6 : 1);
+    const monday = new Date(current.getFullYear(), current.getMonth(), diffToMonday);
 
     for (let i = 0; i < 7; i++) {
-      const d = new Date(curr.setDate(firstDay + i));
+      const d = new Date(monday);
+      d.setDate(monday.getDate() + i);
       const isToday = new Date().toDateString() === d.toDateString();
       days.push({
-        date: new Date(d),
+        date: d,
         name: dayNames[i],
         dayOfMonth: d.getDate(),
         isToday
@@ -182,26 +186,18 @@ export class AgendaCalendarComponent {
     const doctorFilter = this.selectedDoctor();
 
     return this.store.appointments().filter(app => {
-      // app.date is expected to be "HH:MM" because the current component uses <input type="time">
-      // Wait, if it's just HH:MM, we can't filter by date properly. We need to check how it's stored.
-      // The DB schema says `appointment_date timestamptz`. Let's assume PatientService maps it.
-      // If patientService maps `date` to just time, we have a problem. 
-      // Assuming `app.timestamp` or `app.appointmentDate` exists. 
-      // Looking at reception.component, it only saves/shows HH:MM today. We need to handle this.
-      // For now, let's match the date substring if it exists, or just use the time if it's a legacy record.
+      // Normalizing the date field to support both legacy HH:MM and modern ISO strings.
+      // A more permanent fix belongs in the PatientStore mapping logic.
+      const appFullDate: string = (app as any).appointmentDate || app.date || '';
       
-      const appFullDate = (app as any).appointmentDate || app.date; 
-      
-      let matchesDate = true;
+      let matchesDate = false;
       let matchesTime = false;
 
       if (appFullDate.includes('T')) {
-          // ISO String
           matchesDate = appFullDate.startsWith(dateStr);
           matchesTime = appFullDate.includes(`T${hourStr}:`);
       } else {
-          // Just HH:MM (legacy/buggy data)
-          matchesDate = new Date().toDateString() === date.toDateString(); // Only show on "today"
+          matchesDate = new Date().toDateString() === date.toDateString(); 
           matchesTime = appFullDate.startsWith(`${hourStr}:`);
       }
 
