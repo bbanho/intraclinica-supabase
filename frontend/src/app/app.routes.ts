@@ -27,7 +27,7 @@ export const routes: Routes = [
       },
       {
         path: 'appointments',
-        loadChildren: () => import('./features/appointments/appointments.routes').then(r => r.APPOINTMENT_ROUTES)
+        redirectTo: 'reception'
       },
       { 
         path: 'reception', 
@@ -35,7 +35,7 @@ export const routes: Routes = [
       },
       { 
         path: 'clinical', 
-        loadComponent: () => import('./features/clinical/clinical-execution.component').then(m => m.ClinicalExecutionComponent) 
+        loadComponent: () => import('./features/clinical/clinical.component').then(m => m.ClinicalComponent) 
       },
       { 
         path: 'reports', 
