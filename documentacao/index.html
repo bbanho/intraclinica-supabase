@@ -88,10 +88,14 @@
         const { motion, AnimatePresence } = Motion;
 
         const App = () => {
-            const [activeSection, setActiveSection] = useState('userguide');
+            const [activeSection, setActiveSection] = useState('caso-01-no-show');
 
             const menu = [
-                { id: 'userguide', label: 'Cenários Críticos & NEXUS', group: 'Visão de Produto' },
+                { id: 'caso-01-no-show', label: '01. O Caos da Recepção', group: 'Casos Críticos (NEXUS)' },
+                { id: 'caso-02-ruptura-estoque', label: '02. Ruptura de Estoque', group: 'Casos Críticos (NEXUS)' },
+                { id: 'caso-03-prontuario-ia', label: '03. Prontuário vs. Tempo', group: 'Casos Críticos (NEXUS)' },
+                { id: 'caso-04-marketing-medico', label: '04. Marketing Médico IA', group: 'Casos Críticos (NEXUS)' },
+                { id: 'caso-05-governanca-saas', label: '05. Governança e Multi-Tenant', group: 'Casos Críticos (NEXUS)' },
                 { id: 'home', label: 'Tese Estratégica', group: 'Visão de Produto' },
                 { id: 'journey', label: 'Jornada do Paciente', group: 'Operação' },
                 { id: 'clinical', label: 'Excelência Clínica', group: 'Operação' },
@@ -119,7 +123,7 @@
                         </div>
 
                         <nav className="flex-1 space-y-8 overflow-y-auto pr-2">
-                            {['Visão de Produto', 'Operação', 'Governança', 'Engenharia'].map(group => (
+                            {['Casos Críticos (NEXUS)', 'Visão de Produto', 'Operação', 'Governança', 'Engenharia'].map(group => (
                                 <div key={group}>
                                     <h3 className="text-[11px] uppercase tracking-[0.2em] text-slate-400 mb-4 font-extrabold">{group}</h3>
                                     <ul className="space-y-1">
@@ -163,7 +167,11 @@
                                 {activeSection === 'home' && <HomeContent />}
                                 {activeSection === 'journey' && <JourneyContent />}
                                 {activeSection === 'clinical' && <ClinicalContent />}
-                                {activeSection === 'userguide' && <UserGuideContent />}
+                                {activeSection === 'caso-01-no-show' && <MarkdownPage path="caso-01-no-show.md" />}
+                                {activeSection === 'caso-02-ruptura-estoque' && <MarkdownPage path="caso-02-ruptura-estoque.md" />}
+                                {activeSection === 'caso-03-prontuario-ia' && <MarkdownPage path="caso-03-prontuario-ia.md" />}
+                                {activeSection === 'caso-04-marketing-medico' && <MarkdownPage path="caso-04-marketing-medico.md" />}
+                                {activeSection === 'caso-05-governanca-saas' && <MarkdownPage path="caso-05-governanca-saas.md" />}
                                 {activeSection === 'inventory' && <InventoryContent />}
                                 {activeSection === 'security' && <SecurityContent />}
                                 {activeSection === 'architecture' && <ArchitectureContent />}
@@ -175,17 +183,17 @@
             );
         };
 
-        const UserGuideContent = () => {
+        const MarkdownPage = ({ path }) => {
             const [markdown, setMarkdown] = useState('Carregando guia...');
             
             useEffect(() => {
-                fetch('guia-do-usuario.md')
+                fetch(path)
                     .then(res => res.text())
                     .then(text => {
                         setMarkdown(window.marked.parse(text));
                     })
                     .catch(err => setMarkdown('Erro ao carregar o guia: ' + err.message));
-            }, []);
+            }, [path]);
 
             return (
                 <article className="prose prose-slate max-w-none">
@@ -416,7 +424,7 @@
             useEffect(() => {
                 const interval = setInterval(() => setStep(s => (s + 1) % 4), 3000);
                 return () => clearInterval(interval);
-            }, []);
+            }, [path]);
 
             return (
                 <div className="relative w-full h-64 flex flex-col items-center justify-center">
