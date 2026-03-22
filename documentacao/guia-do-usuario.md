@@ -1,81 +1,86 @@
-# O Sistema na Prática: Casos de Uso (Para Clínicas e Consultórios)
+# Manual de Operação e Governança Clínica: IntraClinica
 
-A rotina de uma clínica não tem espaço para cliques desnecessários. O **IntraClinica** foi construído ao redor dos gargalos reais da operação médica.
-
-Abaixo, veja como os principais módulos do ecossistema resolvem os problemas da sua equipe no dia a dia.
+Este documento constitui a documentação oficial de operação do **IntraClinica**, detalhando os fluxos de trabalho, a arquitetura de permissões e a integração entre os módulos do sistema. Ele foi redigido para fornecer a gestores, médicos e parceiros estratégicos uma compreensão profunda de como a plataforma orquestra a jornada do paciente e a administração da unidade de saúde.
 
 ---
 
-## 1. O Caos da Recepção e Tempos de Espera
-**O Problema:** Pacientes chegam, a sala de espera enche, o médico não sabe quem já chegou, e a recepcionista perde tempo gritando nomes.
+## 1. Visão Geral do Ecossistema
 
-**A Solução (IntraClinica):**
-O módulo de Recepção é um painel de controle linear (Kanban clínico).
+O IntraClinica não é apenas uma agenda digital; é um ecossistema **SaaS Multi-Tenant** e **AI-First**. Ele foi projetado para eliminar a fragmentação de dados que ocorre quando clínicas usam softwares diferentes para recepção, prontuário e controle de estoque.
 
-![Tela de Recepção](assets/reception.png)
+A premissa central do sistema é a **Interoperabilidade de Módulos**: uma ação que ocorre na recepção reflete instantaneamente na tela do médico, e uma ação do médico (como a realização de um procedimento) reflete instantaneamente na baixa de custos do estoque.
 
-*   **Status Visual Instantâneo:** As cores ditam o fluxo.
-    *   Cinza: **Agendado** (Paciente ainda não chegou).
-    *   Amarelo: **Aguardando** (Check-in feito na recepção).
-    *   Roxo: **Chamado** (Médico apertou o botão no consultório).
-    *   Verde: **Realizado** (Finalizado e faturado).
-*   **Ação Rápida:** Com um clique, a recepcionista muda o status para "Aguardando" e o nome do paciente pisca na tela do médico dentro do consultório.
+### 1.1. Arquitetura de Módulos (Config-Driven UI)
+A plataforma adapta-se à realidade de cada clínica. Através de um painel de governança, administradores podem habilitar ou desabilitar módulos específicos (ex: uma clínica de psicologia pode desabilitar o módulo de "Estoque e Procedimentos", mantendo apenas "Prontuário" e "Agenda"). A interface do sistema se reconfigura em tempo real com base nestas permissões.
 
 ---
 
-## 2. Prontuários Lentos e Burocráticos
-**O Problema:** O médico gasta mais tempo digitando a evolução do paciente do que olhando nos olhos dele.
+## 2. Perfis de Acesso e Governança (IAM)
 
-**A Solução (IntraClinica):**
-O módulo Clínico traz o Prontuário Eletrônico potencializado por Inteligência Artificial.
+A segurança e a responsabilidade das ações são garantidas por um sistema de controle de acesso baseado em funções (RBAC). Cada usuário possui uma visão restrita às suas necessidades operacionais.
 
-![Prontuário IA](assets/clinical.png)
-
-*   **Evolução via Áudio/Ditado Curto:** Em vez de digitar, o médico joga palavras-chave soltas: *"paciente com dor de cabeça 3 dias febre leve sinusite prescrevo ibuprofeno"*.
-*   **Formatação IA (Padrão SOAP):** Com um clique, a IA nativa do sistema transforma suas anotações corridas em uma Evolução Clínica formal, organizada e estruturada.
-*   **Segurança Criptografada:** Todo registro gera um *timestamp* inalterável com a assinatura do profissional, protegendo a clínica juridicamente.
+*   **Recepção (`RECEPTION`):** Focada no fluxo do dia. Tem acesso à criação de pacientes, agendamentos, e alteração de status de atendimento (Check-in). Não possui acesso a dados financeiros ou prontuários clínicos.
+*   **Médico / Especialista (`DOCTOR`):** Acesso total à execução clínica. Pode visualizar a fila de espera, iniciar atendimentos, redigir evoluções (com ou sem IA) e dar baixa em procedimentos.
+*   **Gestor de Estoque (`STOCK_MANAGER`):** Focado no *Backoffice*. Controla entradas de notas fiscais, níveis mínimos de segurança e custos médios de produtos.
+*   **Administrador da Clínica (`CLINIC_ADMIN`):** Visão 360º da unidade. Acesso aos relatórios gerenciais (BI), controle de equipe e faturamento.
 
 ---
 
-## 3. Furo de Estoque e Dinheiro Perdido
-**O Problema:** A clínica faz procedimentos estéticos (Botox, Ácido Hialurônico) ou pequenas cirurgias, mas o controle das seringas, gazes e ampolas é feito em planilhas ou papel. O estoque fura, os produtos vencem e a clínica perde dinheiro.
+## 3. A Jornada do Paciente (Passo a Passo Operacional)
 
-**A Solução (IntraClinica):**
-O Controle de Insumos é integrado automaticamente aos Procedimentos.
+A operação do sistema segue uma linha do tempo clara, desenhada para evitar gargalos físicos na clínica.
 
-![Gestão de Insumos](assets/inventory.png)
+### Fase 1: Agendamento e Chegada (`/reception` & `/appointments`)
+1. **Cadastro:** O paciente é registrado no banco de dados único da clínica (CPF, Data de Nascimento, Contato).
+2. **Marcação:** O atendimento é agendado (Consulta, Retorno, Exame ou Procedimento) e alocado para um profissional específico. O status inicial é **"Agendado"**.
+3. **Check-in (A Chegada):** Quando o paciente cruza a porta da clínica, a recepção localiza o agendamento no painel do dia e altera o status para **"Aguardando"**. Opcionalmente, informa-se em qual guichê ou sala de triagem o paciente está.
+   * *Impacto no Sistema:* Neste exato segundo, o nome do paciente aparece na tela do médico dentro do consultório, na lista de "Pacientes em Espera".
 
-*   **Receitas de Procedimento:** Você cadastra um kit (Ex: "Limpeza de Pele" = 1 Máscara + 2 Pares de Luva + 1 Soro).
-*   **Baixa Automática:** Quando o médico marca o procedimento como "Realizado" no prontuário, o sistema **desconta automaticamente** os itens do almoxarifado.
-*   **Alertas de Ruptura:** O dashboard pisca vermelho quando um produto de alto custo (como preenchedores) atinge o "Estoque Mínimo".
+### Fase 2: O Atendimento Clínico (`/clinical`)
+O módulo clínico foi desenhado para ser "ergonômico". Médicos têm pouco tempo entre pacientes e não devem focar em burocracia sistêmica.
 
----
+1. **Chamada:** O médico clica em **"Chamar Paciente"**. O status muda para **"Chamado"** (notificando a recepção) e, em seguida, para **"Em Atendimento"**.
+2. **O Prontuário IA:** O núcleo do sistema. Em vez de preencher dezenas de campos manuais, o médico pode utilizar o motor de Inteligência Artificial nativo.
+   * *A Dinâmica:* O médico dita ou digita de forma bruta suas observações (ex: "Paciente relata dor lombar há 2 semanas, piora ao curvar. Solicito ressonância e prescrevo miorrelaxante").
+   * *O Processamento:* A IA processa a entrada e estrutura o texto no padrão **SOAP** (Subjetivo, Objetivo, Avaliação, Plano), gerando um documento médico formal, claro e padronizado.
+3. **Assinatura e Imutabilidade:** Ao finalizar, a evolução é gravada no banco de dados com um *timestamp* irreversível e atrelada ao identificador (ID) do médico, garantindo segurança jurídica.
 
-## 4. "Não tenho tempo para Marketing"
-**O Problema:** Clínicas precisam produzir conteúdo para o Instagram e LinkedIn para atrair pacientes particulares, mas os profissionais não têm tempo nem criatividade para escrever roteiros.
+### Fase 3: Procedimentos e Baixa de Estoque (`/procedures` & `/inventory`)
+Este é o diferencial de clínicas de alta performance, onde o controle de custos é vital (ex: Harmonização Facial, Dermatologia, Odontologia).
 
-**A Solução (IntraClinica):**
-Um módulo dedicado de Marketing Médico IA.
-
-![Marketing IA](assets/social.png)
-
-*   **Geração em Segundos:** Digite o tema desejado (ex: *"A importância do protetor solar no inverno"*).
-*   **Tom de Voz:** Escolha se o texto deve ser "Amigável (Acolhedor)", "Técnico (Profissional)" ou "Alerta (Urgente)".
-*   **Pronto para Postar:** O sistema gera o texto completo, já com gatilhos mentais, quebras de linha ideais e as melhores hashtags para o algoritmo da rede social escolhida.
-
----
-
-## 5. Tomada de Decisão no Escuro
-**O Problema:** O gestor da clínica não sabe qual o dia da semana com mais faltas (no-shows) ou qual procedimento traz mais margem, pois os dados estão espalhados.
-
-**A Solução (IntraClinica):**
-Um Dashboard Analítico Executivo.
-
-![Indicadores e Reports](assets/reports.png)
-
-*   **Visão em Tempo Real:** Volume de consultas, faturamento e produtividade da equipe atualizados a cada segundo.
-*   **Insight IA (Conselheiro Virtual):** Um botão que lê os dados do mês atual e cospe um parágrafo executivo: *"Notamos um aumento de 15% nos cancelamentos às sextas-feiras. Sugerimos ativar lembretes de WhatsApp automáticos nas quintas."*
+1. **Receita do Procedimento:** Previamente, o gestor configura "Receitas". Por exemplo, o procedimento *Aplicação de Toxina Botulínica* exige 1 Seringa, 1 Agulha e 1 Frasco de Toxina.
+2. **Execução:** Quando o médico finaliza o atendimento clínico e marca que o procedimento "X" foi realizado, o IntraClinica entra em ação no background.
+3. **Dedução Automática:** O sistema vai até o módulo de Estoque, localiza os lotes dos produtos configurados na receita e subtrai as quantidades exatas.
+4. **Alerta de Ruptura:** Se o frasco de Toxina Botulínica atingir o "Estoque Mínimo" pré-definido, o painel do `STOCK_MANAGER` emite um alerta de reposição, evitando que a clínica tenha que cancelar pacientes no dia seguinte por falta de insumos.
 
 ---
 
-*IntraClinica — Mais medicina, menos burocracia.*
+## 4. Governança e Inteligência de Negócio
+
+Para que a clínica seja lucrativa, a operação deve gerar dados que se transformam em decisões.
+
+### 4.1. Indicadores de Performance (`/reports`)
+O painel de BI da clínica consome os dados dos módulos acima em tempo real para responder perguntas críticas:
+* Qual o volume de consultas realizadas vs. canceladas (No-shows)?
+* Qual o procedimento mais rentável da unidade?
+* Qual profissional possui o maior tempo de atendimento?
+
+**Insight IA:** Além dos gráficos, o sistema possui um "Conselheiro Virtual". O gestor pode solicitar à IA que analise os números do mês e redija um sumário executivo com recomendações de melhoria de eficiência.
+
+### 4.2. Marketing Médico Autônomo (`/social`)
+Clínicas modernas dependem de captação contínua de pacientes particulares via redes sociais. O módulo Social resolve o problema do "bloqueio criativo" da equipe de marketing ou do próprio médico.
+* O usuário insere um tema técnico (Ex: *Cuidados com a pele no outono*).
+* Define a "Persona" da clínica (Ex: *Acolhedor e Amigável* ou *Técnico e Científico*).
+* A IA conectada ao Gemini gera textos completos para Instagram ou LinkedIn, aplicando gatilhos de engajamento, chamadas para ação (CTAs) para agendamento e as hashtags com maior tração no momento.
+
+---
+
+## 5. Arquitetura Técnica e Segurança (Resumo para Investidores)
+
+* **Zero-Trust & RLS:** O sistema não confia cegamente no painel do usuário. A segurança é aplicada na raiz do banco de dados (Row Level Security no PostgreSQL). Mesmo que um usuário mal-intencionado tente forçar uma requisição, o banco de dados rejeita se ele não pertencer à clínica específica daquele dado.
+* **Escalabilidade (State Management):** A arquitetura de frontend foi modernizada para utilizar **Angular Signals**. Isso significa que o aplicativo não sofre "reloads" pesados e consome o mínimo de memória do computador da recepção ou do tablet do médico. A sincronização de telas é quase instantânea.
+* **Governança Global:** Caso o modelo de negócio expanda para franquias, o sistema conta com um perfil `SUPER_ADMIN` que pode visualizar a saúde (ARR, Churn, Uptime) de múltiplas clínicas simultaneamente, criando novas unidades e distribuindo licenças em segundos através de um painel de controle SaaS unificado.
+
+---
+
+*IntraClinica — Inteligência, Controle e Cuidado.*
