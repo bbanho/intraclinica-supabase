@@ -3,7 +3,7 @@
 ## 1. Estado Atual do Projeto
 - **Stack:** Angular 17+ (Frontend) e Supabase / PostgreSQL (Backend).
 - **Status:** Todos os 8 módulos principais foram auditados e refatorados para a arquitetura moderna. As dívidas técnicas críticas de "vazamento de contexto" (cross-tenant data leaks) e de reatividade (Signals) foram resolvidas via PRs #46, #47 e #48.
-- **Base de Conhecimento Central:** Antes de investigar como o banco funciona, consulte `documentacao/arquitetura-e-auditoria-mar2026.md`. Esse arquivo contém o mapa completo de tabelas (ex: `actor`, `app_user`, `clinic_module`), todas as funções RPC mapeadas, e o fluxo de dados dos Services do Angular. As imagens e status dos testes visuais do Playwright ficam na subpasta `assets/`.
+- **Base de Conhecimento Central:** A documentação para o cliente final fica em `documentacao/`. Mas antes de investigar como o banco ou a arquitetura funcionam, consulte a documentação DEV em `docs/` (como os TXTs de auditoria gerados por agentes anteriores e imagens em `docs/assets/`). Esses arquivos contêm o mapa do banco de dados (ex: tabela `actor`, `app_user`, `clinic_module`), as funções RPC mapeadas e o fluxo de dados dos Services do Angular. 
 - **Módulos Refatorados Recentemente:**
   - `Reception`: Fila de check-in e nova Agenda Semanal fundidas em um sistema de abas. O módulo obsoleto `/appointments` foi removido.
   - `Clinical` (Prontuário): O histórico do paciente foi isolado (não vaza mais dados de outros pacientes) e a aba de "Procedimentos" foi modernizada (Tailwind + Signals) com travamento de paciente via `@Input()`.

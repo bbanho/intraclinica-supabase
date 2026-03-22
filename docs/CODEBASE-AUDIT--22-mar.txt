@@ -1,0 +1,583 @@
+IntraClinica — Complete Codebase Audit
+---
+DATABASE SCHEMA (from migrations)
+Tables (canonical state after all migrations applied)
+clinic
+- id UUID PK
+- name text
+- email text
+- plan text (Starter | Pro | Enterprise)
+- status text (active | inactive | trial)
+- created_at timestamptz
+actor (universal identity node — every person/entity is an actor)
+- id UUID PK
+- clinic_id UUID FK → clinic(id)
+- name text
+- type text (patient | user | clinic | system)
+- created_at timestamptz
+app_user (authentication identity, 1:1 with Supabase auth.users)
+- id UUID PK = auth.uid()
+- actor_id UUID FK → actor(id)
+- email text
+- role text (ADMIN | RECEPTION | DOCTOR | STOCK | MARKETING | IT | USER | SUPER_ADMIN | CONSULTANT | SUPPORT | ANALYST)
+- iam_bindings JSONB (array of {roleId, resource, permissions?, denied?})
+- assigned_room text (nullable)
+patient
+- id UUID PK (= actor.id via FK patient_id_fkey)
+- clinic_id UUID FK → clinic(id)
+- cpf text (nullable)
+- birth_date date (nullable)
+- gender text (nullable)
+- Name comes from actor.name via join
+appointment
+- id UUID PK
+- clinic_id UUID FK → clinic(id)
+- patient_id UUID FK → patient(id) (nullable — legacy)
+- patient_name text (denormalized, server-filled by RPC from actor)
+- doctor_actor_id UUID FK → actor(id) (canonical, added in migration 20260321000000)
+- appointment_date timestamptz
+- status text (Agendado | Aguardando | Chamado | Em Atendimento | Realizado | Cancelado)
+- room_number text (nullable)
+- priority text (nullable)
+- timestamp timestamptz
+- Dropped legacy columns: doctor_id (text), doctor_name (text)
+clinical_record
+- id UUID PK
+- clinic_id UUID FK → clinic(id)
+- patient_id UUID FK → patient(id) (nullable)
+- doctor_actor_id UUID FK → actor(id) (canonical)
+- content text
+- type enum record_type (EVOLUCAO | RECEITA | ATESTADO | EXAME — inferred)
+- timestamp timestamptz
+- Dropped legacy columns: doctor_id (text)
+product (canonical inventory — absorbed inventory_item)
+- id UUID PK
+- clinic_id UUID FK → clinic(id)
+- name text
+- description text (nullable, added migration 20260321000001)
+- unit text NOT NULL default 'un' (added migration 20260321000001)
+- current_stock numeric
+- min_stock numeric
+- avg_cost_price numeric
+- price numeric
+- barcode text (nullable)
+- category text (nullable)
+- deleted boolean default false
+stock_transaction (canonical movements — absorbed inventory_movement)
+- id UUID PK
+- clinic_id UUID FK → clinic(id)
+- product_id UUID FK → product(id)
+- type text (IN | OUT)
+- total_qty numeric
+- reason text (MANUAL | PURCHASE | PROCEDURE | ...)
+- record_id UUID (nullable — links to procedure execution ID)
+- actor_id UUID FK → actor(id) (nullable, added migration 20260321000001)
+- notes text (nullable, added migration 20260321000001)
+- timestamp timestamptz
+- Trigger: trg_stock_transaction_sync — after INSERT, updates product.current_stock atomically
+procedure_type
+- id UUID PK
+- clinic_id UUID FK → clinic(id)
+- name text
+- code text (nullable, TUSS or internal)
+- price numeric
+- active boolean
+- created_at timestamptz
+procedure_recipe
+- id UUID PK
+- procedure_type_id UUID FK → procedure_type(id) ON DELETE CASCADE
+- item_id UUID FK → product(id) ON DELETE RESTRICT (repointed in migration 20260321000001)
+- quantity numeric
+- created_at timestamptz
+social_post
+- id UUID PK
+- clinic_id UUID FK → clinic(id)
+- title text
+- content text
+- platform text (instagram | facebook | linkedin)
+- status text (draft | scheduled | published)
+- image_url text (nullable)
+- scheduled_at timestamptz (nullable)
+- created_at timestamptz
+access_request
+- id UUID PK
+- clinic_id UUID FK → clinic(id)
+- clinic_name text
+- reason text
+- status text (pending | approved | denied)
+- requested_role_id text
+- requester_user_id UUID FK → app_user(id) ON DELETE CASCADE (canonical, added migration 20260321000000)
+- created_at timestamptz
+- Dropped legacy columns: requester_id (text), requester_name (text)
+ui_module (migration 20260322000000)
+- id UUID PK
+- key VARCHAR(50) UNIQUE (inventory | reception | patients | appointments | procedures | clinical | reports | social)
+- label VARCHAR(50)
+- icon VARCHAR(50) (Lucide icon name string)
+- route VARCHAR(100)
+- description text
+- created_at timestamptz
+clinic_module (migration 20260322000000)
+- id UUID PK
+- clinic_id UUID FK → clinic(id) ON DELETE CASCADE
+- module_key VARCHAR(50) FK → ui_module(key) ON DELETE CASCADE
+- enabled boolean default true
+- sort_order integer default 0
+- UNIQUE(clinic_id, module_key)
+clinic_config (migration 20260322000000)
+- id UUID PK
+- clinic_id UUID FK → clinic(id) ON DELETE CASCADE
+- key VARCHAR(50)
+- value JSONB default {}
+- UNIQUE(clinic_id, key)
+Dropped/Legacy Tables (cleaned in migration 20260321000001)
+inventory_item, inventory_movement, "user" (legacy PascalCase user), "AccessRequest", "AccessBinding", "ApiKey", "Batch", "Contact", "FinancialCategory", "FinancialTransaction", "ProductHistory", "StockTransaction", batch, financial_transaction
+RPC Functions
+ui_module Seed Data
+key	label	icon	route
+inventory	Estoque	Package	/inventory
+reception	Recepção	Users	/reception
+patients	Pacientes	UserRound	/patients
+appointments	Consultas	Calendar	/appointments
+procedures	Procedimentos	ClipboardList	/procedures
+clinical	Prontuário IA	Stethoscope	/clinical
+reports	Indicadores	BarChart3	/reports
+social	Marketing IA	Share2	/social
+All 8 modules are seeded enabled for the demo clinic cdf8cf49-b559-4c44-8533-38977611e1b4.
+---
+CORE SERVICES — Every Method
+SupabaseService
+Thin wrapper around @supabase/supabase-js.
+- get auth() — exposes supabase.auth
+- from(table) — typed table accessor
+- rpc(fn, args) — RPC call passthrough
+AuthService
+- login(email, password): Promise<boolean> — calls supabase.auth.signInWithPassword, returns success flag
+- logout() — delegates to AuthStateService.logout()
+AuthStateService
+- Signal: currentUser: WritableSignal<UserProfile | null>
+- initSession() — reads existing session on startup, subscribes to onAuthStateChange
+- loadUserProfile(uid) — fetches app_user + joined actor, sets currentUser, auto-selects clinic context: SUPER_ADMIN → 'all', others → their clinicId
+- checkPermission(permission, resource) — evaluates iam_bindings[] against IAM_ROLES permission sets; SUPER_ADMIN always returns true
+- logout() — calls supabase.auth.signOut(), navigates to /login
+ClinicContextService
+- Signal: selectedClinic: WritableSignal<string | null> — the currently active clinic UUID or 'all'
+- Computed: clinicId() — returns null when 'all', otherwise the UUID (used by services to gate queries)
+PatientService
+State signals: patients, appointments, clinicalRecords (all WritableSignal).  
+Auto-syncs via effect() on context.clinicId() change.
+- syncForClinic(clinicId) — parallel fetch of patient (joined actor), appointment (joined patient→actor), clinical_record (joined patient→actor); also fetches app_user for doctor name resolution
+  - Reads: app_user, patient, appointment, clinical_record
+- createPatient(patient) — calls RPC create_patient_with_actor; optimistic update to patients signal
+  - Writes: actor, patient
+- createAppointment(apt) — calls RPC add_appointment; optimistic update to appointments
+  - Writes: actor (read), appointment
+- updateAppointmentStatus(id, status) — direct appointment.update({status}), updates signal
+  - Writes: appointment
+- updateAppointmentRoom(id, roomNumber) — direct appointment.update({room_number}), updates signal
+  - Writes: appointment
+- transitionAppointmentStatus(id, newStatus) — validates state machine (Agendado→Aguardando→Chamado→Em Atendimento→Realizado, or any→Cancelado); calls updateAppointmentStatus
+  - Writes: appointment
+- createClinicalRecord(rec) — calls RPC add_clinical_record; optimistic prepend to clinicalRecords
+  - Writes: clinical_record
+PatientStore
+Thin facade over PatientService. Exposes read-only computed signals + convenience mutation wrappers with loading/error signals.
+Signals exposed:
+- patients = computed(() => patientService.patients())
+- records = computed(() => patientService.clinicalRecords())
+- appointments = computed(() => patientService.appointments())
+- loading: WritableSignal<boolean>
+- error: WritableSignal<string | null>
+- patientCount: computed
+Methods:
+- loadPatients(clinicId) — calls patientService.syncForClinic(clinicId)
+- loadAppointments(clinicId) — calls patientService.syncForClinic(clinicId) (same call as above — intentional)
+- loadClinicalRecords(patientId) — STUB: does nothing
+- createPatient(patient) — wraps patientService.createPatient() with loading/error
+- createAppointment(apt) — wraps patientService.createAppointment() with loading/error
+- createRecord(rec) — wraps patientService.createClinicalRecord() with loading/error
+- updateAppointmentStatus(id, status) — calls patientService.transitionAppointmentStatus() (uses state machine validator)
+- updateAppointmentRoom(id, room) — calls patientService.updateAppointmentRoom()
+InventoryService
+Pure promise-based; no internal signals. All methods require a valid clinicId from ClinicContextService.
+- getItems() — SELECT from product WHERE clinic_id AND deleted=false ORDER BY name. Reads: product
+- getItem(id) — SELECT single from product. Reads: product
+- createItem(item) — INSERT into product. Writes: product
+- updateItem(id, updates) — UPDATE product. Writes: product
+- deleteItem(id) — soft-delete: UPDATE product SET deleted=true. Writes: product
+- recordMovement(movement) — calls RPC add_stock_movement; trigger updates product.current_stock. Writes: stock_transaction, product
+- getMovements(productId?) — SELECT from stock_transaction JOIN product, actor. Reads: stock_transaction
+- getProcedureTypes() — SELECT from procedure_type. Reads: procedure_type
+- createProcedureType(proc) — INSERT into procedure_type. Writes: procedure_type
+- updateProcedureType(id, updates) — UPDATE procedure_type. Writes: procedure_type
+- getRecipes(procedureTypeId) — SELECT from procedure_recipe JOIN product. Reads: procedure_recipe, product
+- addRecipeItem(recipe) — INSERT into procedure_recipe. Writes: procedure_recipe
+- removeRecipeItem(id) — DELETE from procedure_recipe. Writes: procedure_recipe
+- performProcedure(procedureTypeId, patientId, notes) — calls RPC perform_procedure; deducts all recipe ingredients. Writes: stock_transaction, product (trigger)
+- getProcedureAuditLog() — SELECT from stock_transaction WHERE reason='PROCEDURE' LIMIT 20. Reads: stock_transaction
+InventoryStore
+Thin facade — exposes products and transactions signals from DatabaseService.
+- products = db.products (WritableSignal, populated by DatabaseService.syncDataForClinic)
+- transactions = db.transactions (WritableSignal)
+- loading: WritableSignal<boolean> (stub, always false)
+- loadProducts(clinicId) — STUB: does nothing (data auto-loads via DatabaseService effect)
+- loadTransactions(clinicId) — STUB: does nothing
+DatabaseService
+Central facade aggregating all sub-services. Exposes most signals via computed/direct passthrough.
+Signals:
+- currentUser = computed(() => authState.currentUser())
+- selectedContextClinic = context.selectedClinic (WritableSignal — directly exposed, writable from outside)
+- patients, appointments, clinicalRecords — computed from patientService
+- products, transactions — WritableSignal (populated in syncDataForClinic)
+- users, clinics, socialPosts, accessRequests — WritableSignal
+- globalArr, globalUptime — WritableSignal (hardcoded: 0, 99.9)
+- accessibleClinics = computed(() => clinics())
+Constructor effect: When selectedClinic changes and is not 'all', calls syncDataForClinic. If 'all', loads all clinics.
+- syncDataForClinic(clinicId) — parallel fetch of: app_user (clinic staff), clinic (all), social_post, access_request, inventoryService.getItems(), inventoryService.getMovements()
+  - Reads: app_user, clinic, social_post, access_request, product, stock_transaction
+- checkPermission(permission, resource) — delegates to authState.checkPermission()
+- logout() — delegates to authState.logout()
+- addPatient(), addAppointment(), updateAppointmentStatus(), updateAppointmentRoom(), transitionAppointmentStatus(), addClinicalRecord() — all delegate to patientService
+- addSocialPost(post) — INSERT into social_post, maps to SocialPost, updates socialPosts signal. Writes: social_post
+- addProduct(product) — delegates to inventoryService.createItem(), updates products signal. Writes: product
+- deleteProduct(id) — delegates to inventoryService.deleteItem(), updates products signal. Writes: product
+- addTransaction(tx) — delegates to inventoryService.recordMovement(). Writes: stock_transaction, product
+- requestAccess(clinicId, clinicName, reason, roleId) — INSERT into access_request. Writes: access_request
+- approveAccess(reqId) — UPDATE access_request SET status='approved'. Writes: access_request
+- addClinic(c) — INSERT into clinic. Writes: clinic
+- deleteClinic(id) — UPDATE clinic SET status='inactive'. Writes: clinic
+- assignRoom(room) — UPDATE app_user SET assigned_room, updates currentUser signal. Writes: app_user
+- saveUser(u, pw?) — If existing: RPC update_user_with_actor, optionally supabase.auth.updateUser({password}); If new: supabase.auth.signUp() then RPC create_user_with_actor. Writes: actor, app_user, auth.users
+UiConfigService
+- State signal: configState: WritableSignal<ClinicUiConfig | null>
+- Computed: allModules(), enabledModules(), config()
+- Auto-fetches on context.clinicId() change
+- fetchConfig(clinicId) — calls RPC get_clinic_ui_config. Reads: clinic_module, ui_module, clinic_config
+- toggleModule(moduleKey, enabled) — UPDATE clinic_module, optimistic signal update. Writes: clinic_module
+- updateConfigValue(key, value) — UPSERT clinic_config. Writes: clinic_config
+GeminiService
+Wraps @google/genai. API key from process.env['API_KEY'] (no fallback).
+- connectLive(config) — opens Gemini Live session (real-time audio)
+- generateContent(prompt, systemInstruction?) — gemini-2.0-flash, returns string
+- analyzeInventoryRisks(products) — gemini-2.5-flash, Markdown bullet list
+- generateStrategicInsights(context) — gemini-2.5-flash, Markdown insights
+- generateSocialContent(topic, tone) — gemini-2.5-flash, JSON response {caption, hashtags, imageUrl}
+- processClinicalAudio(audioData) — gemini-2.5-flash, multimodal audio + text, returns Markdown
+LocalAiService
+Wraps @mlc-ai/web-llm (WebLLM, runs in browser via WebGPU).
+- Signals: status, progress, isLoaded, hasWebGPU
+- availableModels — 3 models: Gemma-2b (low), Llama-3-8B (high), Phi-3-mini (medium)
+- checkWebGPUSupport() — checks navigator.gpu, fallback via TensorFlow.js
+- loadModel(modelId) — downloads and initializes MLCEngine
+- unloadModel() — frees GPU memory
+- generate(prompt) — chat completion with medical scribe system prompt
+PrintService
+- printElement(elementId, title?) — creates hidden iframe, injects Tailwind-compatible print CSS, copies element, triggers window.print(), removes iframe after 1s
+CsvImportService
+- parseCsv(file) — reads File/Blob, parses headers + rows (handles quoted comma-delimited values)
+- mapToProduct(row, clinicId) — maps CSV columns (Produto, Valor de venda, Valor de custo, Estoque atualizado, Validade, Grupo, Código de barras, Observações) to Product
+- detectConflicts(imported, existing) — matches by SKU then by name (normalized); returns array of {type: 'NEW'|'UPDATE', product, existing?, diffs?, matchType?}
+---
+COMPONENT-BY-COMPONENT ANALYSIS
+---
+ReceptionComponent (/reception)
+Data Read:
+- db.selectedContextClinic() — current clinic UUID (permission gate + context)
+- db.currentUser() — for room assignment, doctor list filter, default appointment form values
+- db.users() — filtered to role === 'DOCTOR' | 'ADMIN' for doctor selector and room status grid
+- db.checkPermission('reception.read', clinicId) — IAM gate
+- store.appointments() — filtered + sorted by patientName search, displayed as cards
+- store.patients() — searched for patient autocomplete in new appointment modal
+- APPOINTMENT_TYPES, APPOINTMENT_STATUSES, WORKSTATIONS from domain-constants
+Data Written:
+- store.updateAppointmentStatus(id, status) — check-in flow (Agendado → Aguardando)
+- store.updateAppointmentRoom(id, room) — room assignment
+- store.createPatient({name, cpf, phone, clinicId}) — inline patient registration
+- store.createAppointment({patientId, patientName, clinicId, date, type, status, doctorName}) — new appointment
+- db.assignRoom(room) — receptionist's own workstation assignment
+Triggers on init: effect() on selectedContextClinic → calls store.loadPatients(clinicId) + store.loadAppointments(clinicId) (both call PatientService.syncForClinic).
+Overlaps with other components:
+- Shares PatientStore.appointments and PatientStore.patients with ClinicalComponent, PatientsListComponent, ReportsComponent, AdminPanelComponent
+- Room assignment (db.assignRoom) is also done from ClinicalComponent
+- Patient creation also exists in PatientsListComponent
+- New appointment creation also partially in AppointmentsListComponent (stubbed)
+What's missing/stubbed:
+- WORKSTATIONS constant imported but the room dropdown is hardcoded as Guichê 01/02, Triagem 01 instead of using the constant
+- The updateRoom method exists but is never called from the template (template uses updateStatus only)
+- Creating a patient then immediately scheduling them is broken by design — the component itself has a comment acknowledging the limitation (creates patient, then forces user to search again)
+- No real-time subscription (Supabase Realtime) — only loaded once per context switch
+- No date picker — appointment date field is a time input (only HH:MM, no calendar date)
+- No validation on doctor selection (defaults to empty string if no doctors loaded yet)
+- Filtros button does nothing (no handler)
+- IAM_PERMISSIONS imported but only reception.read permission key is used (not defined in IAM_PERMISSIONS constant — likely a typo; should be APPOINTMENTS_READ)
+---
+AppointmentsListComponent (/appointments)
+Completely stubbed. The entire component body is:
+Data Read: None  
+Data Written: None  
+What's missing: Everything. This is a placeholder for a full calendar/agenda view. The route exists but the feature is not built.
+---
+PatientsListComponent (/patients)
+Data Read:
+- store.patients() — list of all patients for selected clinic
+- store.loading() — loading spinner
+- store.patientCount() — used to control spinner condition
+- db.selectedContextClinic() — triggers load
+Data Written:
+- store.createPatient({name, cpf, phone, email, clinicId}) — new patient form
+Triggers on init: effect() on selectedContextClinic → store.loadPatients(clinicId)
+Overlaps: Patient creation also in ReceptionComponent (inline modal). Both write to same PatientStore.
+What's missing/stubbed:
+- The search <input> renders but has no binding ([(ngModel)] or (input) handler) — completely non-functional
+- "Ver Prontuário" button renders but has no routerLink or click handler
+- No email field displayed even though it exists in the model
+- No pagination
+- No edit or delete functionality
+- loadClinicalRecords(patientId) in store is a stub that does nothing — so the "Ver Prontuário" button could never load records anyway
+- Patient.phone is in the model but not fetched from DB (the syncForClinic query does not fetch phone from the actor or patient tables — phone is not actually stored in the DB schema at all)
+---
+ClinicalComponent (/clinical)
+Data Read:
+- db.currentUser() — role, assigned room, actor_id (for waiting list filter)
+- db.users() — for room occupancy computation
+- db.selectedContextClinic() — triggers data sync
+- db.checkPermission(CLINICAL_READ_RECORDS, clinicId) — IAM gate
+- db.assignRoom(room) — written from here too
+- patientStore.appointments() — waiting list (Aguardando | Chamado), filtered by doctor_actor_id unless manager role
+- patientStore.records() — patient history sidebar (all records for clinic, not filtered by current patient)
+- localAi.isLoaded(), localAi.availableModels — local model status
+- aiMode, activeTab, currentNotes — local state signals
+Data Written:
+- patientStore.updateAppointmentStatus(id, 'Chamado') — doctor calls patient
+- patientStore.updateAppointmentRoom(id, room) — assigns room to appointment
+- patientStore.updateAppointmentStatus(id, 'Em Atendimento') — starts consultation
+- patientStore.updateAppointmentStatus(id, 'Realizado') — finishes consultation
+- patientStore.createRecord({clinicId, patientId, patientName, doctorName, type: 'evolucao', content}) — saves clinical note
+- db.assignRoom(room) — doctor's own room assignment (app_user.assigned_room)
+- External: gemini.generateContent(), gemini.connectLive(), localAi.loadModel(), localAi.generate()
+Overlaps:
+- Room assignment shared with ReceptionComponent
+- patientStore.appointments shared with Reception and Reports
+- patientStore.records read here and also available to AdminPanel via db.clinicalRecords
+What's missing/stubbed:
+- patientHistory() computed returns patientStore.records() — this is ALL clinical records for the clinic, not filtered by the current patient. The sidebar label says "Histórico Recente" but shows everyone's records
+- loadClinicalRecords(patient.id) in the store constructor effect calls a stub (does nothing) — the effect is registered but has no effect
+- audioSource signal ('native' | 'live') declared but the UI only switches based on aiMode, not audioSource independently
+- The 'Procedimentos' tab just renders <app-clinical-execution> which is a separate component (reviewed below)
+- No date shown for current consultation — appointment.date is just HH:MM
+- availableRooms is hardcoded as ['Consultório 01', 'Consultório 02', 'Consultório 03', 'Procedimento 01'] — not from clinic_config
+---
+ClinicalExecutionComponent (/clinical → Procedimentos tab)
+Data Read:
+- inventoryService.getProcedureTypes() — populates procedure selector (reads procedure_type)
+- inventoryService.getProcedureAuditLog() — reads stock_transaction WHERE reason=PROCEDURE
+- patientService.patients() — patient selector (via patientService.patients() signal)
+- dbService.selectedContextClinic() — for clinicId getter
+Data Written:
+- inventoryService.performProcedure(procedureTypeId, patientId, notes) — calls RPC perform_procedure, deducts all recipe items from stock
+What's missing/stubbed:
+- The template uses *ngFor (structural directive), not Angular 17+ @for control flow — this is inconsistent with the rest of the app and may fail with standalone imports since CommonModule is imported but the template may need NgFor specifically
+- No connection to PatientStore — uses PatientService.patients() directly as a plain array reference (this.patients = this.patientService.patients()) — this is NOT reactive; it copies the signal value once at ngOnInit time and won't update
+- No filtering of patients to the current waiting/in-consultation list
+- The audit log shows ALL PROCEDURE transactions, not filtered by current session/patient
+- No link back to the clinical record that triggered it
+- Error messages are plain strings, no toast system
+---
+InventoryComponent (/inventory)
+Data Read:
+- inventoryService.getItems() — fetches product table for current clinic
+- db.selectedContextClinic() — triggers load, gates queries
+- Local items signal — base list for all computed derivations
+- labelConfig signal — controls print layout (cols, size, showPrice)
+- printQueue signal — selected items for label printing
+Data Written:
+- inventoryService.createItem(payload) — INSERT into product
+- inventoryService.updateItem(id, payload) — UPDATE product
+- inventoryService.deleteItem(id) — soft-delete product
+- inventoryService.recordMovement({item_id, qty_change, reason, notes}) — INSERT stock_transaction, triggers product.current_stock update
+Overlaps:
+- InventoryStore.products (used by Reports) and InventoryComponent.items signal are separate signals fed from the same product table but NOT synchronized — a change in one does not update the other. InventoryComponent has its own local items = signal<InventoryItem[]>([]) and InventoryStore.products is fed separately by DatabaseService.syncDataForClinic. This is a data duplication / stale data bug.
+What's missing/stubbed:
+- Scanner lookup uses i.id === code — since id is a UUID, barcode scanners that scan EAN/Code128 barcodes will never match. The schema has a barcode field in product but InventoryService.getItems() returns the full row — the scanner should match against i.barcode, not i.id. The comment in the code acknowledges this but it remains broken
+- formData.cost_price in the HTML template (line 234) binds to a non-existent field — formData has avg_cost_price, not cost_price. This means the cost price field in the edit form never saves
+- Import button shown in UI (Upload icon referenced in icons list) but no import functionality in this component — CsvImportService and ImportConflictModalComponent exist but are not used here
+- No real-time updates
+- viewFilter = 'critical' works but expiryDate is not in InventoryItem type — the Reports component checks p.expiryDate via InventoryStore.products (which uses the Product type that has expiryDate) but InventoryComponent uses InventoryItem type which does not have expiryDate — different type mappings for the same data
+- current_stock is set directly in form and passed to createItem — but the DB trigger will handle stock updates on movements; setting it at creation is the only time it's directly written (correct for initial stock)
+---
+ProcedureRecipeComponent (/procedures)
+Data Read:
+- inventoryService.getProcedureTypes() — list of procedures (reads procedure_type)
+- inventoryService.getItems() — inventory items for recipe ingredient selector (reads product)
+- inventoryService.getRecipes(procedureTypeId) — recipe items for selected procedure (reads procedure_recipe JOIN product)
+Data Written:
+- inventoryService.createProcedureType(formData) — INSERT procedure_type
+- inventoryService.updateProcedureType(id, formData) — UPDATE procedure_type
+- inventoryService.addRecipeItem({procedure_type_id, item_id, quantity}) — INSERT procedure_recipe
+- inventoryService.removeRecipeItem(id) — DELETE procedure_recipe
+Overlaps: Manages procedure_type and procedure_recipe tables. ClinicalExecutionComponent reads procedure_type and uses performProcedure which reads procedure_recipe — so this component is the configuration surface for what that component executes.
+What's missing/stubbed:
+- No delete procedure type feature (only edit)
+- No active toggle in the list view — inactive procedures show a badge but you'd need to edit to toggle
+- Uses *ngIf directive (line 58) in the template mixed with Angular 17 control flow elsewhere — inconsistency, CommonModule is imported so it works but it's inconsistent
+- No clinic scoping on getProcedureTypes() / getItems() — these are handled by InventoryService.clinicId getter, which is correct, but if clinic context is null it throws
+- No cost tracking — the recipe doesn't compute total ingredient cost vs. procedure price
+---
+ReportsComponent (/reports)
+Data Read:
+- db.checkPermission(REPORTS_VIEW, clinicId) — IAM gate
+- db.checkPermission(FINANCE_READ, clinicId) — controls financial KPI visibility
+- db.selectedContextClinic() — triggers data load
+- db.currentUser() — for access request
+- db.clinics() — for access request modal
+- inventoryStore.products() — for totalStockValue, lowStockCount, expiryAlerts
+- inventoryStore.transactions() — for weeklyData chart
+- patientStore.appointments() — for todayAppointmentsCount, appointmentDensity chart
+- gemini.generateStrategicInsights(context) — for AI analysis
+Data Written:
+- db.requestAccess(clinicId, clinicName, reason, 'roles/finance_viewer') — access request for finance data
+- External: gemini.generateStrategicInsights() (read-only, no DB write)
+Overlaps:
+- Reads InventoryStore.products (same signal as InventoryStore), but InventoryComponent has its own separate items signal — potential staleness
+- Reads PatientStore.appointments shared with Reception and Clinical
+What's missing/stubbed:
+- todayAppointmentsCount says "Should filter by today ideally" — it returns the count of ALL appointments, not today's
+- expiryAlerts reads p.expiryDate from InventoryStore.products (which is Product type) — but DatabaseService.syncDataForClinic maps batchNumber: p.barcode ?? undefined and has no expiryDate mapping. The Product type has expiryDate?: string but syncDataForClinic never sets it. So the expiry alerts table will always be empty
+- The "Requisições ao Cluster" chart is hardcoded static data [40, 60, 45, 90, 85, 70, 100, 80, 65, 95] — not real data
+- globalArr and globalUptime are hardcoded signals (0 and 99.9) — not fetched from any real source
+- The Auditoria de Validade table columns include Lote (batchNumber) which is also never populated in the mapped data
+- No date range filter for any chart
+- weeklyData chart works correctly based on transactions data
+---
+SocialComponent (/social)
+Data Read:
+- db.checkPermission(MARKETING_READ, clinicId) — IAM gate
+- db.selectedContextClinic() — for context (passed to addSocialPost)
+- db.socialPosts() — for post history (recentPosts computed)
+- SOCIAL_TONES constants — tone selector options
+- gemini.generateSocialContent(topic, tone) — AI content generation
+Data Written:
+- db.addSocialPost(newPost) — INSERT into social_post (writes clinic_id, title, content, platform)
+- Updates db.socialPosts signal optimistically
+What's missing/stubbed:
+- generatedPost includes timestamp property used in template, but addSocialPost returns the DB row and the local newPost object doesn't have a timestamp field until after the DB call
+- No actual image generation — imageUrl is always null; the image placeholder says "Sugestão de Arte via IA" but nothing is wired
+- No publish/schedule mechanism — posts are created as draft but there's no UI to schedule or publish them
+- platform is hardcoded to 'instagram' — no selector for Facebook/LinkedIn
+- recentPosts shows posts from db.socialPosts() which is mapped with a timestamp: p.created_at field, but the preview uses post.timestamp — this should work but the local newPost object will not have a timestamp until refreshed from DB
+- No delete or edit of past posts
+- ShieldAlert imported in template but the closing } is misplaced — the permission block closes @else { correctly
+---
+AdminPanelComponent (/admin)
+Data Read:
+- db.selectedContextClinic() — tab visibility logic, context switching
+- db.currentUser() — role-based tab filtering
+- db.clinics() — clinics list (SaaS global view)
+- db.users() — staff list (clinic view) + SaaS team list
+- db.appointments() — clinicAppointmentsCount computed
+- db.patients() — clinicPatientsCount computed
+- db.accessRequests() — pending requests count
+- db.globalArr(), db.globalUptime() — SaaS KPI cards (both hardcoded signals)
+- uiConfig.allModules() — module list for clinic settings tab
+- IAM_ROLES, IAM_PERMISSIONS — permission editor
+- SAAS_PLANS — clinic creation form
+Data Written:
+- db.addClinic(clinic) — INSERT into clinic
+- db.deleteClinic(id) — UPDATE clinic SET status='inactive'
+- db.saveUser(user, password?) — CREATE or UPDATE user (via RPCs)
+- db.saveUser(user) — save IAM binding changes (without password)
+- uiConfig.toggleModule(key, enabled) — UPDATE clinic_module
+- db.selectedContextClinic.set(clinic.id) — context switch (writes to signal directly)
+Overlaps:
+- User management overlaps with nothing else (admin-only feature)
+- Module management (uiConfig.toggleModule) drives the entire sidebar navigation for all other components
+What's missing/stubbed:
+- runQuery() — SQL playground doesn't actually execute SQL against Supabase. It uses a setTimeout + maps db.clinics() to mock results regardless of what SQL is typed. This is a UI demo, not a real SQL executor
+- saasTeam computed uses u.clinicId === 'all' to filter SaaS team but clinicId in the profile is a real UUID (or undefined), never 'all' — this will always return an empty array unless role is SUPER_ADMIN/SUPPORT/ANALYST
+- globalArr and globalUptime are hardcoded 0 / 99.9 — the KPI cards show fake data
+- The "Configurações SaaS" tab button is duplicated in the template (lines 58-59 are identical) — only one renders
+- No confirmation of clinic creation success/failure (alert/toast)
+- clinicId = null branch in onAddUser() will early-return before creating the SaaS operator user, because if (!clinicId) return comes after the null assignment. SaaS operator creation is broken
+- IamBinding denied field and permissions override field are only stored locally in the deep-copied signal — savePermissions() calls db.saveUser(user) which calls RPC update_user_with_actor({p_iam_bindings: u.iam}) — this saves the full iam_bindings JSONB, so denied and permissions overrides ARE persisted correctly to the DB
+---
+CROSS-COMPONENT SHARED DATA MAP
+---
+IAM ROLES AND PERMISSIONS
+Role ID	Display Name	Key Permissions
+roles/super_admin	Super Admin	clinics.manage, users.manage, access.request — no clinical/patient data by default
+roles/clinic_admin	Administrador	ALL permissions
+roles/doctor	Médico	appointments.read, clinical.*, inventory.read, patients.read_demographics
+roles/reception	Recepção	appointments.*, patients.read_demographics, patients.write
+roles/stock_manager	Gestor de Estoque	inventory.*, inventory.view_cost, reports.view
+roles/finance_viewer	Analista Financeiro	finance.read, inventory.read, inventory.view_cost, reports.view
+roles/marketing	Marketing	marketing.*
+roles/consultant	Consultor	finance.read, inventory.read, marketing.read, patients.read_demographics, reports.view, users.manage
+roles/saas_support	SaaS Support	access.request only
+roles/saas_analyst	SaaS Analyst	access.request, reports.view
+Function	Purpose	Tables touched
+create_patient_with_actor(p_clinic_id, p_name, p_cpf, p_birth_date, p_gender)	Creates actor + patient atomically	actor, patient
+create_user_with_actor(p_user_id, p_email, p_name, p_clinic_id, p_role, p_iam_bindings, p_assigned_room)	Creates actor + app_user	actor, app_user
+update_user_with_actor(p_user_id, p_name, p_role, p_iam_bindings, p_assigned_room)	Updates app_user + actor name	actor, app_user
+add_appointment(p_clinic_id, p_patient_id, p_doctor_actor_id, p_date, p_status, p_room_number, p_priority)	Creates appointment, resolves patient name server-side	actor, appointment
+add_clinical_record(p_clinic_id, p_patient_id, p_doctor_actor_id, p_content, p_type)	Creates clinical record	clinical_record
+add_stock_movement(p_clinic_id, p_product_id, p_type, p_qty, p_reason, p_notes, p_actor_id)	Inserts stock_transaction (trigger handles product update)	stock_transaction, product (via trigger)
+perform_procedure(p_clinic_id, p_patient_id, p_professional_id, p_procedure_type_id, p_notes)	Deducts all recipe items via stock_transaction	procedure_recipe, stock_transaction, product (via trigger)
+get_clinic_ui_config(p_clinic_id)	Returns JSONB with modules array + config dict	clinic_module, ui_module, clinic_config
+is_super_admin()	RLS helper	—
+template: `<h2>Consultas</h2><p>Agenda aqui.</p>`
+Signal / Data	Written by	Read by
+PatientStore.patients / patientService.patients	ReceptionComponent (create), PatientsListComponent (create)	ReceptionComponent, PatientsListComponent, ClinicalComponent (via appointments), AdminPanelComponent
+PatientStore.appointments / patientService.appointments	ReceptionComponent (create/status), ClinicalComponent (status/room)	ReceptionComponent, ClinicalComponent, ReportsComponent, AdminPanelComponent
+PatientStore.records / patientService.clinicalRecords	ClinicalComponent (create)	ClinicalComponent (history sidebar), AdminPanelComponent (via db.clinicalRecords)
+db.users	AdminPanelComponent (saveUser)	ReceptionComponent (doctors list), ClinicalComponent (room occupancy), AdminPanelComponent (staff table)
+db.clinics	AdminPanelComponent (addClinic/deleteClinic)	AdminPanelComponent, MainLayoutComponent (context selector), ReportsComponent (access request)
+db.socialPosts	SocialComponent (addSocialPost)	SocialComponent (history)
+db.accessRequests	MainLayoutComponent (approve/requestAccess), ReportsComponent (requestAccess)	MainLayoutComponent (notification bell), AdminPanelComponent (pendingRequestsCount)
+InventoryStore.products / db.products	DatabaseService (syncDataForClinic)	ReportsComponent (KPIs, charts, expiry alerts)
+InventoryStore.transactions / db.transactions	DatabaseService (syncDataForClinic)	ReportsComponent (weekly chart)
+InventoryComponent.items	InventoryComponent (loadItems)	InventoryComponent only
+context.selectedClinic	AuthStateService (initSession), MainLayoutComponent (updateContext), AdminPanelComponent (direct set)	Every service and component (universal context gate)
+uiConfig.enabledModules	AdminPanelComponent (toggleModule)	MainLayoutComponent (sidebar nav links)
+db.currentUser / authState.currentUser	AuthStateService (loadUserProfile, logout), DatabaseService (assignRoom)	Every component
+Permission reception.read used in ReceptionComponent is not defined in IAM_PERMISSIONS — it is not in any role's permissions list, meaning no role (except SUPER_ADMIN) can pass the reception gate as currently coded.
+---
+ROUTING STRUCTURE
+/login                    → LoginComponent (lazy)
+/                         → MainLayoutComponent (guarded by authGuard)
+  /                       → redirect → /inventory
+  /inventory              → InventoryComponent (lazy)
+  /procedures             → ProcedureRecipeComponent (lazy)
+  /patients               → PatientsListComponent (lazy, via PATIENT_ROUTES)
+  /appointments           → AppointmentsListComponent (lazy, via APPOINTMENT_ROUTES) ← STUB
+  /reception              → ReceptionComponent (lazy)
+  /clinical               → ClinicalComponent (lazy) [embeds ClinicalExecutionComponent]
+  /reports                → ReportsComponent (lazy)
+  /social                 → SocialComponent (lazy)
+  /admin                  → AdminPanelComponent (lazy)
+/**                       → redirect → /
+The sidebar is not hardcoded — it dynamically renders uiConfig.enabledModules() which comes from the clinic_module table. The admin panel and its link are hardcoded by role check.
+---
+SUMMARY OF WHAT IS MISSING OR BROKEN
+Issue	Severity	Location
+AppointmentsListComponent is a placeholder stub	Critical	/appointments
+PatientStore.loadClinicalRecords(patientId) is a stub — patient history never filters by patient	High	patient.store.ts, clinical.component.ts
+ReceptionComponent uses 'reception.read' — a permission not in any IAM role	High	reception.component.ts
+InventoryComponent HTML formData.cost_price doesn't exist on ItemFormData (avg_cost_price is the field) — cost price never saves	High	inventory.component.html:234
+Barcode scanner matches by item.id (UUID) not item.barcode — scanner is non-functional	High	inventory.component.ts:240
+expiryDate is never mapped in DatabaseService.syncDataForClinic — Reports expiry alerts always empty	High	database.service.ts, reports.component.ts
+ClinicalExecutionComponent.patients is set once (= this.patientService.patients()) — not reactive	High	clinical-execution.component.ts:69
+SaaS operator creation (onAddUser with isSaaSModal) always early-returns because clinicId = null then if (!clinicId) return	High	admin-panel.component.ts:858-861
+InventoryStore.loadProducts() and loadTransactions() are stubs — calls from ReportsComponent do nothing	Medium	inventory.store.ts
+AdminPanelComponent SQL playground doesn't execute real SQL	Medium	admin-panel.component.ts:976
+PatientsListComponent search input has no binding — non-functional	Medium	patients-list.component.ts:28
+patientHistory() in ClinicalComponent returns all records for clinic, not current patient's	Medium	clinical.component.ts:440-442
+globalArr and globalUptime are hardcoded (0, 99.9) — not real SaaS metrics	Medium	database.service.ts:46-47
+CsvImportService and ImportConflictModalComponent exist but are not connected to InventoryComponent	Medium	—
+SocialComponent posts are always platform: 'instagram' with no selector	Low	database.service.ts:96
+availableRooms in ClinicalComponent is hardcoded — not from clinic_config	Low	clinical.component.ts:349
+WORKSTATIONS constant imported in Reception but room selector is hardcoded	Low	reception.component.ts:47-50
+"Configurações SaaS" tab button duplicated in AdminPanel template	Low	admin-panel.component.ts:58-59
+ClinicalExecutionComponent template uses *ngFor/*ngIf (Angular 4 structural directives) inconsistent with rest of app	Low	clinical-execution.component.html
+Gemini API key reads from process.env['API_KEY'] — will be undefined in browser builds without SSR/env injection	Low	gemini.service.ts:12
+InventoryComponent.items and InventoryStore.products are separate signals for same data — changes in one don't propagate	Low	Architecture
+todayAppointmentsCount() counts ALL appointments, not just today's	Low	reports.component.ts:251

@@ -1,0 +1,113 @@
+Goal
+Realizar uma auditoria completa do frontend do IntraClinica Supabase (Angular 21 + Supabase/PostgreSQL, SaaS multi-tenant para clínicas médicas) via Playwright, capturando screenshots reais de cada módulo e identificando erros reais de runtime.
+Instructions
+- Project ref Supabase: prolahgqlwfriwfpzjdm, token: sbp_5521347c03441f2285708af0eae20967b67efce9
+- Service Role Key: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InByb2xhaGdxbHdmcml3ZnB6amRtIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2ODQyMzQ2MywiZXhwIjoyMDgzOTk5NDYzfQ.nDQaV1h6a3kglpWWk3OGpIo_XVCwDEUh2uGzOkFmM1Q
+- Clínica Demo ID: cdf8cf49-b559-4c44-8533-38977611e1b4
+- Credenciais de teste: bmbanho@gmail.com / IntraTest2026! (SUPER_ADMIN)
+- Dev server Angular: npm run dev → http://localhost:3000 (rodando via ng serve)
+- Docs server: python3 -m http.server 8080 -d documentacao → http://localhost:8080
+- Playwright skill: /var/home/bruno/.agents/skills/playwright-skill
+- Novos avanços devem ser feitos via PR (não commit direto em main)
+- tsc --noEmit zero erros antes de qualquer commit
+- Navegação no Playwright deve ser feita via clique nos links da sidebar (não page.goto()), pois o selectedContextClinic é um signal em memória que não persiste entre navegações diretas por URL
+Discoveries
+Seleção de Clínica
+- O dropdown de seleção de clínica é um <select> nativo na sidebar
+- SUPER_ADMIN começa em "Visão Global (SaaS)" (all) após login — precisa selecionar a clínica explicitamente
+- A seleção é feita via: await page.selectOption('select', 'cdf8cf49-b559-4c44-8533-38977611e1b4')
+- O selectedContextClinic é um signal em memória puro (não persiste em localStorage) — page.goto() direto para uma rota reseta o contexto para all
+- Navegação deve ser via clique nos links da sidebar para manter o contexto Angular vivo
+Labels reais da sidebar (com clínica selecionada)
+"Consultas"      → #/appointments
+"Prontuário IA"  → #/clinical
+"Estoque"        → #/inventory
+"Pacientes"      → #/patients
+"Procedimentos"  → #/procedures
+"Recepção"       → #/reception
+"Indicadores"    → #/reports
+"Marketing IA"   → #/social
+"Configurações"  → #/admin
+Bug real encontrado: /clinical redireciona para /inventory
+- ClinicalComponent importa LocalAiService, que faz import '@tensorflow/tfjs-backend-webgpu' no nível de módulo
+- O TensorFlow/WebGPU falha ao inicializar em ambientes sem GPU (e em headless browser)
+- O erro: TypeError: Class extends value undefined is not a constructor or null em @tensorflow_tfjs.js
+- O Angular lazy-loader captura a exceção e o wildcard route { path: '**', redirectTo: '' } redireciona para inventory
+- Consequência: a rota /clinical está inacessível em qualquer browser sem WebGPU — não é só problema de teste headless
+- Solução necessária: o import do TF/WebGPU deve ser lazy/dinâmico dentro do método checkWebGPUSupport(), não no topo do arquivo
+Aba "Procedimentos" no Prontuário
+- A aba foi implementada no ClinicalComponent mas nunca foi acessível porque a rota apontava para ClinicalExecutionComponent
+- A rota foi corrigida nesta sessão (app.routes.ts agora aponta para ClinicalComponent)
+- Porém a aba ainda não é testável porque o ClinicalComponent falha ao carregar (bug TensorFlow acima)
+Erro de console "Class extends value undefined" na Recepção
+- Aparece no audit script mas não é um bug da Recepção
+- É artefato: o script coleta erros desde o início, e o erro do TF/WebGPU gerado no carregamento inicial fica associado à URL da Recepção (que era a URL ativa no momento do log)
+- Confirmado: Recepção funciona perfeitamente quando testada isoladamente
+Dados insuficientes para teste do Prontuário
+- Não há pacientes na fila de espera (nenhum appointment com status Aguardando ou Chamado)
+- Mesmo que /clinical carregasse, o painel de prontuário estaria vazio
+- Para testar o fluxo completo seria necessário criar um appointment de teste com status Aguardando
+Accomplished
+✅ Concluído nesta sessão
+- app.routes.ts: rota /clinical corrigida para apontar para ClinicalComponent (com abas) em vez de ClinicalExecutionComponent diretamente
+- Script Playwright (/tmp/playwright-intraclinica-audit.js): reescrito completamente para:
+  - Navegar via clique nos links da sidebar (mantém contexto Angular)
+  - Selecionar clínica via selectOption após login
+  - Usar label correto "Prontuário IA" para navegar
+  - Capturar screenshots em documentacao/assets/
+  - Reportar erros de console com URL correta
+- Auditoria executada: screenshots capturados para Login, Recepção, Prontuário, Pacientes, Consultas, Estoque, Admin
+- TypeScript: zero erros (tsc --noEmit limpo)
+🔴 Bug real a corrigir (próxima tarefa)
+local-ai.service.ts — import TensorFlow no topo do arquivo quebra lazy-loading do ClinicalComponent
+Arquivo: /var/home/bruno/Documentos/intraclinica-supabase/frontend/src/app/core/services/local-ai.service.ts
+Linhas problemáticas:
+import * as tf from '@tensorflow/tfjs';          // linha 2
+import '@tensorflow/tfjs-backend-webgpu';         // linha 3
+Esses imports executam código de inicialização do TF/WebGPU no momento do carregamento do módulo. Em qualquer ambiente sem WebGPU (incluindo browsers comuns sem GPU), isso lança TypeError: Class extends value undefined e faz o Angular redirecionar para o wildcard route.
+Solução: converter para import dinâmico dentro do método checkWebGPUSupport():
+async checkWebGPUSupport() {
+  try {
+    const tf = await import('@tensorflow/tfjs');
+    await import('@tensorflow/tfjs-backend-webgpu');
+    // ... resto da lógica
+  } catch (e) {
+    this.hasWebGPU.set(false);
+  }
+}
+❌ Ainda pendente
+1. Corrigir local-ai.service.ts (imports TF dinâmicos) — via PR
+2. Criar appointment de teste com status Aguardando para poder testar o fluxo do Prontuário
+3. Re-executar auditoria após corrigir o bug do TF para capturar screenshot real do Prontuário com abas
+4. Investigar proteção contra conflitos de horário no banco (constraint/trigger na tabela appointment) — iniciado em sessão anterior, não concluído
+Relevant files / directories
+frontend/src/app/
+├── app.routes.ts                              ✅ EDITADO — /clinical agora aponta para ClinicalComponent
+├── features/
+│   ├── clinical/
+│   │   ├── clinical.component.ts              ✅ EDITADO sessão anterior — abas prontuario/procedimentos
+│   │   ├── clinical-execution.component.ts    (painel de procedimentos — usado como aba)
+│   │   ├── clinical-execution.component.html
+│   │   └── clinical-execution.component.css
+│   └── reception/
+│       └── reception.component.ts             ✅ EDITADO sessão anterior — botões duplicados removidos
+├── core/
+│   └── services/
+│       ├── local-ai.service.ts                🔴 BUG — imports TF no topo quebram lazy-loading
+│       ├── database.service.ts                (selectedContextClinic exposto como signal)
+│       ├── auth-state.service.ts              (define selectedClinic como 'all' para SUPER_ADMIN)
+│       ├── clinic-context.service.ts          (selectedClinic = signal<string | null>(null))
+│       └── ui-config.service.ts               (enabledModules — define labels/rotas da sidebar)
+└── layout/
+    └── main-layout.component.ts               (dropdown select da clínica, links da nav)
+/tmp/playwright-intraclinica-audit.js          ✅ Script de auditoria — pronto, navega via sidebar
+documentacao/assets/                           ✅ Screenshots atualizados (exceto clinical com abas)
+Comando para continuar
+# 1. Corrigir o bug do TF (criar branch e PR)
+cd /var/home/bruno/Documentos/intraclinica-supabase
+git checkout -b fix/local-ai-dynamic-imports
+# 2. Editar local-ai.service.ts — tornar imports dinâmicos
+# 3. Verificar TypeScript
+cd frontend && ./node_modules/.bin/tsc --noEmit
+# 4. Re-executar auditoria após fix
+cd /var/home/bruno/.agents/skills/playwright-skill && node run.js /tmp/playwright-intraclinica-audit.js
