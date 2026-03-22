@@ -306,7 +306,7 @@ function createBlob(data: Float32Array): { data: string; mimeType: string } {
 
         <!-- TAB: PROCEDIMENTOS -->
         @if (activeTab() === 'procedimentos') {
-          <app-clinical-execution></app-clinical-execution>
+          <app-clinical-execution [activePatientId]="currentPatient()?.patientId || ''"></app-clinical-execution>
         }
       }
     </div>
@@ -438,7 +438,11 @@ export class ClinicalComponent implements OnDestroy {
 
   // Computed: Get history (from PatientStore)
   patientHistory = computed(() => {
-    return this.patientStore.records();
+    const activePatient = this.currentPatient();
+    if (!activePatient) return [];
+    
+    // Filter records belonging only to the patient currently in consultation
+    return this.patientStore.records().filter(r => r.patientId === activePatient.patientId);
   });
 
   // Icons
