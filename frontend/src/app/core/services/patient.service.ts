@@ -56,18 +56,18 @@ export class PatientService {
     const [patientsRes, apptRes, recordsRes] = await Promise.all([
       this.supabase
         .from('patient')
-        .select('id, cpf, birth_date, gender, actor:id(name, clinic_id, created_at)')
+        .select('id, cpf, birth_date, gender, actor:actor!patient_id_fkey(name, clinic_id, created_at)')
         .eq('clinic_id', clinicId),
       
       this.supabase
         .from('appointment')
-        .select('*, patient:patient_id(actor:id(name))')
+        .select('*, patient:patient_id(actor:actor!patient_id_fkey(name))')
         .eq('clinic_id', clinicId)
         .order('appointment_date', { ascending: true }),
         
       this.supabase
         .from('clinical_record')
-        .select('*, patient:patient_id(actor:id(name))')
+        .select('*, patient:patient_id(actor:actor!patient_id_fkey(name))')
         .eq('clinic_id', clinicId)
         .order('timestamp', { ascending: false })
     ]);
