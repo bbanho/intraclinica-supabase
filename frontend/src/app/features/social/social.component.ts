@@ -181,7 +181,9 @@ export class SocialComponent {
 
   // Computed History
   recentPosts = computed(() => {
-    return this.db.socialPosts();
+    const clinicId = this.db.selectedContextClinic();
+    if (!clinicId || clinicId === 'all') return [];
+    return this.db.socialPosts().filter(p => p.clinicId === clinicId);
   });
 
   // Icons
@@ -196,6 +198,14 @@ export class SocialComponent {
 
   async handleGenerate() {
     if (!this.topic) return;
+    
+    const clinicId = this.db.selectedContextClinic();
+    if (!clinicId || clinicId === 'all') {
+      // TODO: Substituir alert() por um componente de notificação (ex: Toast/Snackbar) para melhor UX.
+      alert("Selecione uma clínica específica no menu lateral antes de gerar conteúdo.");
+      return;
+    }
+
     this.isLoading.set(true);
     try {
       const result = await this.gemini.generateSocialContent(this.topic, this.tone);
@@ -203,7 +213,8 @@ export class SocialComponent {
       const newPost = {
         ...result,
         topic: this.topic,
-        tone: this.tone
+        tone: this.tone,
+        clinicId: clinicId
       };
 
       await this.db.addSocialPost(newPost);

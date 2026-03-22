@@ -133,7 +133,7 @@ import { SAAS_PLANS } from '../../core/config/domain-constants';
                 <div class="relative z-10">
                     <h3 class="text-xl font-black uppercase tracking-widest mb-8 flex items-center gap-3"><span class="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></span> Requisições ao Cluster</h3>
                     <div class="h-48 flex items-end gap-2 mb-6">
-                        @for (i of [40, 60, 45, 90, 85, 70, 100, 80, 65, 95]; track $index) {
+                        @for (i of saasMetrics().apiRequestsChart; track $index) {
                             <div class="flex-1 bg-indigo-500/30 rounded-t-lg hover:bg-indigo-400 transition-all cursor-pointer relative group" [style.height.%]="i"></div>
                         }
                     </div>
@@ -696,6 +696,11 @@ export class AdminPanelComponent {
   
   activeTab = signal<string>('global');
 
+  // SaaS Metrics Signal
+  saasMetrics = signal({
+    apiRequestsChart: [40, 60, 45, 90, 85, 70, 100, 80, 65, 95]
+  });
+
   // Modals
   isClinicModalOpen = signal(false);
   isUserModalOpen = signal(false);
@@ -856,9 +861,10 @@ ORDER BY created_at DESC;`;
           // SaaS operators have no clinic — pass null so the RPC skips actor creation
           // and creates a user with SUPER_ADMIN/SUPPORT role at global scope
           clinicId = null;
+      } else if (!clinicId) {
+          return;
       }
 
-      if (!clinicId) return;
       if (!this.newUserData.name || !this.newUserData.email || !this.newUserData.role || !this.newUserData.tempPassword) return;
 
       const roleId = this.newUserData.role; // Now holds IAM ID e.g. 'roles/clinic_admin'

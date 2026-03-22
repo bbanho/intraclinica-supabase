@@ -367,6 +367,8 @@ export class ReceptionComponent {
   readonly DoorOpen = DoorOpen; 
   readonly Monitor = Monitor; 
   readonly ShieldCheck = ShieldCheck;
+  readonly ShieldAlert = ShieldAlert;
+  readonly ListChecks = ListChecks;
 
   time = signal(new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}));
   date = signal(new Date().toLocaleDateString('pt-BR', {weekday: 'long', day:'numeric', month:'long'}));
@@ -392,12 +394,16 @@ export class ReceptionComponent {
   }
 
   doctors = computed(() => {
-    return this.db.users().filter(u => u.role === 'DOCTOR' || u.role === 'ADMIN');
+    const clinicId = this.db.selectedContextClinic();
+    if (!clinicId) return [];
+    
+    return this.db.users().filter(u => 
+      (u.role === 'DOCTOR' || u.role === 'ADMIN') &&
+      (clinicId === 'all' || u.clinicId === clinicId)
+    );
   });
 
-  doctorsWithRooms = computed(() => {
-      return this.db.users().filter(u => u.role === 'DOCTOR' || u.role === 'ADMIN');
-  });
+  doctorsWithRooms = computed(() => this.doctors());
 
   filteredAppointments = computed(() => {
       const term = this.searchTerm().toLowerCase();
