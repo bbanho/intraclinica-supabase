@@ -367,6 +367,8 @@ export class ReceptionComponent {
   readonly DoorOpen = DoorOpen; 
   readonly Monitor = Monitor; 
   readonly ShieldCheck = ShieldCheck;
+  readonly ShieldAlert = ShieldAlert;
+  readonly ListChecks = ListChecks;
 
   time = signal(new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}));
   date = signal(new Date().toLocaleDateString('pt-BR', {weekday: 'long', day:'numeric', month:'long'}));
