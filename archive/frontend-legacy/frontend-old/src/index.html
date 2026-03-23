@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>IntraClinica</title>
+  <base href="./">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="icon" type="image/x-icon" href="favicon.ico">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#f0f9ff',
+              100: '#e0f2fe',
+              500: '#0ea5e9',
+              600: '#0284c7',
+              700: '#0369a1',
+              900: '#0c4a6e',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <script type="importmap">
+  {
+    "imports": {
+      "rxjs": "https://esm.sh/rxjs@^7.8.2?conditions=es2015",
+      "rxjs/operators": "https://esm.sh/rxjs@^7.8.2/operators?conditions=es2015",
+      "rxjs/ajax": "https://esm.sh/rxjs@^7.8.2/ajax?conditions=es2015",
+      "rxjs/webSocket": "https://esm.sh/rxjs@^7.8.2/webSocket?conditions=es2015",
+      "rxjs/testing": "https://esm.sh/rxjs@^7.8.2/testing?conditions=es2015",
+      "rxjs/fetch": "https://esm.sh/rxjs@^7.8.2/fetch?conditions=es2015",
+      "@angular/common": "https://esm.sh/@angular/common@^19.0.0?external=rxjs",
+      "@angular/common/http": "https://esm.sh/@angular/common@^19.0.0/http?external=rxjs",
+      "@angular/core": "https://esm.sh/@angular/core@^19.0.0?external=rxjs",
+      "@google/genai": "https://esm.sh/@google/genai@^0.1.0",
+      "@angular/router": "https://esm.sh/@angular/router@^19.0.0?external=rxjs",
+      "@angular/platform-browser": "https://esm.sh/@angular/platform-browser@^19.0.0?external=rxjs",
+      "jsbarcode": "https://esm.sh/jsbarcode@^3.11.6",
+      "ngx-markdown": "https://esm.sh/ngx-markdown@^19.0.0?external=rxjs",
+      "lucide-angular": "https://esm.sh/lucide-angular@^0.469.0?external=rxjs",
+      "marked": "https://esm.sh/marked@^15.0.0"
+    }
+  }
+  </script>
+</head>
+<body class="bg-slate-50 text-slate-900 h-screen w-screen overflow-hidden">
+  <app-root></app-root>
+</body>
+</html>
