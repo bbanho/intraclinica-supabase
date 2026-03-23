@@ -28,17 +28,18 @@ export class WikiComponent {
 
   constructor() {
     effect(() => {
-      // Proteção explícita de sessão deslogada (evita travamento infinito)
-      if (!this.auth.currentUser()) {
+      const user = this.auth.currentUser();
+      const initialized = this.iam.isInitialized();
+
+      if (!user) {
         this.router.navigate(['/login']);
         return;
       }
 
-      if (!this.iam.isInitialized()) return;
+      if (!initialized) return;
 
-      // Princípio IAM: Validar a regra através da árvore consolidada, sem testar roles literais ('SUPER_ADMIN')
       if (this.iam.can('clinics.manage') || this.iam.can('ai.use')) {
-        window.location.href = '/wiki/';
+        window.location.replace('/wiki/');
       } else {
         this.error.set('Sua conta não possui privilégios arquiteturais ou autorização para visualizar a documentação interna.');
       }

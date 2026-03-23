@@ -189,17 +189,22 @@ export class MainLayoutComponent {
           return from(
             this.db.from('clinic').select('id, name').in('id', allowedClinicIds)
           ).pipe(
-            switchMap(({ data }) => {
+            switchMap(({ data, error }) => {
+               if (error) {
+                 console.error('[MainLayout] Falha ao carregar clínicas:', error);
+                 return of([]);
+               }
+
                // Auto-select a primeira clínica se não tiver contexto global
-               if (data && !this.context.selectedClinicId() && !bindings['global']) {
+               if (data && data.length > 0 && !this.context.selectedClinicId() && !bindings['global']) {
                  this.context.setContext(data[0].id);
                }
-               
+
                // Se tiver poderes globais, seta o contexto para 'all' por default
                if (bindings['global'] && !this.context.selectedClinicId()) {
                  this.context.setContext('all');
                }
-               
+
                return of(data || []);
             })
           );
