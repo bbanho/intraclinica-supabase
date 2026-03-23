@@ -161,5 +161,25 @@ Após a base do PASSO 1 e PASSO 2 estar impenetrável, inicia-se o desenvolvimen
 - **Prontuário e Atendimento**: Foco no médico, com suporte a templates e IA.
 - **Estoque & Financeiro**: Módulos paralelos ativados conforme o plano SaaS.
 
----
-*End of Document*
+## 9. CI/CD Pipeline & Cloudflare Pages Deployment
+
+O deployment do IntraClinica (Frontend) deve ser automatizado, contínuo e integrado ao repositório GitHub para garantir que as mudanças na `main` sejam refletidas em um ambiente real (demo/homologação) em questão de minutos, com zero intervenção manual.
+
+### 9.1. Arquitetura de Deploy (Cloudflare Pages)
+Optamos por hospedar a aplicação compilada (arquivos estáticos e PWA) na infraestrutura de borda (Edge CDN) da Cloudflare. 
+- **Por que Cloudflare Pages?** O Angular compila para HTML/JS/CSS puros (`npm run build`). Não precisamos de um servidor Node.js rodando SSR (Server-Side Rendering) no momento. A Cloudflare entrega esses arquivos estáticos de forma global, gratuita e absurdamente rápida.
+- **Domínio Alvo:** O pipeline deve estar preparado para publicar no domínio oficial de demonstração (ex: `axio.eng.br` ou um subdomínio específico `demo.axio.eng.br`).
+
+### 9.2. O Fluxo do GitHub Actions
+O arquivo de workflow (`.github/workflows/deploy-cloudflare.yml`) deve seguir este roteiro mecânico:
+1.  **Gatilho (Trigger):** Dispara em cada `push` ou `merge` direto na branch `main`.
+2.  **Qualidade (Fail-Fast):** 
+    - Instala dependências (`npm ci`).
+    - Roda a verificação de tipagem estrita do TypeScript (`npx tsc --noEmit`). Se falhar, o deploy é abortado imediatamente.
+    - Roda os testes unitários (`npm run test -- --watch=false --browsers=ChromeHeadless`).
+3.  **Build (Compilação):** Executa `npm run build` na pasta `frontend-v2`.
+4.  **Integração Documental (Opcional):** Copia os artefatos de documentação (`documentacao/`) para uma subpasta pública (ex: `/docs`) dentro de `dist/frontend-v2/browser/`, para que a documentação fique acessível via URL.
+5.  **Publish (Cloudflare API):** Usa a action oficial `cloudflare/pages-action` para enviar a pasta `/dist/frontend-v2/browser/` para o projeto configurado na Cloudflare.
+    - Exige os secrets: `CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_API_TOKEN` e `CLOUDFLARE_PROJECT_NAME`.
+
+Com este pipeline, a entrega de valor aos stakeholders e médicos parceiros se torna instantânea, validando o trabalho arquitetural com o mundo real.
