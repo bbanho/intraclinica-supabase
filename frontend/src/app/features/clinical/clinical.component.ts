@@ -3,18 +3,7 @@ import { FormsModule } from '@angular/forms';
 import { LucideAngularModule, Search, User, FileText, Activity, Heart, Pill, AlertCircle, ChevronLeft, ChevronRight, Maximize2, Minimize2, Bot, Loader2 } from 'lucide-angular';
 import { ClinicContextService } from '../../core/services/clinic-context.service';
 import { PatientService, Patient } from '../../core/services/patient.service';
-
-interface MedicalRecord {
-  id: string;
-  patient_id: string;
-  doctor_id: string;
-  date: string;
-  chief_complaint: string;
-  observations: string;
-  diagnosis: string | null;
-  prescriptions: string | null;
-  created_at: string;
-}
+import { ClinicalService, MedicalRecord, MedicalRecordContent } from '../../core/services/clinical.service';
 
 @Component({
   selector: 'app-clinical',
@@ -224,6 +213,7 @@ interface MedicalRecord {
 export class ClinicalComponent {
   private clinicContext = inject(ClinicContextService);
   private patientService = inject(PatientService);
+  private clinicalService = inject(ClinicalService);
 
   readonly SearchIcon = Search;
   readonly UserIcon = User;
@@ -245,6 +235,7 @@ export class ClinicalComponent {
   focusMode = signal(true);
   saving = signal(false);
   aiLoading = signal(false);
+  records = signal<MedicalRecord[]>([]);
 
   selectedClinicId = this.clinicContext.selectedClinicId;
 
@@ -292,6 +283,7 @@ export class ClinicalComponent {
   selectPatient(patient: Patient) {
     this.selectedPatient.set(patient);
     this.clearRecord();
+    this.loadRecords(patient.id);
   }
 
   toggleFocusMode() {
@@ -308,19 +300,33 @@ export class ClinicalComponent {
   }
 
   async saveRecord() {
-    if (!this.selectedPatient()) return;
-    
+    const patient = this.selectedPatient();
+    if (!patient) return;
+
     this.saving.set(true);
     try {
-      // TODO: Call RPC to save medical record
-      console.log('Saving record:', this.record, 'for patient:', this.selectedPatient()?.id);
-      // Simulated save
-      await new Promise(r => setTimeout(r, 1000));
+      const content: MedicalRecordContent = {
+        chief_complaint: this.record.chief_complaint,
+        observations: this.record.observations,
+        diagnosis: this.record.diagnosis,
+        prescriptions: this.record.prescriptions
+      };
+      await this.clinicalService.createRecord(patient.id, content);
       this.clearRecord();
+      await this.loadRecords(patient.id);
     } catch (err) {
       console.error('Error saving record:', err);
     } finally {
       this.saving.set(false);
+    }
+  }
+
+  async loadRecords(patientId: string) {
+    try {
+      const data = await this.clinicalService.getRecordsByPatient(patientId);
+      this.records.set(data);
+    } catch (err) {
+      console.error('Error loading records:', err);
     }
   }
 
