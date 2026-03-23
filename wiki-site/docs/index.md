@@ -24,7 +24,9 @@ features:
 
 Access the technical blueprints and reference guides for the IntraClinica platform.
 
+- **[Changelog](/changelog)** — Track recent architectural and feature changes.
 - **[Exhaustive Deep-Dive](/raw-reports/exhaustive-deep-dive)** — The comprehensive technical reference and architectural audit.
+- **[ADR 001: Legacy Migration Strategy](/core-architecture/adrs/001-legacy-migration-strategy)** — Migration blueprints and parallel architecture.
 - **[Session Cold Boot & Schema Drift](/raw-reports/session-cold-boot-incident)** — Analysis of session state loss and UUID mismatch incident.
 - **[IAM & Security Model](/core-architecture/iam-security-model)** — Details on multi-tenant isolation, `iam_bindings`, and RLS.
 - **[Database Schema](/core-architecture/database)** — Tables, RPC functions, and migration strategies.
