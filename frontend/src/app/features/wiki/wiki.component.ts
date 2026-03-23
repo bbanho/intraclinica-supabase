@@ -1,7 +1,7 @@
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, inject, signal, effect } from '@angular/core';
 import { Router } from '@angular/router';
+import { IamService } from '../../core/services/iam.service';
 import { AuthService } from '../../core/services/auth.service';
-import { SupabaseService } from '../../core/services/supabase.service';
 
 @Component({
   selector: 'app-wiki',
@@ -19,32 +19,30 @@ import { SupabaseService } from '../../core/services/supabase.service';
     </div>
   `
 })
-export class WikiComponent implements OnInit {
+export class WikiComponent {
   private router = inject(Router);
+  private iam = inject(IamService);
   private auth = inject(AuthService);
-  private db = inject(SupabaseService).clientInstance;
   
   error = signal<string | null>(null);
 
-  async ngOnInit() {
-    const user = this.auth.currentUser();
-    if (!user) {
-      this.router.navigate(['/login']);
-      return;
-    }
+  constructor() {
+    effect(() => {
+      const user = this.auth.currentUser();
+      const initialized = this.iam.isInitialized();
 
-    const { data } = await this.db.from('app_user').select('role, iam_bindings').eq('id', user.id).single();
-    
-    // IAM Principle: 1. Role (Package) -> 2. Grants (Cherry-picked) -> 3. Blocks
-    const isSuperAdmin = data?.role === 'SUPER_ADMIN';
-    const hasSupportRole = data?.role === 'SUPPORT';
-    // Access cherry-picked grant: {"global": ["VIEW_WIKI"]}
-    const hasWikiGrant = data?.iam_bindings?.['global']?.includes('VIEW_WIKI');
+      if (!user) {
+        this.router.navigate(['/login']);
+        return;
+      }
 
-    if (isSuperAdmin || hasSupportRole || hasWikiGrant) {
-      window.location.href = '/wiki/';
-    } else {
-      this.error.set('Sua conta não possui privilégios de IAM para visualizar a documentação interna.');
-    }
+      if (!initialized) return;
+
+      if (this.iam.can('clinics.manage') || this.iam.can('ai.use')) {
+        window.location.replace('/wiki/');
+      } else {
+        this.error.set('Sua conta não possui privilégios arquiteturais ou autorização para visualizar a documentação interna.');
+      }
+    });
   }
 }

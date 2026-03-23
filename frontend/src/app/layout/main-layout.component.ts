@@ -1,10 +1,13 @@
-import { Component, inject, OnInit, signal } from '@angular/core';
+import { Component, inject, signal } from '@angular/core';
+import { toObservable, toSignal } from '@angular/core/rxjs-interop';
 import { RouterOutlet, RouterLink, RouterLinkActive } from '@angular/router';
 import { AuthService } from '../core/services/auth.service';
 import { ClinicContextService } from '../core/services/clinic-context.service';
 import { SupabaseService } from '../core/services/supabase.service';
 import { IamService } from '../core/services/iam.service';
+import { UserIamBindings } from '../core/models/iam.types';
 import { LucideAngularModule, LayoutDashboard, Users, Calendar, Box, LogOut, Building2, ShieldAlert, Menu, X, Stethoscope, BookOpen } from 'lucide-angular';
+import { switchMap, from, of, tap } from 'rxjs';
 
 @Component({
   selector: 'app-main-layout',
@@ -153,13 +156,12 @@ import { LucideAngularModule, LayoutDashboard, Users, Calendar, Box, LogOut, Bui
     </div>
   `
 })
-export class MainLayoutComponent implements OnInit {
+export class MainLayoutComponent {
   auth = inject(AuthService);
   context = inject(ClinicContextService);
   iam = inject(IamService);
   private db = inject(SupabaseService).clientInstance;
 
-  myClinics = signal<any[]>([]);
   isMobileMenuOpen = signal(false);
 
   // Icons
@@ -175,39 +177,47 @@ export class MainLayoutComponent implements OnInit {
   readonly Stethoscope = Stethoscope;
   readonly BookOpen = BookOpen;
 
-  ngOnInit() {
-    this.loadClinics();
-  }
+  // Race-condition safe (RxJS SwitchMap cancels outdated pending async queries)
+  myClinics = toSignal(
+    toObservable(this.iam.userBindings).pipe(
+      switchMap(bindings => {
+        if (!bindings) return of([]);
+
+        const allowedClinicIds = Object.keys(bindings).filter(k => k !== 'global');
+        
+        if (allowedClinicIds.length > 0) {
+          return from(
+            this.db.from('clinic').select('id, name').in('id', allowedClinicIds)
+          ).pipe(
+            switchMap(({ data, error }) => {
+               if (error) {
+                 console.error('[MainLayout] Falha ao carregar clínicas:', error);
+                 return of([]);
+               }
+
+               // Auto-select a primeira clínica se não tiver contexto global
+               if (data && data.length > 0 && !this.context.selectedClinicId() && !bindings['global']) {
+                 this.context.setContext(data[0].id);
+               }
+
+               // Se tiver poderes globais, seta o contexto para 'all' por default
+               if (bindings['global'] && !this.context.selectedClinicId()) {
+                 this.context.setContext('all');
+               }
+
+               return of(data || []);
+            })
+          );
+        }
+        
+        return of([]);
+      })
+    ),
+    { initialValue: [] as {id: string, name: string}[] }
+  );
 
   closeMobileMenu() {
     this.isMobileMenuOpen.set(false);
-  }
-
-  async loadClinics() {
-    const user = this.auth.currentUser();
-    if (!user) return;
-
-    // Busca quais clínicas o usuário tem acesso lendo as chaves do iam_bindings
-    const { data: userData } = await this.db.from('app_user').select('iam_bindings').eq('id', user.id).single();
-    if (userData?.iam_bindings) {
-      const allowedClinicIds = Object.keys(userData.iam_bindings).filter(k => k !== 'global');
-      
-      if (allowedClinicIds.length > 0) {
-        const { data } = await this.db.from('clinic').select('id, name').in('id', allowedClinicIds);
-        if (data) {
-          this.myClinics.set(data);
-          // Auto-select a primeira clínica se não tiver contexto global
-          if (!this.context.selectedClinicId() && !userData.iam_bindings['global']) {
-            this.context.setContext(data[0].id);
-          }
-        }
-      }
-      
-      // Se for super admin, seta o contexto pra all por default
-      if (userData.iam_bindings['global'] && !this.context.selectedClinicId()) {
-         this.context.setContext('all');
-      }
-    }
   }
 
   onContextChange(id: string) {

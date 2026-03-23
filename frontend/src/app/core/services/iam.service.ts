@@ -18,6 +18,7 @@ export class IamService {
   
   // O Estado de Segurança do Usuário Atual (JSONB Binding Matrix)
   private _userBindings = signal<UserIamBindings | null>(null);
+  public userBindings = this._userBindings.asReadonly();
   
   // Status de carregamento do dicionário e permissões
   public isInitialized = signal<boolean>(false);
@@ -88,54 +89,43 @@ export class IamService {
 
     const currentClinicId = this.clinicCtx.selectedClinicId();
 
-    // ---------------------------------------------------------
-    // AVALIAÇÃO DO CONTEXTO LOCAL (CLÍNICA)
-    // ---------------------------------------------------------
+    // 1. Avalia o contexto local (Clínica)
     if (currentClinicId && currentClinicId !== 'all' && bindings[currentClinicId]) {
-      const localCtx = bindings[currentClinicId] as IamBindingContext;
-      
-      // 1. Cherry-picked Block (Absolute Deny)
-      if (localCtx.blocks?.includes(permissionKey)) return false;
-
-      // 2. Cherry-picked Grant (Permit)
-      if (localCtx.grants?.includes(permissionKey)) return true;
-
-      // 3. Resolve Pacote de Roles Locais
-      if (localCtx.roles && localCtx.roles.length > 0) {
-        for (const roleId of localCtx.roles) {
-          const roleDef = this._roles().get(roleId);
-          if (roleDef && roleDef.default_grants.includes(permissionKey)) {
-            return true;
-          }
-        }
-      }
+      const localResult = this.evaluateContextPermissions(bindings[currentClinicId], permissionKey);
+      if (localResult !== null) return localResult;
     }
 
-    // ---------------------------------------------------------
-    // AVALIAÇÃO DO CONTEXTO GLOBAL (SaaS)
-    // ---------------------------------------------------------
-    if (bindings.global) {
-      const globalCtx = bindings.global;
-
-      // 1. Cherry-picked Global Block
-      if (globalCtx.blocks?.includes(permissionKey)) return false;
-
-      // 2. Cherry-picked Global Grant
-      if (globalCtx.grants?.includes(permissionKey)) return true;
-
-      // 3. Resolve Pacote de Roles Globais
-      if (globalCtx.roles && globalCtx.roles.length > 0) {
-        for (const roleId of globalCtx.roles) {
-          const roleDef = this._roles().get(roleId);
-          if (roleDef && roleDef.default_grants.includes(permissionKey)) {
-            return true;
-          }
-        }
-      }
-    }
+    // 2. Fallback para o contexto Global (SaaS)
+    const globalResult = this.evaluateContextPermissions(bindings.global, permissionKey);
+    if (globalResult !== null) return globalResult;
 
     // Default: Deny
     return false;
+  }
+
+  /**
+   * Helper privado para evitar duplicação entre contexto local e global (Dica do Code Review)
+   */
+  private evaluateContextPermissions(context: IamBindingContext | undefined, permissionKey: string): boolean | null {
+    if (!context) return null;
+
+    // 1. Cherry-picked Block (Absolute Deny)
+    if (context.blocks?.includes(permissionKey)) return false;
+
+    // 2. Cherry-picked Grant (Permit)
+    if (context.grants?.includes(permissionKey)) return true;
+
+    // 3. Resolve Pacote de Roles
+    if (context.roles && context.roles.length > 0) {
+      for (const roleId of context.roles) {
+        const roleDef = this._roles().get(roleId);
+        if (roleDef && roleDef.default_grants.includes(permissionKey)) {
+          return true;
+        }
+      }
+    }
+
+    return null;
   }
 
   /**
