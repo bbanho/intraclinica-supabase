@@ -5,6 +5,7 @@ import { LucideAngularModule, Search, User, FileText, Activity, Heart, Pill, Ale
 import { ClinicContextService } from '../../core/services/clinic-context.service';
 import { PatientService, Patient } from '../../core/services/patient.service';
 import { ClinicalService, MedicalRecord, MedicalRecordContent, MedicalRecordType } from '../../core/services/clinical.service';
+import { IamService } from '../../core/services/iam.service';
 
 @Component({
   selector: 'app-clinical',
@@ -282,6 +283,7 @@ export class ClinicalComponent {
   private clinicContext = inject(ClinicContextService);
   private patientService = inject(PatientService);
   private clinicalService = inject(ClinicalService);
+  private iam = inject(IamService);
 
   readonly SearchIcon = Search;
   readonly UserIcon = User;
@@ -312,6 +314,7 @@ export class ClinicalComponent {
   recordsError = signal<string | null>(null);
 
   selectedClinicId = this.clinicContext.selectedClinicId;
+  canWrite = computed(() => this.iam.can('clinical.write'));
 
   readonly recordTypes: { value: MedicalRecordType; label: string }[] = [
     { value: 'EVOLUCAO', label: 'Evolução' },
@@ -387,6 +390,10 @@ export class ClinicalComponent {
   }
 
   async saveRecord() {
+    if (!this.canWrite()) {
+      this.saveError.set('Sem permissão para criar prontuário');
+      return;
+    }
     const patient = this.selectedPatient();
     if (!patient) return;
 
