@@ -260,8 +260,16 @@ alter table public.access_request
 create policy "Solicitações: Criar" on public.access_request
   for insert with check (requester_user_id = auth.uid());
 
-create policy "Solicitações: Ver Próprias" on public.access_request
-  for select using (requester_user_id = auth.uid() or public.is_super_admin());
+do $$
+begin
+  if exists (select 1 from pg_proc where proname = 'is_super_admin' and pronamespace = (select oid from pg_namespace where nspname = 'public')) then
+    execute 'create policy "Solicitações: Ver Próprias" on public.access_request for select using (requester_user_id = auth.uid() or public.is_super_admin())';
+  else
+    create policy "Solicitações: Ver Próprias" on public.access_request
+      for select using (requester_user_id = auth.uid());
+  end if;
+end
+$$;
 
 -- ---------------------------------------------------------------------------
 -- 12. Drop legacy inventory tables (data already migrated)
