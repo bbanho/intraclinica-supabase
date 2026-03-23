@@ -33,7 +33,7 @@ export class IamService {
         this._userBindings.set(null);
         this.isInitialized.set(false);
       }
-    });
+    }, { allowSignalWrites: true });
   }
 
   /**

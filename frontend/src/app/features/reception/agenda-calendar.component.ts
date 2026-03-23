@@ -140,7 +140,7 @@ export class AgendaCalendarComponent {
         this.doctors.set([]);
         this.appointments.set([]);
       }
-    });
+    }, { allowSignalWrites: true });
   }
 
   async loadData() {

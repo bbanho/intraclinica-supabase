@@ -43,6 +43,6 @@ export class WikiComponent {
       } else {
         this.error.set('Sua conta não possui privilégios arquiteturais ou autorização para visualizar a documentação interna.');
       }
-    });
+    }, { allowSignalWrites: true });
   }
 }

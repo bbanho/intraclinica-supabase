@@ -12,7 +12,18 @@ import { ProductModalComponent } from './product-modal/product-modal.component';
   standalone: true,
   imports: [DialogModule, LucideAngularModule, CurrencyPipe],
   template: `
-    <div class="p-6 max-w-7xl mx-auto">
+    @if (!selectedClinicId() || selectedClinicId() === 'all') {
+      <div class="h-full flex items-center justify-center p-8 min-h-[400px]">
+        <div class="text-center max-w-md bg-white p-8 rounded-2xl shadow-sm border border-gray-100">
+          <div class="w-16 h-16 bg-amber-50 rounded-full flex items-center justify-center mx-auto mb-4">
+            <lucide-icon [img]="AlertCircleIcon" class="text-amber-600 w-8 h-8"></lucide-icon>
+          </div>
+          <h2 class="text-xl font-semibold text-gray-900 mb-2">Selecione uma clínica</h2>
+          <p class="text-sm text-gray-500">O módulo de estoque requer que uma clínica específica seja selecionada no contexto acima.</p>
+        </div>
+      </div>
+    } @else {
+      <div class="p-6 max-w-7xl mx-auto">
       <!-- Header -->
       <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
         <div>
@@ -193,6 +204,7 @@ import { ProductModalComponent } from './product-modal/product-modal.component';
         </div>
       }
     </div>
+    }
   `
 })
 export class InventoryComponent {
@@ -200,6 +212,8 @@ export class InventoryComponent {
   private clinicContext = inject(ClinicContextService);
   private iam = inject(IamService);
   private dialog = inject(Dialog);
+
+  selectedClinicId = this.clinicContext.selectedClinicId;
 
   canViewCost = computed(() => this.iam.can('inventory.view_cost'));
 
@@ -246,7 +260,7 @@ export class InventoryComponent {
       } else {
         this.products.set([]);
       }
-    });
+    }, { allowSignalWrites: true });
   }
 
   async loadProducts() {

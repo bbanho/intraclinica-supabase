@@ -13,7 +13,18 @@ const GENDER_MAP: Record<string, string> = { M: 'Masculino', F: 'Feminino', O: '
   standalone: true,
   imports: [DialogModule, LucideAngularModule],
   template: `
-    <div class="h-full flex flex-col p-6 bg-gray-50">
+    @if (!selectedClinicId() || selectedClinicId() === 'all') {
+      <div class="h-full flex items-center justify-center p-8 min-h-[400px]">
+        <div class="text-center max-w-md bg-white p-8 rounded-2xl shadow-sm border border-gray-100">
+          <div class="w-16 h-16 bg-amber-50 rounded-full flex items-center justify-center mx-auto mb-4">
+            <lucide-icon [img]="AlertCircleIcon" class="text-amber-600 w-8 h-8"></lucide-icon>
+          </div>
+          <h2 class="text-xl font-semibold text-gray-900 mb-2">Selecione uma clínica</h2>
+          <p class="text-sm text-gray-500">O módulo de pacientes requer que uma clínica específica seja selecionada no contexto acima para evitar vazamento de dados.</p>
+        </div>
+      </div>
+    } @else {
+      <div class="h-full flex flex-col p-6 bg-gray-50">
       <header class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <div>
           <h1 class="text-2xl font-bold text-gray-900">Pacientes</h1>
@@ -141,12 +152,15 @@ const GENDER_MAP: Record<string, string> = { M: 'Masculino', F: 'Feminino', O: '
         </div>
       }
     </div>
+    }
   `
 })
 export class PatientsComponent {
   private patientService = inject(PatientService);
   private context = inject(ClinicContextService);
   private dialog = inject(Dialog);
+
+  selectedClinicId = this.context.selectedClinicId;
 
   patients = signal<Patient[]>([]);
   loading = signal(false);
@@ -180,7 +194,7 @@ export class PatientsComponent {
       } else {
         this.patients.set([]);
       }
-    });
+    }, { allowSignalWrites: true });
   }
 
   onSearch(event: Event) {

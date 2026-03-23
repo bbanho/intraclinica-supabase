@@ -348,7 +348,7 @@ export class ClinicalComponent {
       } else {
         this.patients.set([]);
       }
-    });
+    }, { allowSignalWrites: true });
   }
 
   async loadPatients() {

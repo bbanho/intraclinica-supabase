@@ -210,7 +210,7 @@ export class ReceptionComponent {
         this.appointments.set([]);
         this.doctors.set([]);
       }
-    });
+    }, { allowSignalWrites: true });
   }
 
   async loadAppointments() {
