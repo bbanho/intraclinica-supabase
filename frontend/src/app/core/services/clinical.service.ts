@@ -54,7 +54,10 @@ export class ClinicalService {
       });
 
     if (error) throw error;
-    return (data as MedicalRecord[])[0];
+    if (!data || data.length === 0) {
+      throw new Error('Failed to create medical record');
+    }
+    return data[0] as MedicalRecord;
   }
 
   async getRecordsByPatient(patientId: string): Promise<MedicalRecord[]> {
@@ -66,9 +69,14 @@ export class ClinicalService {
       .order('created_at', { ascending: false });
 
     if (error) throw error;
-    return (data as MedicalRecord[]).map(r => ({
-      ...r,
-      content: typeof r.content === 'string' ? JSON.parse(r.content) : r.content
-    }));
+    return (data as MedicalRecord[]).map(r => {
+      let parsed: MedicalRecordContent;
+      try {
+        parsed = typeof r.content === 'string' ? JSON.parse(r.content) : r.content;
+      } catch {
+        parsed = { chief_complaint: '', observations: '', diagnosis: '', prescriptions: '' };
+      }
+      return { ...r, content: parsed };
+    });
   }
 }

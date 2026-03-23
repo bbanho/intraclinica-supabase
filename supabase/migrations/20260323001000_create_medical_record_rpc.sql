@@ -25,4 +25,4 @@ BEGIN
 END;
 $$;
 
-GRANT EXECUTE ON FUNCTION public.create_medical_record TO anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.create_medical_record TO authenticated;

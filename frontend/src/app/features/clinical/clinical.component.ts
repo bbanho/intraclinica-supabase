@@ -184,25 +184,33 @@ import { ClinicalService, MedicalRecord, MedicalRecordContent } from '../../core
             </div>
 
             <!-- FOOTER: Actions -->
-            <footer class="px-6 py-4 border-t border-slate-700 bg-slate-800/30 flex justify-end gap-3">
-              <button
-                (click)="clearRecord()"
-                class="px-4 py-2 text-slate-300 hover:text-white hover:bg-slate-700 rounded-lg transition-colors font-medium"
-              >
-                Limpar
-              </button>
-              <button
-                (click)="saveRecord()"
-                [disabled]="saving() || !record.chief_complaint"
-                class="px-6 py-2 bg-teal-600 hover:bg-teal-500 text-white font-medium rounded-lg transition-colors disabled:opacity-50 flex items-center gap-2"
-              >
-                @if (saving()) {
-                  <lucide-icon [img]="Loader2Icon" class="w-4 h-4 animate-spin"></lucide-icon>
-                  Salvando...
-                } @else {
-                  Salvar Prontuário
-                }
-              </button>
+            <footer class="px-6 py-4 border-t border-slate-700 bg-slate-800/30 flex flex-col gap-3">
+              @if (saveError()) {
+                <div class="flex items-center gap-2 px-3 py-2 bg-red-900/50 border border-red-700 rounded-lg text-red-300 text-sm">
+                  <lucide-icon [img]="AlertCircleIcon" class="w-4 h-4 shrink-0"></lucide-icon>
+                  {{ saveError() }}
+                </div>
+              }
+              <div class="flex justify-end gap-3">
+                <button
+                  (click)="clearRecord()"
+                  class="px-4 py-2 text-slate-300 hover:text-white hover:bg-slate-700 rounded-lg transition-colors font-medium"
+                >
+                  Limpar
+                </button>
+                <button
+                  (click)="saveRecord()"
+                  [disabled]="saving() || !record.chief_complaint"
+                  class="px-6 py-2 bg-teal-600 hover:bg-teal-500 text-white font-medium rounded-lg transition-colors disabled:opacity-50 flex items-center gap-2"
+                >
+                  @if (saving()) {
+                    <lucide-icon [img]="Loader2Icon" class="w-4 h-4 animate-spin"></lucide-icon>
+                    Salvando...
+                  } @else {
+                    Salvar Prontuário
+                  }
+                </button>
+              </div>
             </footer>
           }
         </main>
@@ -236,6 +244,7 @@ export class ClinicalComponent {
   saving = signal(false);
   aiLoading = signal(false);
   records = signal<MedicalRecord[]>([]);
+  saveError = signal<string | null>(null);
 
   selectedClinicId = this.clinicContext.selectedClinicId;
 
@@ -303,6 +312,7 @@ export class ClinicalComponent {
     const patient = this.selectedPatient();
     if (!patient) return;
 
+    this.saveError.set(null);
     this.saving.set(true);
     try {
       const content: MedicalRecordContent = {
@@ -314,8 +324,9 @@ export class ClinicalComponent {
       await this.clinicalService.createRecord(patient.id, content);
       this.clearRecord();
       await this.loadRecords(patient.id);
-    } catch (err) {
-      console.error('Error saving record:', err);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Erro ao salvar prontuário';
+      this.saveError.set(message);
     } finally {
       this.saving.set(false);
     }
