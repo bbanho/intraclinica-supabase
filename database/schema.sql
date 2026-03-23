@@ -410,3 +410,4 @@ WITH CHECK (
 );
 
 COMMIT;
+ALTER TABLE public.patient ADD COLUMN phone text;
