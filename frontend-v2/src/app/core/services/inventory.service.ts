@@ -47,29 +47,20 @@ export class InventoryService {
   async createProduct(dto: CreateProductDto): Promise<Product> {
     const clinicId = this.requireClinicId();
     
-    // insert product
+    // insert product via RPC to guarantee atomicity of product + initial stock transaction
     const { data, error } = await this.supabase
-      .from('product')
-      .insert({ ...dto, clinic_id: clinicId })
-      .select()
-      .single();
+      .rpc('create_product_with_stock', {
+        p_clinic_id: clinicId,
+        p_name: dto.name,
+        p_category: dto.category,
+        p_price: dto.price,
+        p_cost: dto.cost || 0,
+        p_min_stock: dto.min_stock || 0,
+        p_current_stock: dto.current_stock || 0,
+        p_barcode: dto.barcode
+      });
 
     if (error) throw error;
-    
-    // Create initial stock transaction if current_stock > 0
-    if (dto.current_stock > 0) {
-      const { error: txError } = await this.supabase
-        .from('stock_transaction')
-        .insert({
-          clinic_id: clinicId,
-          product_id: data.id,
-          quantity: dto.current_stock,
-          type: 'IN',
-          notes: 'Initial stock setup'
-        });
-        
-      if (txError) throw txError;
-    }
     
     return data as Product;
   }
