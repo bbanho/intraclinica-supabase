@@ -58,7 +58,17 @@ The database has undergone significant hardening and feature expansion since Mar
 
 ## 3. RPC Catalog (Atomic Operations)
 
-As per `AGENTS.md:89`, always use PostgreSQL RPCs for multi-table mutations to ensure atomicity.
+As per `AGENTS.md:89`, always use PostgreSQL RPCs for multi-table mutations to ensure atomicity. All multi-record mutations must use RPC functions (e.g., `create_product_with_stock`) — never double await `insert()` in Angular services.
+
+| Function | Params | Returns | Purpose | Frontend |
+|---|---|---|---|---|
+| `create_medical_record` | `clinic_id`, `patient_id`, `doctor_id`, `content` (jsonb), `type` | `SETOF clinical_record` | Atomic medical record insert | `clinical.service.ts` |
+| `create_product_with_stock` | `clinic_id`, `name`, `category`, `price`, `cost`, `min_stock`, `current_stock`, `barcode` | `jsonb` | Atomic product+stock insert | `inventory.service.ts` |
+| `get_clinic_ui_config` | `p_clinic_id` uuid | `jsonb` | Batch clinic UI config fetch | ⚠️ NOT USED (direct table queries in admin-panel) |
+| `has_permission` | `user_uuid`, `clinic_id`, `permission` | `boolean` | IAM evaluation for RLS | DB only |
+| `has_clinic_access` | `target_clinic_id` | `boolean` | RLS: super admin or clinic binding | DB only |
+| `has_clinic_role` | `target_clinic_id`, `target_role` | `boolean` | RLS: role check in clinic | DB only |
+| `is_super_admin` | (none) | `boolean` | RLS: super admin check | DB only |
 
 ### `create_product_with_stock`
 Atomically creates a product and its initial inventory transaction.

@@ -34,7 +34,32 @@ Para que um usuário comum com permissão `users.manage` não consiga escalar se
 **Regra de Ouro da Delegação:** Um usuário só pode atribuir papéis (Roles) aos seus funcionários que tenham um Level **maior ou igual** ao seu próprio Level.
 *Exemplo:* O Administrador (10) pode criar um Médico (20) ou um Recepcionista (40). O Médico (20) não pode transformar ninguém em Administrador (10).
 
-## 3. O Dicionário de Dados (Supabase)
+## 3. O Catálogo de Permissões (Ações Atômicas)
+
+Abaixo está o catálogo completo de 17 permissões definidas no sistema core (Migration `20260323000001_iam_core_system.sql`).
+
+| ID da Permissão | Módulo | Descrição | Status UI |
+| :--- | :--- | :--- | :--- |
+| `appointments.read` | `reception` | Ver Agenda | ✅ Enforced |
+| `appointments.write` | `reception` | Gerenciar Agenda | 🏗️ DB Only |
+| `appointments.call` | `reception` | Chamar Paciente | 🏗️ DB Only |
+| `patients.read_demographics` | `patients` | Ver Cadastro do Paciente | ✅ Enforced |
+| `patients.write` | `patients` | Gerenciar Pacientes | 🏗️ DB Only |
+| `clinical.read_records` | `clinical` | Ver Prontuário | ✅ Enforced |
+| `clinical.write` | `clinical` | Atendimento Clínico | 🏗️ DB Only |
+| `clinical.perform_procedure` | `clinical` | Realizar Procedimento | 🏗️ DB Only |
+| `ai.use` | `ai` | Utilizar Inteligência Artificial | ✅ Enforced |
+| `inventory.read` | `inventory` | Ver Estoque Base | ✅ Enforced |
+| `inventory.write` | `inventory` | Operar Estoque | 🏗️ DB Only |
+| `inventory.view_cost` | `inventory` | Ver Custos do Estoque | 🏗️ DB Only |
+| `finance.read` | `finance` | Ver Dashboards Financeiros | 🏗️ DB Only |
+| `marketing.write` | `marketing` | Gerar Marketing | 🏗️ DB Only |
+| `users.manage` | `admin` | Gerenciar Equipe | ✅ Enforced |
+| `clinics.manage` | `admin` | Configurações da Clínica | ✅ Enforced |
+
+> **Nota de Implementação:** As permissões marcadas como `✅ Enforced` já são utilizadas pelo `MainLayoutComponent` para renderizar condicionalmente os menus de navegação. As permissões `🏗️ DB Only` já estão protegidas via RLS no PostgreSQL, mas ainda não possuem travas visuais no frontend.
+
+## 4. O Dicionário de Dados (Supabase)
 
 Tudo isso vive em duas tabelas estáticas no PostgreSQL, expostas ao frontend apenas para leitura:
 
@@ -63,6 +88,9 @@ Para evitar JOINs custosos a cada query no Supabase (o que destruiria a performa
 ```
 
 A função RPC do PostgreSQL `has_permission(auth.uid(), clinic_id, 'inventory.view_cost')` decodifica esse JSONB em milissegundos e retorna `TRUE` ou `FALSE` diretamente para a Row Level Security de tabelas como `patients` e `products`.
+
+### 4.1 Legacy Compatability Warning
+A função auxiliar RLS `has_clinic_role(clinic_id, 'DOCTOR')` presente na migration `20260322230000` é considerada **LEGACY**. Ela deve ser atualizada para utilizar o formato `roles/doctor` em uma migration futura, garantindo a consistência com o padrão de nomenclatura adotado no frontend e no motor IAM consolidado.
 
 ## 5. Frontend Implementation (`IamService`)
 

@@ -29,7 +29,7 @@ description: Regras implícitas e funções RPC extraídas das migrations SQL (2
 
 **2. Vertical Privilege Segregation (IAM)**
 *   Usuário pode ser *Recepcionista* na Clínica A e *Médico* na Clínica B.
-*   `clinical_record` tem barreira estrita: frontend usa `has_clinic_role(clinic_id, 'DOCTOR')` na RLS (O novo motor unificará em `has_permission`).
+*   `clinical_record` tem barreira estrita: frontend usa `has_clinic_role(clinic_id, 'roles/doctor')` na RLS (O novo motor unificará em `has_permission`).
 
 **3. Flattened Data Boundaries**
 *   Sem tabela `actor`. Identidades desnormalizadas ( `patient.name` e `app_user.name` diretos) aceleram consultas isolando-as de joins desnecessários.

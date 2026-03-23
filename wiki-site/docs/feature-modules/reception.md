@@ -33,7 +33,7 @@ Current implementation in `AppointmentService.getDoctors()` still references the
 
 ```typescript
 // Current Logic (frontend/src/app/core/services/appointment.service.ts:73)
-.contains('iam_bindings', { [clinicId]: ['DOCTOR'] })
+.contains('iam_bindings', { [clinicId]: ['roles/doctor'] })
 ```
 
 *Note: Future refactors will consolidate this under the centralized `iam.can()` resolver to unify role-based logic.*

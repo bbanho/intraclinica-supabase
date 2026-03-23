@@ -39,7 +39,7 @@ IntraClinica is a multi-tenant SaaS. You must prevent cross-tenant data leaks at
 - Always retrieve the active clinic ID via: `const clinicId = this.context.selectedClinicId();`
 - **Data Filtering:** Never fetch, display, or mutate data without verifying and filtering by the `clinicId`. 
 - **Global vs Local:** In localized features (like Inventory, Reception, Clinical), you must abort or show an empty state if `clinicId === 'all'` or `null`.
-- **IAM:** The `app_user` table relies on an `iam_bindings` JSONB column. A static `type` column is no longer used for identifying if an actor is a doctor. Use `.contains('iam_bindings', { [clinicId]: ['DOCTOR'] })` when searching for doctors via Supabase.
+- **IAM:** The `app_user` table relies on an `iam_bindings` JSONB column. A static `type` column is no longer used for identifying if an actor is a doctor. Use `.contains('iam_bindings', { [clinicId]: ['roles/doctor'] })` when searching for doctors via Supabase.
 
 ### 3. Flat Database Schema & Atomic Operations
 The `actor` abstraction table has been flattened and removed to improve performance and code simplicity.

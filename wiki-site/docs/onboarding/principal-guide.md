@@ -86,7 +86,7 @@ User permissions are no longer determined by a static `type` column. Instead, we
 #### JSONB Bindings Mechanism
 To query if a user is a doctor within a specific clinic directly in the database, you must use JSONB containment (frontend/src/app/core/services/iam.service.ts:70):
 ```typescript
-.contains('iam_bindings', { [clinicId]: ['DOCTOR'] })
+.contains('iam_bindings', { [clinicId]: ['roles/doctor'] })
 ```
 
 ```mermaid

@@ -1,14 +1,15 @@
 import { Component, inject, signal } from '@angular/core';
-import { CommonModule } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { DialogRef, DIALOG_DATA } from '@angular/cdk/dialog';
 import { PatientService, Patient, PatientFormDto } from '../../../core/services/patient.service';
+import { IamService } from '../../../core/services/iam.service';
+import { ClinicContextService } from '../../../core/services/clinic-context.service';
 import { LucideAngularModule, X } from 'lucide-angular';
 
 @Component({
   selector: 'app-patient-modal',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, LucideAngularModule],
+  imports: [ReactiveFormsModule, LucideAngularModule],
   template: `
     <div class="flex flex-col h-full max-h-[90vh] bg-white rounded-xl shadow-2xl overflow-hidden">
       <div class="flex justify-between items-center px-6 py-4 border-b border-gray-100">
@@ -120,6 +121,8 @@ import { LucideAngularModule, X } from 'lucide-angular';
 export class PatientModalComponent {
   private fb = inject(FormBuilder);
   private patientService = inject(PatientService);
+  private iam = inject(IamService);
+  private context = inject(ClinicContextService);
   private dialogRef = inject(DialogRef);
   private data: { patient?: Patient } = inject(DIALOG_DATA) || {};
 
@@ -165,6 +168,11 @@ export class PatientModalComponent {
   async save() {
     if (this.form.invalid) {
       this.form.markAllAsTouched();
+      return;
+    }
+
+    if (!this.iam.can('patients.write')) {
+      this.error.set('Você não tem permissão para criar/editar pacientes.');
       return;
     }
 
