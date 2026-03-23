@@ -90,7 +90,7 @@ import { ProductModalComponent } from './product-modal/product-modal.component';
             </div>
             <div>
               <p class="text-sm font-medium text-gray-500">Total de Produtos</p>
-              <p class="text-2xl font-bold text-gray-900">{{ products().length }}</p>
+              <p class="text-2xl font-bold text-gray-900">{{ filteredProducts().length }}</p>
             </div>
           </div>
           
@@ -115,9 +115,34 @@ import { ProductModalComponent } from './product-modal/product-modal.component';
           </div>
         </div>
 
+        <!-- Category Filter -->
+        @if (categories().length > 2) {
+          <div class="mb-4 flex items-center gap-3">
+            <label class="text-sm font-medium text-gray-600">Filtrar por categoria:</label>
+            <select 
+              #categorySelect
+              [value]="selectedCategory()"
+              (change)="selectedCategory.set(categorySelect.value)"
+              class="px-3 py-1.5 text-sm border border-gray-200 rounded-md bg-white hover:border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            >
+              @for (cat of categories(); track cat) {
+                <option [value]="cat">{{ cat === 'all' ? 'Todas as categorias' : cat }}</option>
+              }
+            </select>
+            @if (selectedCategory() !== 'all') {
+              <button 
+                (click)="selectedCategory.set('all')"
+                class="text-xs text-blue-600 hover:text-blue-700 hover:underline"
+              >
+                Limpar filtro
+              </button>
+            }
+          </div>
+        }
+
         <!-- Product Grid -->
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-          @for (product of products(); track product.id) {
+          @for (product of filteredProducts(); track product.id) {
             <div 
               class="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden transition-all hover:shadow-md hover:border-gray-300 flex flex-col h-full"
               [class.border-rose-200]="product.current_stock < product.min_stock"
@@ -183,13 +208,28 @@ export class InventoryComponent {
   products = signal<Product[]>([]);
   loading = signal(false);
   error = signal<string | null>(null);
+  selectedCategory = signal<string>('all');
 
   totalValue = computed(() => {
-    return this.products().reduce((total, p) => total + (p.cost * p.current_stock), 0);
+    return this.filteredProducts().reduce((total, p) => total + (p.cost * p.current_stock), 0);
   });
 
   lowStockCount = computed(() => {
-    return this.products().filter(p => p.current_stock < p.min_stock).length;
+    return this.filteredProducts().filter(p => p.current_stock < p.min_stock).length;
+  });
+
+  categories = computed(() => {
+    const cats = this.products()
+      .map(p => p.category)
+      .filter(c => c && c.trim() !== '');
+    return ['all', ...new Set(cats)];
+  });
+
+  filteredProducts = computed(() => {
+    const cat = this.selectedCategory();
+    const list = this.products();
+    if (cat === 'all') return list;
+    return list.filter(p => p.category === cat);
   });
 
   constructor() {
