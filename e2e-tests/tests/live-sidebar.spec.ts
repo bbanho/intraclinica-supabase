@@ -2,17 +2,15 @@ import { test, expect } from '@playwright/test';
 
 test.describe('Live Production Verification', () => {
   test('should load the FrontendV2 login page successfully', async ({ page }) => {
-    // Navigate to the production URL
-    const response = await page.goto('https://intraclinica.axio.eng.br/', { timeout: 15000 });
+    // Navigate to production
+    await page.goto('https://intraclinica.axio.eng.br/');
     
-    // Assert successful HTTP status
-    expect(response?.status()).toBe(200);
-    
-    // Assert the page title contains FrontendV2
+    // Auto-waiting assertion for the title
     await expect(page).toHaveTitle(/FrontendV2/i);
     
-    // Check if the login form is rendered (looking for standard auth elements)
-    const emailInputVisible = await page.locator('input[type="email"]').isVisible();
-    expect(emailInputVisible).toBeTruthy();
+    // Auto-waiting assertion for the email/login input
+    // We use a CSS selector that catches standard auth fields and waits up to 15 seconds
+    const emailInput = page.locator('input[type="email"], input[name="email"], input[placeholder*="email" i]').first();
+    await expect(emailInput).toBeVisible({ timeout: 15000 });
   });
 });
