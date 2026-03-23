@@ -1,23 +1,39 @@
-name: 🚀 CI/CD IntraClinica & Documentação
+name: 🚀 CI/CD IntraClinica & Wiki
 
 on:
   push:
     branches:
       - main
+    paths:
+      - 'frontend/**'
+      - 'wiki-site/**'
+      - '.github/workflows/deploy.yml'
   workflow_dispatch:
+    inputs:
+      target:
+        description: 'Deployment target'
+        required: false
+        default: 'all'
+        type: choice
+        options:
+          - all
+          - wiki
 
 jobs:
-  build-and-deploy:
+  # ────────────────────────────────────────────────────────────
+  # JOB 1: Angular SaaS (only when frontend/ changes)
+  # ────────────────────────────────────────────────────────────
+  build-frontend:
+    if: github.event_name == 'workflow_dispatch' && github.event.inputs.target != 'wiki' || github.event_name != 'workflow_dispatch'
     runs-on: ubuntu-latest
     permissions:
       contents: read
       deployments: write
 
     steps:
-      - name: 📥 Checkout do Repositório
+      - name: 📥 Checkout
         uses: actions/checkout@v4
 
-      # -- PARTE 1: COMPILAR O SAAS (ANGULAR 18+) --
       - name: ⚙️ Setup Node.js 22
         uses: actions/setup-node@v4
         with:
@@ -30,16 +46,15 @@ jobs:
           ./node_modules/.bin/tsc --noEmit -p tsconfig.app.json
           npm run build -- --configuration=production
 
-      # -- PARTE 2: MERGE DE ASSETS (APP + DOCS) --
-      - name: 🔄 Integrar Documentação com o App Compilado
+      - name: 🔄 Integrar Wiki no App Compilado
+        if: github.event_name != 'workflow_dispatch' || github.event.inputs.target == 'all'
         run: |
-          # Cria a pasta /doc/ dentro da pasta de publicação final do Angular (browser)
-          mkdir -p frontend/dist/frontend/browser/doc
-          
-          # Copia o portal estático (index.html) e os arquivos Markdown para /doc/
-          cp -r documentacao/* frontend/dist/frontend/browser/doc/
+          mkdir -p frontend/dist/frontend/browser/wiki
+          cd wiki-site
+          npm ci
+          npm run docs:build
+          cp -r wiki-site/.vitepress/dist/* frontend/dist/frontend/browser/wiki/
 
-      # -- PARTE 3: PUBLICAÇÃO (CLOUDFLARE PAGES) --
       - name: ☁️ Deploy no Cloudflare Pages
         uses: cloudflare/pages-action@v1
         with:
@@ -47,5 +62,40 @@ jobs:
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           projectName: 'intraclinica-supabase'
           directory: 'frontend/dist/frontend/browser'
+          gitHubToken: ${{ secrets.GITHUB_TOKEN }}
+          branch: main
+
+  # ────────────────────────────────────────────────────────────
+  # JOB 2: Wiki-only deploy (manual trigger)
+  # ────────────────────────────────────────────────────────────
+  build-wiki:
+    if: github.event_name == 'workflow_dispatch' && (github.event.inputs.target == 'wiki' || github.event.inputs.target == 'all')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      deployments: write
+
+    steps:
+      - name: 📥 Checkout
+        uses: actions/checkout@v4
+
+      - name: ⚙️ Setup Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: 📦 Build Wiki (VitePress)
+        run: |
+          cd wiki-site
+          npm ci
+          npm run docs:build
+
+      - name: ☁️ Deploy Wiki no Cloudflare Pages
+        uses: cloudflare/pages-action@v1
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          projectName: 'intraclinica-supabase'
+          directory: 'wiki-site/.vitepress/dist'
           gitHubToken: ${{ secrets.GITHUB_TOKEN }}
           branch: main

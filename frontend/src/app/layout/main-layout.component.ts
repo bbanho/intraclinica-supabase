@@ -3,7 +3,7 @@ import { RouterOutlet, RouterLink, RouterLinkActive } from '@angular/router';
 import { AuthService } from '../core/services/auth.service';
 import { ClinicContextService } from '../core/services/clinic-context.service';
 import { SupabaseService } from '../core/services/supabase.service';
-import { LucideAngularModule, LayoutDashboard, Users, Calendar, Box, LogOut, Building2, ShieldAlert, Menu, X, Stethoscope } from 'lucide-angular';
+import { LucideAngularModule, LayoutDashboard, Users, Calendar, Box, LogOut, Building2, ShieldAlert, Menu, X, Stethoscope, BookOpen } from 'lucide-angular';
 
 @Component({
   selector: 'app-main-layout',
@@ -78,6 +78,11 @@ import { LucideAngularModule, LayoutDashboard, Users, Calendar, Box, LogOut, Bui
           <a routerLink="/clinical" routerLinkActive="bg-teal-600 text-white" (click)="closeMobileMenu()" class="flex items-center gap-3 px-4 py-3.5 rounded-xl text-slate-300 hover:text-white hover:bg-white/10 transition-all font-medium group">
             <lucide-icon [img]="Stethoscope" [size]="20" class="text-slate-400 group-[.bg-teal-600]:text-white transition-colors"></lucide-icon>
             Prontuário
+          </a>
+
+          <a routerLink="/wiki" routerLinkActive="bg-teal-600 text-white" (click)="closeMobileMenu()" class="flex items-center gap-3 px-4 py-3.5 rounded-xl text-slate-300 hover:text-white hover:bg-white/10 transition-all font-medium group">
+            <lucide-icon [img]="BookOpen" [size]="20" class="text-slate-400 group-[.bg-teal-600]:text-white transition-colors"></lucide-icon>
+            Wiki
           </a>
 
         </nav>
@@ -157,6 +162,7 @@ export class MainLayoutComponent implements OnInit {
   readonly Menu = Menu;
   readonly X = X;
   readonly Stethoscope = Stethoscope;
+  readonly BookOpen = BookOpen;
 
   ngOnInit() {
     this.checkAdminRole();
