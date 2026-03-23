@@ -41,6 +41,10 @@ export const routes: Routes = [
         loadComponent: () => import('./features/reports/reports.component').then(m => m.ReportsComponent)
       },
       {
+        path: 'social',
+        loadComponent: () => import('./features/social/social.component').then(m => m.SocialComponent)
+      },
+      {
         path: 'wiki',
         loadComponent: () => import('./features/wiki/wiki.component').then(m => m.WikiComponent)
       }
