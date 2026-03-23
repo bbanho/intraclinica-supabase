@@ -53,6 +53,19 @@ IntraClinica is deeply multi-tenant. The core security rule is: **Never fetch, d
 3.  **IAM & Feature Gating**:
     Use a central Permission Service (`db.checkPermission('permission.key', clinicId)`) to drive UI rendering (`@if`) and Route Guards. Never hardcode roles.
 
+### 4.1. Clinical Data Privacy & Cryptographic Authorization (Critical Future Requirement)
+While `SUPER_ADMIN` access is often unrestricted in early development environments for debugging purposes, **unrestricted access to third-party medical records by system administrators is a severe privacy violation in production.**
+
+To address this, the architecture mandates the future implementation of robust, mathematically proven cryptographic access controls for sensitive clinical data (e.g., patient records, appointment details, clinical notes). 
+
+**Directives for Clinical Data Security:**
+- **Explicit Authorization:** System administrators (`SUPER_ADMIN`) must NEVER have default read access to tenant clinical data. Access must require explicit, auditable cryptographic authorization from the data owner (the clinic or the specific doctor).
+- **Cryptographic Mechanisms:** We will transition from basic IAM permission checks to strong cryptographic solutions. Acceptable patterns include:
+  - **Asymmetric Key Pairs:** Utilizing the WebCrypto API where data is encrypted with the clinic's/doctor's public key and can only be decrypted by their private key.
+  - **Hardware/OS-Backed Keys:** Leveraging WebAuthn / Passkeys stored securely on the doctor's device (USB security keys, OS secure enclaves) to unwrap data encryption keys (DEKs).
+- **Zero-Knowledge Architecture Goal:** The backend (Supabase) should ideally store encrypted blobs for highly sensitive fields, ensuring that even a database breach or rogue DBA cannot read the plaintext medical records.
+- **Validation Mandate:** NEVER implement custom, "homebrew" security or encryption algorithms. All cryptographic implementations must rely exclusively on industry-standard, heavily audited libraries and protocols that hold absolute consensus within the cybersecurity and mathematical communities.
+
 ## 5. State Management Strategy
 - **Services (`entities/<domain>/api/`)**: Handle raw Supabase API/RPC calls. Stateless.
 - **Stores (`entities/<domain>/model/`)**: Signal Stores that wrap services. Expose read-only `computed()` signals to components.
