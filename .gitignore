@@ -18,3 +18,5 @@ supabase/.temp/
 *seed*.mjs
 *check*.mjs
 
+wiki-site/.vitepress/dist/
+wiki-site/node_modules/
