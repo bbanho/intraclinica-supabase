@@ -79,23 +79,43 @@ import { AppointmentService, Appointment } from '../../core/services/appointment
                  Criar Agendamento
                </button>
              </div>
+           } @else {
+             <div class="space-y-4">
+               @for (appt of appointments(); track appt.id) {
+                 <div class="flex items-center justify-between p-4 bg-slate-50 border border-slate-100 rounded-2xl hover:border-teal-200 transition-colors">
+                   <div class="flex items-center gap-4">
+                     <div class="w-12 h-12 bg-white rounded-xl flex items-center justify-center text-slate-400 shadow-sm border border-slate-100">
+                       <lucide-icon [img]="User" [size]="24"></lucide-icon>
+                     </div>
+                     <div>
+                       <h4 class="font-bold text-slate-800">{{ appt.patient_name }}</h4>
+                       <p class="text-sm text-slate-500 font-medium">
+                         {{ appt.appointment_date | date:'HH:mm' }} • {{ appt.status }}
+                       </p>
+                     </div>
+                   </div>
+                   <div class="flex gap-2">
+                     @if (appt.status === 'Agendado') {
+                       <button (click)="updateStatus(appt, 'Aguardando')" class="px-4 py-2 bg-amber-50 text-amber-700 text-xs font-bold uppercase rounded-xl hover:bg-amber-100 transition-colors">
+                         Marcar Chegada
+                       </button>
+                     }
+                     @if (appt.status === 'Aguardando') {
+                       <button (click)="updateStatus(appt, 'Em Consulta')" class="px-4 py-2 bg-teal-50 text-teal-700 text-xs font-bold uppercase rounded-xl hover:bg-teal-100 transition-colors flex items-center gap-1">
+                         Chamar <lucide-icon [img]="ArrowRight" [size]="14"></lucide-icon>
+                       </button>
+                     }
+                     @if (appt.status === 'Em Consulta') {
+                       <button (click)="updateStatus(appt, 'Finalizado')" class="px-4 py-2 bg-slate-200 text-slate-700 text-xs font-bold uppercase rounded-xl hover:bg-slate-300 transition-colors">
+                         Finalizar
+                       </button>
+                     }
+                   </div>
+                 </div>
+               }
+             </div>
           }
-                    @if (appt.status === 'Aguardando') {
-                      <button (click)="updateStatus(appt, 'Em Consulta')" class="px-4 py-2 bg-teal-50 text-teal-700 text-xs font-bold uppercase rounded-xl hover:bg-teal-100 transition-colors flex items-center gap-1">
-                        Chamar <lucide-icon [img]="ArrowRight" [size]="14"></lucide-icon>
-                      </button>
-                    }
-                    @if (appt.status === 'Em Consulta') {
-                      <button (click)="updateStatus(appt, 'Finalizado')" class="px-4 py-2 bg-slate-200 text-slate-700 text-xs font-bold uppercase rounded-xl hover:bg-slate-300 transition-colors">
-                        Finalizar
-                      </button>
-                    }
-                  </div>
-                </div>
-              }
-            </div>
-         }
-      </div>
+       </div>
 
     </div>
   `
