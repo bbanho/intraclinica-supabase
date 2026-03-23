@@ -1,4 +1,4 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, inject, signal, computed } from '@angular/core';
 import { toObservable, toSignal } from '@angular/core/rxjs-interop';
 import { RouterOutlet, RouterLink, RouterLinkActive } from '@angular/router';
 import { AuthService } from '../core/services/auth.service';
@@ -105,6 +105,18 @@ import { switchMap, from, of, tap } from 'rxjs';
               <lucide-icon [img]="BookOpen" [size]="20" class="text-slate-400 group-[.bg-teal-600]:text-white transition-colors"></lucide-icon>
               Wiki
             </a>
+          }
+
+          @if (!hasAnyModuleAccess()) {
+            <div class="mt-4 p-5 rounded-2xl border-2 border-dashed border-slate-700/50 bg-slate-800/20 flex flex-col items-center justify-center text-center gap-3">
+              <div class="p-3 bg-slate-800/80 rounded-full shadow-inner">
+                <lucide-icon [img]="ShieldAlert" [size]="24" class="text-slate-500"></lucide-icon>
+              </div>
+              <div>
+                <h3 class="text-sm font-bold text-slate-300">Acesso Restrito</h3>
+                <p class="text-xs text-slate-500 mt-1 leading-relaxed">Você ainda não possui módulos habilitados.</p>
+              </div>
+            </div>
           }
 
         </nav>
@@ -226,6 +238,8 @@ export class MainLayoutComponent {
 
   isMobileMenuOpen = signal(false);
   showNotifications = signal(false);
+
+  hasAnyModuleAccess = computed(() => Object.keys(this.iam.userBindings() || {}).length > 0);
 
   // Icons
   readonly LayoutDashboard = LayoutDashboard;
