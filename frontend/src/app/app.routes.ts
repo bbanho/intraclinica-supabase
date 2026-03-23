@@ -45,6 +45,10 @@ export const routes: Routes = [
         loadComponent: () => import('./features/procedures/procedure-recipe.component').then(m => m.ProcedureRecipeComponent)
       },
       {
+        path: 'social',
+        loadComponent: () => import('./features/social/social.component').then(m => m.SocialComponent)
+      },
+      {
         path: 'wiki',
         loadComponent: () => import('./features/wiki/wiki.component').then(m => m.WikiComponent)
       }
