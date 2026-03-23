@@ -7,14 +7,14 @@ description: Deep dive into the "Alma" (Intel Core) of IntraClinica, featuring o
 
 Welcome to the **"Alma" (Intel Core)** of IntraClinica. This guide details our foundational engineering decisions, focusing on data sovereignty, transactional integrity, and our integration with the Axio memory architecture.
 
-As outlined in [`docs/01_INTEL_CORE.md`](../../docs/01_INTEL_CORE.md) and [`AGENTS.md`](../../AGENTS.md), our system is designed for bank-level security with zero cross-tenant data leaks and extreme frontend reactivity.
+As outlined in [`docs/01_INTEL_CORE.md`](https://github.com/bbanho/intraclinica-supabase/blob/main/docs/01_INTEL_CORE.md) and [`AGENTS.md`](https://github.com/bbanho/intraclinica-supabase/blob/main/AGENTS.md), our system is designed for bank-level security with zero cross-tenant data leaks and extreme frontend reactivity.
 
 ## 1. 100% Signal-Based Reactivity
 
 IntraClinica completely eschews legacy state management libraries like NgRx in favor of Angular's native Signals. The entire application flow is reactive.
 
 ### The Reactivity Anti-Pattern
-As mandated in [`AGENTS.md`](../../AGENTS.md), you must **never** assign a signal's static value to a property during initialization. Doing so breaks reactivity.
+As mandated in [`AGENTS.md`](https://github.com/bbanho/intraclinica-supabase/blob/main/AGENTS.md), you must **never** assign a signal's static value to a property during initialization. Doing so breaks reactivity.
 
 **BAD:**
 ```typescript
@@ -41,7 +41,7 @@ graph TD
 
 ## 2. Flattened Database Schema & Atomic Operations
 
-To improve query performance and code simplicity, the legacy `actor` abstraction table has been flattened and entirely removed (per [`AGENTS.md`](../../AGENTS.md)). 
+To improve query performance and code simplicity, the legacy `actor` abstraction table has been flattened and entirely removed (per [`AGENTS.md`](https://github.com/bbanho/intraclinica-supabase/blob/main/AGENTS.md)). 
 
 ### Data Sovereignty
 Entities like `patient` and `app_user` now contain their own `name` columns directly. You will no longer traverse deeply nested structures (e.g., `patient.actor.name`).
