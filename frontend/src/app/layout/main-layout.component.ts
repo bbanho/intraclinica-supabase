@@ -249,7 +249,7 @@ export class MainLayoutComponent {
       switchMap(bindings => {
         if (!bindings) return of([]);
 
-        const allowedClinicIds = Object.keys(bindings).filter(k => k !== 'global');
+        const allowedClinicIds = Object.keys(bindings).filter(k => k !== 'global' && k !== 'all');
         
         if (allowedClinicIds.length > 0) {
           return from(
