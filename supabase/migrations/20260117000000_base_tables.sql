@@ -16,12 +16,28 @@
 
 begin;
 
+-- btree_gist is required for EXCLUDE constraints using GiST with uuid/UUID
+CREATE EXTENSION IF NOT EXISTS btree_gist SCHEMA extensions;
+
 -- ---------------------------------------------------------------------------
 -- ENUM types
 -- ---------------------------------------------------------------------------
 
-CREATE TYPE IF NOT EXISTS "public"."actor_type" AS ENUM ('USER', 'PATIENT', 'VENDOR', 'CLINIC');
-CREATE TYPE IF NOT EXISTS "public"."record_type" AS ENUM ('EVOLUCAO', 'RECEITA', 'EXAME', 'TRIAGEM');
+do $$
+begin
+  if not exists (select 1 from pg_type where typname = 'actor_type') then
+    create type "public"."actor_type" as enum ('USER', 'PATIENT', 'VENDOR', 'CLINIC');
+  end if;
+end
+$$;
+
+do $$
+begin
+  if not exists (select 1 from pg_type where typname = 'record_type') then
+    create type "public"."record_type" as enum ('EVOLUCAO', 'RECEITA', 'EXAME', 'TRIAGEM');
+  end if;
+end
+$$;
 
 -- ---------------------------------------------------------------------------
 -- actor — the canonical identity entity
@@ -407,18 +423,18 @@ CREATE POLICY "Users can view own user record" ON "public"."app_user"
     FOR SELECT USING ("auth"."uid"() = "id");
 
 CREATE POLICY "Solicitações: Criar" ON "public"."access_request"
-    FOR INSERT WITH CHECK ("true");
+    FOR INSERT WITH CHECK (true);
 
 CREATE POLICY "Solicitações: Ver Próprias" ON "public"."access_request"
-    FOR SELECT USING ("true");
+    FOR SELECT USING (true);
 
 CREATE POLICY "Pacientes: Clínica" ON "public"."patient"
-    FOR SELECT USING ("true");
+    FOR SELECT USING (true);
 
 CREATE POLICY "Prontuários: Rigor" ON "public"."clinical_record"
-    FOR SELECT USING ("true");
+    FOR SELECT USING (true);
 
 CREATE POLICY "Super Admin Tudo" ON "public"."clinic"
-    FOR ALL TO "authenticated" USING ("true");
+    FOR ALL TO "authenticated" USING (true);
 
 commit;
