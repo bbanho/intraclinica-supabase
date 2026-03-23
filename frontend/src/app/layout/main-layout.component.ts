@@ -1,4 +1,5 @@
-import { Component, inject, effect, signal } from '@angular/core';
+import { Component, inject, signal } from '@angular/core';
+import { toObservable, toSignal } from '@angular/core/rxjs-interop';
 import { RouterOutlet, RouterLink, RouterLinkActive } from '@angular/router';
 import { AuthService } from '../core/services/auth.service';
 import { ClinicContextService } from '../core/services/clinic-context.service';
@@ -6,6 +7,7 @@ import { SupabaseService } from '../core/services/supabase.service';
 import { IamService } from '../core/services/iam.service';
 import { UserIamBindings } from '../core/models/iam.types';
 import { LucideAngularModule, LayoutDashboard, Users, Calendar, Box, LogOut, Building2, ShieldAlert, Menu, X, Stethoscope, BookOpen } from 'lucide-angular';
+import { switchMap, from, of, tap } from 'rxjs';
 
 @Component({
   selector: 'app-main-layout',
@@ -160,7 +162,6 @@ export class MainLayoutComponent {
   iam = inject(IamService);
   private db = inject(SupabaseService).clientInstance;
 
-  myClinics = signal<{id: string, name: string}[]>([]);
   isMobileMenuOpen = signal(false);
 
   // Icons
@@ -176,39 +177,42 @@ export class MainLayoutComponent {
   readonly Stethoscope = Stethoscope;
   readonly BookOpen = BookOpen;
 
-  constructor() {
-    effect(() => {
-      const bindings = this.iam.userBindings();
-      if (bindings) {
-        this.loadClinicsFromBindings(bindings);
-      } else {
-        this.myClinics.set([]);
-      }
-    });
-  }
+  // Race-condition safe (RxJS SwitchMap cancels outdated pending async queries)
+  myClinics = toSignal(
+    toObservable(this.iam.userBindings).pipe(
+      switchMap(bindings => {
+        if (!bindings) return of([]);
+
+        const allowedClinicIds = Object.keys(bindings).filter(k => k !== 'global');
+        
+        if (allowedClinicIds.length > 0) {
+          return from(
+            this.db.from('clinic').select('id, name').in('id', allowedClinicIds)
+          ).pipe(
+            switchMap(({ data }) => {
+               // Auto-select a primeira clínica se não tiver contexto global
+               if (data && !this.context.selectedClinicId() && !bindings['global']) {
+                 this.context.setContext(data[0].id);
+               }
+               
+               // Se tiver poderes globais, seta o contexto para 'all' por default
+               if (bindings['global'] && !this.context.selectedClinicId()) {
+                 this.context.setContext('all');
+               }
+               
+               return of(data || []);
+            })
+          );
+        }
+        
+        return of([]);
+      })
+    ),
+    { initialValue: [] as {id: string, name: string}[] }
+  );
 
   closeMobileMenu() {
     this.isMobileMenuOpen.set(false);
-  }
-
-  private async loadClinicsFromBindings(bindings: UserIamBindings) {
-    const allowedClinicIds = Object.keys(bindings).filter(k => k !== 'global');
-    
-    if (allowedClinicIds.length > 0) {
-      const { data } = await this.db.from('clinic').select('id, name').in('id', allowedClinicIds);
-      if (data) {
-        this.myClinics.set(data);
-        if (!this.context.selectedClinicId() && !bindings['global']) {
-          this.context.setContext(data[0].id);
-        }
-      }
-    } else {
-      this.myClinics.set([]);
-    }
-    
-    if (bindings['global'] && !this.context.selectedClinicId()) {
-       this.context.setContext('all');
-    }
   }
 
   onContextChange(id: string) {

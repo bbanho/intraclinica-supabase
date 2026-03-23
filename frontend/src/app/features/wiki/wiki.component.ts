@@ -1,6 +1,7 @@
 import { Component, inject, signal, effect } from '@angular/core';
 import { Router } from '@angular/router';
 import { IamService } from '../../core/services/iam.service';
+import { AuthService } from '../../core/services/auth.service';
 
 @Component({
   selector: 'app-wiki',
@@ -21,11 +22,18 @@ import { IamService } from '../../core/services/iam.service';
 export class WikiComponent {
   private router = inject(Router);
   private iam = inject(IamService);
+  private auth = inject(AuthService);
   
   error = signal<string | null>(null);
 
   constructor() {
     effect(() => {
+      // Proteção explícita de sessão deslogada (evita travamento infinito)
+      if (!this.auth.currentUser()) {
+        this.router.navigate(['/login']);
+        return;
+      }
+
       if (!this.iam.isInitialized()) return;
 
       // Princípio IAM: Validar a regra através da árvore consolidada, sem testar roles literais ('SUPER_ADMIN')
