@@ -66,11 +66,11 @@ export class AppointmentService {
 
   async getDoctors(): Promise<{id: string, name: string}[]> {
     const clinicId = this.clinicId;
-    // We now fetch from app_user and filter by iam_bindings containing 'DOCTOR' for this clinic
+    // We now fetch from app_user and filter by iam_bindings containing 'roles/doctor' for this clinic
     const { data, error } = await this.supabase.clientInstance
       .from('app_user')
       .select('id, name')
-      .contains('iam_bindings', { [clinicId]: ['DOCTOR'] })
+      .contains('iam_bindings', { [clinicId]: ['roles/doctor'] })
       .order('name', { ascending: true });
       
     if (error) throw error;

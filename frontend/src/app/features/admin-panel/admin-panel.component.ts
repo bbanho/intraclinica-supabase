@@ -1,5 +1,4 @@
 import { Component, inject, signal, OnInit } from '@angular/core';
-import { CommonModule } from '@angular/common';
 import { SupabaseService } from '../../core/services/supabase.service';
 import { AuthService } from '../../core/services/auth.service';
 import { LucideAngularModule, Settings, Building, Power, LayoutDashboard } from 'lucide-angular';
@@ -7,7 +6,7 @@ import { LucideAngularModule, Settings, Building, Power, LayoutDashboard } from 
 @Component({
   selector: 'app-admin-panel',
   standalone: true,
-  imports: [CommonModule, LucideAngularModule],
+  imports: [LucideAngularModule],
   template: `
     <div class="min-h-screen bg-slate-50 p-8">
       <div class="max-w-6xl mx-auto space-y-8">
@@ -51,7 +50,10 @@ import { LucideAngularModule, Settings, Building, Power, LayoutDashboard } from 
                      </div>
                   </div>
                   <span class="px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-widest"
-                        [ngClass]="clinic.status === 'active' ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'">
+                        [class.bg-emerald-100]="clinic.status === 'active'"
+                        [class.text-emerald-700]="clinic.status === 'active'"
+                        [class.bg-rose-100]="clinic.status !== 'active'"
+                        [class.text-rose-700]="clinic.status !== 'active'">
                     {{ clinic.status }}
                   </span>
                 </div>
@@ -64,17 +66,24 @@ import { LucideAngularModule, Settings, Building, Power, LayoutDashboard } from 
                    
                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
                      @for (mod of getClinicModules(clinic.id); track mod.id) {
-                        <!-- MODULE TOGGLE CARD -->
-                        <div class="p-4 rounded-2xl border transition-all cursor-pointer relative overflow-hidden group"
-                             [ngClass]="mod.enabled ? 'bg-teal-50 border-teal-200' : 'bg-slate-50 border-slate-200 opacity-60'"
-                             (click)="toggleModule(clinic.id, mod.module_key, !mod.enabled)">
+                         <!-- MODULE TOGGLE CARD -->
+                         <div class="p-4 rounded-2xl border transition-all cursor-pointer relative overflow-hidden group"
+                              [class.bg-teal-50]="mod.enabled"
+                              [class.border-teal-200]="mod.enabled"
+                              [class.bg-slate-50]="!mod.enabled"
+                              [class.border-slate-200]="!mod.enabled"
+                              [class.opacity-60]="!mod.enabled"
+                              (click)="toggleModule(clinic.id, mod.module_key, !mod.enabled)">
                              
-                           <!-- Status indicator light -->
-                           <div class="absolute top-4 right-4 w-2 h-2 rounded-full"
-                                [ngClass]="mod.enabled ? 'bg-teal-500 shadow-[0_0_8px_rgba(20,184,166,0.6)]' : 'bg-slate-300'"></div>
-                           
-                           <lucide-icon [img]="Power" [size]="20" 
-                                        [ngClass]="mod.enabled ? 'text-teal-600' : 'text-slate-400'" class="mb-3 block"></lucide-icon>
+                            <!-- Status indicator light -->
+                            <div class="absolute top-4 right-4 w-2 h-2 rounded-full"
+                                 [class.bg-teal-500]="mod.enabled"
+                                 [class.shadow-[0_0_8px_rgba(20,184,166,0.6)]="mod.enabled"
+                                 [class.bg-slate-300]="!mod.enabled"></div>
+                            
+                            <lucide-icon [img]="Power" [size]="20" 
+                                         [class.text-teal-600]="mod.enabled"
+                                         [class.text-slate-400]="!mod.enabled" class="mb-3 block"></lucide-icon>
                            
                            <p class="font-bold text-sm text-slate-800">{{ mod.module_key }}</p>
                            <p class="text-[10px] font-bold text-slate-500 mt-1 uppercase tracking-wider">
@@ -175,34 +184,24 @@ export class AdminPanelComponent implements OnInit {
     this.isSaving.set(cardId);
 
     try {
-      // Verifica se a linha de config já existe para dar update, senão insert
       const existing = this.clinicModules().find(s => s.clinic_id === clinicId && s.module_key === moduleKey);
-
-      // INJEÇÃO DE ERRO PROPOSITAL (Para provar o Fail-Loud e proteção contra perda de dados)
-      // Vamos tentar inserir/atualizar para uma clínica que NÃO existe no banco.
-      const FAKE_CLINIC_ID = '00000000-0000-0000-0000-000000000000';
 
       if (existing) {
         const { error } = await this.db.from('clinic_module')
           .update({ enabled: newValue })
-          // Usando o ID falso para forçar erro caso a linha exista (não vai achar a linha)
-          .eq('id', FAKE_CLINIC_ID); 
+          .eq('id', existing.id);
         if (error) throw error;
       } else {
         const { error } = await this.db.from('clinic_module')
-          // Usando o ID de clínica falso para forçar Foreign Key Violation
-          .insert({ clinic_id: FAKE_CLINIC_ID, module_key: moduleKey, enabled: newValue, sort_order: 99 });
+          .insert({ clinic_id: clinicId, module_key: moduleKey, enabled: newValue, sort_order: 99 });
         if (error) throw error;
       }
 
-      // Se chegasse aqui com erro silencioso, a UI atualizaria e o dado estaria perdido.
-      // Mas o `throw error` impede isso. A linha abaixo NUNCA será executada no teste.
       await this.loadSaaSData(); 
 
     } catch (e: any) {
-      console.error('Falha CRÍTICA interceptada no banco de dados:', e);
-      // Mostramos o erro real do Postgres para provar a integridade
-      alert(`[FALHA DE INTEGRIDADE PREVENIDA] O banco recusou a operação.\nErro do Supabase: ${e.message || e.details || 'Desconhecido'}`);
+      console.error('Erro ao salvar módulo:', e);
+      alert(`Erro ao salvar módulo: ${e.message || e.details || 'Desconhecido'}`);
     } finally {
       this.isSaving.set(null);
     }

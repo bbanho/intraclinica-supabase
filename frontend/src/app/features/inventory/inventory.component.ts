@@ -211,7 +211,7 @@ export class InventoryComponent {
   selectedCategory = signal<string>('all');
 
   totalValue = computed(() => {
-    return this.filteredProducts().reduce((total, p) => total + (p.cost * p.current_stock), 0);
+    return this.filteredProducts().reduce((total, p) => total + (p.price * p.current_stock), 0);
   });
 
   lowStockCount = computed(() => {
