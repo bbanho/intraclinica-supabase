@@ -48,6 +48,7 @@ interface MedicalRecord {
                 [value]="searchTerm()"
                 (input)="onPatientSearch($event)"
                 class="w-full pl-9 pr-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-sm text-white placeholder-slate-400 focus:ring-2 focus:ring-teal-500/50 focus:border-teal-500 outline-none"
+              />
             </div>
           </div>
 
