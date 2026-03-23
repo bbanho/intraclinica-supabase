@@ -7,7 +7,7 @@ description: A complete guide to getting started with development on the IntraCl
 
 Welcome to the IntraClinica development team! This guide will take you from setting up your environment to shipping your first feature following our strict, modern architecture standards. 
 
-All operations described here apply to the **`/frontend`** directory. The `frontend-legacy` folder should be entirely ignored, as outlined in [`AGENTS.md`](../../AGENTS.md).
+All operations described here apply to the **`/frontend`** directory. The `frontend-legacy` folder should be entirely ignored, as outlined in [`AGENTS.md`](https://github.com/bbanho/intraclinica-supabase/blob/main/AGENTS.md).
 
 ## 1. Local Development Setup
 
@@ -36,7 +36,7 @@ graph LR
     classDef default fill:#2d333b,stroke:#6d5dfc,stroke-width:2px,color:#e6edf3;
 ```
 
-*Why?* As defined in [`AGENTS.md`](../../AGENTS.md), worktrees isolate your feature code (`features/reception/`, `features/inventory/`) allowing independent testing and atomic commits. We symlink `node_modules` to save disk space and installation time.
+*Why?* As defined in [`AGENTS.md`](https://github.com/bbanho/intraclinica-supabase/blob/main/AGENTS.md), worktrees isolate your feature code (`features/reception/`, `features/inventory/`) allowing independent testing and atomic commits. We symlink `node_modules` to save disk space and installation time.
 
 ## 3. Building a Modern Angular Feature
 
