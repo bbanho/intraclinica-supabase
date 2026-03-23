@@ -1,18 +1,21 @@
-import { Component, inject, signal, OnInit } from '@angular/core';
+import { Component, inject, signal, computed, OnInit } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { DialogRef } from '@angular/cdk/dialog';
-import { LucideAngularModule, X, User, Calendar, Clock, Stethoscope, ArrowRight } from 'lucide-angular';
+import { DialogRef, DIALOG_DATA } from '@angular/cdk/dialog';
+import { LucideAngularModule, X, User, Calendar, Clock, Stethoscope, ArrowRight, Search, Plus } from 'lucide-angular';
 import { PatientService, Patient } from '../../../core/services/patient.service';
 import { AppointmentService } from '../../../core/services/appointment.service';
 import { IamService } from '../../../core/services/iam.service';
-import { ClinicContextService } from '../../../core/services/clinic-context.service';
+
+export interface AppointmentModalData {
+  date?: string;
+  doctorId?: string | null;
+}
 
 @Component({
   selector: 'app-appointment-modal',
   standalone: true,
   imports: [ReactiveFormsModule, LucideAngularModule],
   template: `
-    <!-- Overlay/Wrapper -> Managed by CDK, but we can set internal padding -->
     <div class="p-6 md:p-8 w-full max-w-2xl bg-white rounded-3xl shadow-2xl overflow-hidden border border-slate-100 flex flex-col max-h-[90vh]">
       
       <!-- Modal Header -->
@@ -38,33 +41,66 @@ import { ClinicContextService } from '../../../core/services/clinic-context.serv
       <div class="flex-1 overflow-y-auto pr-2 -mr-2">
         <form [formGroup]="appointmentForm" (ngSubmit)="save()" class="space-y-6">
           
-          <!-- Patient Field -->
-          <div class="space-y-2">
-            <label for="patientId" class="block text-sm font-bold text-slate-700">Paciente</label>
-            <div class="relative">
-              <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400">
-                <lucide-icon [img]="User" [size]="20"></lucide-icon>
-              </div>
-              <select 
-                id="patientId" 
-                formControlName="patientId"
-                class="block w-full pl-12 pr-10 py-3.5 bg-slate-50 border-0 text-slate-900 rounded-2xl ring-1 ring-inset ring-slate-200 focus:ring-2 focus:ring-inset focus:ring-teal-600 sm:text-sm font-medium appearance-none transition-all cursor-pointer"
+          <!-- Patient Search -->
+          <div class="space-y-2 relative">
+            <label for="patientSearch" class="block text-sm font-bold text-slate-700">Paciente</label>
+            <div class="relative group">
+              <lucide-icon [img]="Search" class="absolute left-4 top-3.5 text-slate-400" [size]="20"></lucide-icon>
+              <input 
+                id="patientSearch"
+                type="text"
+                [value]="patientSearch()" 
+                (input)="onSearchInput($any($event.target).value)"
+                class="block w-full pl-12 pr-4 py-3.5 bg-slate-50 border-0 text-slate-900 rounded-2xl ring-1 ring-inset ring-slate-200 focus:ring-2 focus:ring-inset focus:ring-teal-600 sm:text-sm font-medium transition-all"
+                placeholder="Buscar paciente por nome ou CPF..."
                 [class.ring-red-300]="isFieldInvalid('patientId')"
               >
-                <option value="" disabled selected>Selecione um paciente...</option>
-                @for (patient of patients(); track patient.id) {
-                  <option [value]="patient.id">{{ patient.name }} (CPF: {{ patient.cpf || 'N/A' }})</option>
-                }
-              </select>
+              
+              <!-- Dropdown -->
+              @if (patientSearch() && !selectedPatient()) {
+                <div class="absolute top-full left-0 right-0 bg-white border border-slate-100 rounded-xl shadow-xl mt-2 z-50 max-h-48 overflow-y-auto">
+                  @for (p of filteredPatients(); track p.id) {
+                    <button type="button" (click)="selectPatient(p)" class="w-full text-left p-3 hover:bg-teal-50 flex items-center justify-between group">
+                      <div>
+                        <div class="font-bold text-slate-700">{{p.name}}</div>
+                        <div class="text-[10px] text-slate-400">CPF: {{p.cpf || 'N/A'}}</div>
+                      </div>
+                      <lucide-icon [img]="Plus" [size]="16" class="text-slate-300 group-hover:text-teal-600"></lucide-icon>
+                    </button>
+                  }
+                  @if (filteredPatients().length === 0) {
+                    <div class="p-4 text-center text-sm font-medium text-slate-500">
+                      Nenhum paciente encontrado
+                    </div>
+                  }
+                </div>
+              }
             </div>
+
+            @if (selectedPatient()) {
+              <div class="mt-2 bg-teal-50 border border-teal-100 p-3 rounded-xl flex justify-between items-center animate-in fade-in slide-in-from-top-1">
+                <div class="flex items-center gap-3">
+                  <div class="w-8 h-8 rounded-full bg-teal-200 flex items-center justify-center text-teal-700 font-bold text-xs">
+                    {{selectedPatient()?.name?.charAt(0)}}
+                  </div>
+                  <div>
+                    <div class="font-bold text-sm text-teal-900">{{selectedPatient()?.name}}</div>
+                    <div class="text-[10px] text-teal-600">CPF: {{selectedPatient()?.cpf || '---'}}</div>
+                  </div>
+                </div>
+                <button type="button" (click)="clearPatient()" class="text-teal-400 hover:text-teal-700 p-1">
+                  <lucide-icon [img]="X" [size]="16"></lucide-icon>
+                </button>
+              </div>
+            }
+
             @if (isFieldInvalid('patientId')) {
-              <p class="text-sm text-red-500 font-bold ml-1 animate-in fade-in slide-in-from-top-1">A seleção do paciente é obrigatória.</p>
+              <p class="text-sm text-red-500 font-bold ml-1">A seleção do paciente é obrigatória.</p>
             }
           </div>
 
           <!-- Date and Time Grid -->
           <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <!-- Date Field -->
             <div class="space-y-2">
               <label for="date" class="block text-sm font-bold text-slate-700">Data</label>
               <div class="relative">
@@ -81,7 +117,6 @@ import { ClinicContextService } from '../../../core/services/clinic-context.serv
               </div>
             </div>
 
-            <!-- Time Field -->
             <div class="space-y-2">
               <label for="time" class="block text-sm font-bold text-slate-700">Horário</label>
               <div class="relative">
@@ -160,13 +195,15 @@ export class AppointmentModalComponent implements OnInit {
   readonly Clock = Clock;
   readonly Stethoscope = Stethoscope;
   readonly ArrowRight = ArrowRight;
+  readonly Search = Search;
+  readonly Plus = Plus;
 
   private fb = inject(FormBuilder);
   private dialogRef = inject(DialogRef<any>);
   private patientService = inject(PatientService);
   private appointmentService = inject(AppointmentService);
   private iam = inject(IamService);
-  private context = inject(ClinicContextService);
+  public data = inject<AppointmentModalData>(DIALOG_DATA, { optional: true });
 
   isSaving = signal(false);
   isLoadingData = signal(true);
@@ -175,11 +212,20 @@ export class AppointmentModalComponent implements OnInit {
   patients = signal<Patient[]>([]);
   doctors = signal<{id: string, name: string}[]>([]);
 
+  patientSearch = signal('');
+  selectedPatient = signal<Patient | null>(null);
+
   appointmentForm = this.fb.group({
     patientId: ['', [Validators.required]],
     date: ['', [Validators.required]],
     time: ['', [Validators.required]],
     doctorId: ['', [Validators.required]]
+  });
+
+  filteredPatients = computed(() => {
+    const term = this.patientSearch().toLowerCase();
+    if (!term) return [];
+    return this.patients().filter(p => p.name.toLowerCase().includes(term) || (p.cpf && p.cpf.includes(term)));
   });
 
   async ngOnInit() {
@@ -191,11 +237,49 @@ export class AppointmentModalComponent implements OnInit {
       ]);
       this.patients.set(patientsList);
       this.doctors.set(doctorsList);
+
+      // Pre-fill data if provided
+      if (this.data?.date) {
+        // Assume format YYYY-MM-DDTHH:MM:SS...
+        const d = new Date(this.data.date);
+        const dateStr = d.toISOString().split('T')[0];
+        const timeStr = d.toTimeString().split(' ')[0].substring(0, 5); // HH:MM
+        
+        this.appointmentForm.patchValue({
+          date: dateStr,
+          time: timeStr
+        });
+      }
+
+      if (this.data?.doctorId) {
+        this.appointmentForm.patchValue({ doctorId: this.data.doctorId });
+      }
+
     } catch (err) {
       console.error('Failed to load modal data', err);
     } finally {
       this.isLoadingData.set(false);
     }
+  }
+
+  onSearchInput(val: string) {
+    this.patientSearch.set(val);
+    if (this.selectedPatient()) {
+      this.selectedPatient.set(null);
+      this.appointmentForm.patchValue({ patientId: '' });
+    }
+  }
+
+  selectPatient(patient: Patient) {
+    this.selectedPatient.set(patient);
+    this.patientSearch.set(patient.name);
+    this.appointmentForm.patchValue({ patientId: patient.id });
+  }
+
+  clearPatient() {
+    this.selectedPatient.set(null);
+    this.patientSearch.set('');
+    this.appointmentForm.patchValue({ patientId: '' });
   }
 
   isFieldInvalid(field: string): boolean {
@@ -222,15 +306,14 @@ export class AppointmentModalComponent implements OnInit {
     const formVals = this.appointmentForm.value;
     
     // Combine date and time
-    // Actually we should handle local timezone, but appending 'T' + time + ':00' and parsing with new Date() is safer for local.
     const localDate = new Date(formVals.date + 'T' + formVals.time);
     
-    const selectedPatient = this.patients().find(p => p.id === formVals.patientId);
+    const patient = this.selectedPatient();
 
     try {
       await this.appointmentService.createAppointment({
         patient_id: formVals.patientId!,
-        patient_name: selectedPatient?.name || 'Unknown',
+        patient_name: patient?.name || 'Unknown',
         appointment_date: localDate.toISOString(),
         doctor_id: formVals.doctorId!,
         duration_minutes: 60

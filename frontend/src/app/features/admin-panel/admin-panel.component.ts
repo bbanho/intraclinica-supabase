@@ -1,12 +1,14 @@
 import { Component, inject, signal, OnInit } from '@angular/core';
 import { SupabaseService } from '../../core/services/supabase.service';
 import { AuthService } from '../../core/services/auth.service';
-import { LucideAngularModule, Settings, Building, Power, LayoutDashboard } from 'lucide-angular';
+import { CommonModule } from '@angular/common';
+import { LucideAngularModule, Settings, Building, Power, LayoutDashboard, Users, AlertCircle, ArrowRight, Activity } from 'lucide-angular';
+import { RouterLink } from '@angular/router';
 
 @Component({
   selector: 'app-admin-panel',
   standalone: true,
-  imports: [LucideAngularModule],
+  imports: [CommonModule, LucideAngularModule, RouterLink],
   template: `
     <div class="min-h-screen bg-slate-50 p-8">
       <div class="max-w-6xl mx-auto space-y-8">
@@ -35,6 +37,105 @@ import { LucideAngularModule, Settings, Building, Power, LayoutDashboard } from 
           </div>
         } @else {
           
+          <!-- SAAS METRICS DASHBOARD -->
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-6 animate-scale-in">
+              <div class="bg-white p-8 rounded-3xl border border-slate-200 shadow-sm group hover:border-indigo-500 transition-all">
+                  <div class="flex justify-between items-start mb-6">
+                      <div class="p-4 bg-indigo-50 text-indigo-600 rounded-2xl group-hover:bg-indigo-600 group-hover:text-white transition-all">
+                          <lucide-icon [img]="Building" [size]="28"></lucide-icon>
+                      </div>
+                  </div>
+                  <div class="text-4xl font-black text-slate-900 mb-1 tracking-tighter">
+                      {{ clinics().length }}
+                  </div>
+                  <div class="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Total Clínicas</div>
+              </div>
+
+              <div class="bg-white p-8 rounded-3xl border border-slate-200 shadow-sm group hover:border-emerald-500 transition-all">
+                  <div class="flex justify-between items-start mb-6">
+                      <div class="p-4 bg-emerald-50 text-emerald-600 rounded-2xl group-hover:bg-emerald-600 group-hover:text-white transition-all">
+                          <lucide-icon [img]="Users" [size]="28"></lucide-icon>
+                      </div>
+                  </div>
+                  <div class="text-4xl font-black text-slate-900 mb-1 tracking-tighter">
+                      {{ totalUsers() }}
+                  </div>
+                  <div class="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Total Usuários</div>
+              </div>
+
+              <div class="bg-white p-8 rounded-3xl border border-slate-200 shadow-sm group hover:border-rose-500 transition-all">
+                  <div class="flex justify-between items-start mb-6">
+                      <div class="p-4 bg-rose-50 text-rose-600 rounded-2xl group-hover:bg-rose-600 group-hover:text-white transition-all">
+                          <lucide-icon [img]="AlertCircle" [size]="28"></lucide-icon>
+                      </div>
+                  </div>
+                  <div class="text-4xl font-black text-slate-900 mb-1 tracking-tighter">
+                      {{ pendingRequests() }}
+                  </div>
+                  <div class="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Solicitações Pendentes</div>
+              </div>
+          </div>
+
+          <!-- QUICK ACTIONS & ACTIVITY -->
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-6 animate-scale-in">
+              <!-- Quick Actions -->
+              <div class="bg-white p-8 rounded-3xl border border-slate-200 shadow-sm col-span-1">
+                  <h3 class="text-xs font-black uppercase text-slate-400 tracking-widest mb-6 flex items-center gap-2">
+                      <lucide-icon [img]="Settings" [size]="16"></lucide-icon>
+                      Ações Rápidas
+                  </h3>
+                  <div class="space-y-3">
+                      <a routerLink="/admin/clinics" class="flex items-center justify-between p-4 rounded-2xl border border-slate-100 hover:bg-slate-50 hover:border-indigo-200 transition-all text-sm font-bold text-slate-700 group cursor-pointer">
+                          <div class="flex items-center gap-3">
+                              <lucide-icon [img]="Building" [size]="18" class="text-indigo-500"></lucide-icon>
+                              Gerenciar Clínicas
+                          </div>
+                          <lucide-icon [img]="ArrowRight" [size]="16" class="text-slate-300 group-hover:text-indigo-500 transition-all"></lucide-icon>
+                      </a>
+                      <a routerLink="/admin/users" class="flex items-center justify-between p-4 rounded-2xl border border-slate-100 hover:bg-slate-50 hover:border-emerald-200 transition-all text-sm font-bold text-slate-700 group cursor-pointer">
+                          <div class="flex items-center gap-3">
+                              <lucide-icon [img]="Users" [size]="18" class="text-emerald-500"></lucide-icon>
+                              Gerenciar Usuários
+                          </div>
+                          <lucide-icon [img]="ArrowRight" [size]="16" class="text-slate-300 group-hover:text-emerald-500 transition-all"></lucide-icon>
+                      </a>
+                  </div>
+              </div>
+
+              <!-- Activity Section -->
+              <div class="bg-slate-900 p-8 rounded-3xl shadow-2xl col-span-1 md:col-span-2 relative overflow-hidden">
+                  <div class="absolute top-0 right-0 p-8 opacity-5 pointer-events-none">
+                      <lucide-icon [img]="Activity" [size]="120"></lucide-icon>
+                  </div>
+                  <div class="relative z-10">
+                      <h3 class="text-xs font-black uppercase text-slate-400 tracking-widest mb-6 flex items-center gap-2">
+                          <span class="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></span>
+                          Log de Atividade Recente
+                      </h3>
+                      
+                      @if (recentActivity().length > 0) {
+                          <div class="space-y-4">
+                              @for (activity of recentActivity(); track activity.id) {
+                                  <div class="flex items-start gap-4 p-4 rounded-2xl bg-white/5 border border-white/10 hover:bg-white/10 transition-all">
+                                      <div class="w-8 h-8 rounded-xl bg-indigo-500/20 text-indigo-400 flex items-center justify-center shrink-0">
+                                          <lucide-icon [img]="Activity" [size]="14"></lucide-icon>
+                                      </div>
+                                      <div>
+                                          <p class="text-sm font-bold text-slate-200">{{ activity.description }}</p>
+                                          <p class="text-[10px] font-bold text-slate-500 mt-1 uppercase tracking-widest">{{ activity.timestamp | date:'short' }}</p>
+                                      </div>
+                                  </div>
+                              }
+                          </div>
+                      } @else {
+                          <div class="flex flex-col items-center justify-center h-32 text-slate-500">
+                              <p class="text-xs font-bold uppercase tracking-widest">Nenhuma atividade recente</p>
+                          </div>
+                      }
+                  </div>
+              </div>
+          </div>
+
           <div class="grid grid-cols-1 gap-6">
             @for (clinic of clinics(); track clinic.id) {
               <!-- CLINIC CARD -->
@@ -121,11 +222,19 @@ export class AdminPanelComponent implements OnInit {
   readonly Building = Building;
   readonly Power = Power;
   readonly LayoutDashboard = LayoutDashboard;
+  readonly Users = Users;
+  readonly AlertCircle = AlertCircle;
+  readonly ArrowRight = ArrowRight;
+  readonly Activity = Activity;
 
   // Signals for state
   clinics = signal<any[]>([]);
   availableUiModules = signal<any[]>([]);
   clinicModules = signal<any[]>([]); // Flat array of all module settings
+  
+  totalUsers = signal<number>(0);
+  pendingRequests = signal<number>(0);
+  recentActivity = signal<any[]>([]);
   
   isLoading = signal(true);
   isSaving = signal<string | null>(null); // ID do card sendo salvo para spin inline
@@ -137,6 +246,29 @@ export class AdminPanelComponent implements OnInit {
   async loadSaaSData() {
     this.isLoading.set(true);
     try {
+      try {
+        const { count: uCount, error: uErr } = await this.db.from('app_user').select('*', { count: 'exact', head: true });
+        if (!uErr) this.totalUsers.set(uCount || 0);
+
+        const { count: rCount, error: rErr } = await this.db.from('access_request').select('*', { count: 'exact', head: true }).eq('status', 'pending');
+        if (!rErr) this.pendingRequests.set(rCount || 0);
+
+        const { data: recentUsers } = await this.db.from('app_user')
+            .select('id, name, created_at')
+            .order('created_at', { ascending: false })
+            .limit(3);
+        
+        if (recentUsers) {
+           this.recentActivity.set(recentUsers.map(u => ({
+               id: u.id,
+               description: `Novo usuário cadastrado: ${u.name || 'Desconhecido'}`,
+               timestamp: u.created_at
+           })));
+        }
+      } catch (e) {
+        console.warn('Métricas do Dashboard não puderam ser totalmente carregadas', e);
+      }
+
       // Carrega as clínicas do sistema
       const { data: clinicsData, error: errC } = await this.db.from('clinic').select('*');
       if (errC) throw errC;
