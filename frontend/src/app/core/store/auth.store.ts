@@ -14,23 +14,25 @@ export class AuthStore {
   public readonly session = this.authService.currentSession.asReadonly();
   public readonly isAuthenticated = computed(() => !!this.user());
   
-  public isLoading = signal<boolean>(false);
-  public error = signal<string | null>(null);
+  private readonly _isLoading = signal<boolean>(false);
+  private readonly _error = signal<string | null>(null);
+  readonly isLoading = this._isLoading.asReadonly();
+  readonly error = this._error.asReadonly();
 
   async login(email: string, pass: string) {
-    this.isLoading.set(true);
-    this.error.set(null);
+    this._isLoading.set(true);
+    this._error.set(null);
     try {
       const data = await this.authService.signInWithEmail(email, pass);
       
       if (data?.user) {
-        const { data: userData, error } = await this.supabase
+        const { data: userData, error: iamError } = await this.supabase
           .from('app_user')
           .select('iam_bindings')
           .eq('id', data.user.id)
           .single();
           
-        if (!error && userData?.iam_bindings) {
+        if (!iamError && userData?.iam_bindings) {
           const bindings = userData.iam_bindings as Record<string, any>;
           const clinicIds = Object.keys(bindings).filter(k => k !== 'global');
           
@@ -46,20 +48,20 @@ export class AuthStore {
         }
       }
     } catch (e: any) {
-      this.error.set(e.message || 'Invalid login credentials');
+      this._error.set(e.message || 'Invalid login credentials');
       throw e;
     } finally {
-      this.isLoading.set(false);
+      this._isLoading.set(false);
     }
   }
 
   async logout() {
-    this.isLoading.set(true);
+    this._isLoading.set(true);
     try {
       await this.authService.signOut();
       this.clinicContext.setContext(null);
     } finally {
-      this.isLoading.set(false);
+      this._isLoading.set(false);
     }
   }
 }
