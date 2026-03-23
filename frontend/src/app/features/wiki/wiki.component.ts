@@ -1,7 +1,6 @@
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, inject, signal, effect } from '@angular/core';
 import { Router } from '@angular/router';
-import { AuthService } from '../../core/services/auth.service';
-import { SupabaseService } from '../../core/services/supabase.service';
+import { IamService } from '../../core/services/iam.service';
 
 @Component({
   selector: 'app-wiki',
@@ -19,32 +18,22 @@ import { SupabaseService } from '../../core/services/supabase.service';
     </div>
   `
 })
-export class WikiComponent implements OnInit {
+export class WikiComponent {
   private router = inject(Router);
-  private auth = inject(AuthService);
-  private db = inject(SupabaseService).clientInstance;
+  private iam = inject(IamService);
   
   error = signal<string | null>(null);
 
-  async ngOnInit() {
-    const user = this.auth.currentUser();
-    if (!user) {
-      this.router.navigate(['/login']);
-      return;
-    }
+  constructor() {
+    effect(() => {
+      if (!this.iam.isInitialized()) return;
 
-    const { data } = await this.db.from('app_user').select('role, iam_bindings').eq('id', user.id).single();
-    
-    // IAM Principle: 1. Role (Package) -> 2. Grants (Cherry-picked) -> 3. Blocks
-    const isSuperAdmin = data?.role === 'SUPER_ADMIN';
-    const hasSupportRole = data?.role === 'SUPPORT';
-    // Access cherry-picked grant: {"global": ["VIEW_WIKI"]}
-    const hasWikiGrant = data?.iam_bindings?.['global']?.includes('VIEW_WIKI');
-
-    if (isSuperAdmin || hasSupportRole || hasWikiGrant) {
-      window.location.href = '/wiki/';
-    } else {
-      this.error.set('Sua conta não possui privilégios de IAM para visualizar a documentação interna.');
-    }
+      // Princípio IAM: Validar a regra através da árvore consolidada, sem testar roles literais ('SUPER_ADMIN')
+      if (this.iam.can('clinics.manage') || this.iam.can('ai.use')) {
+        window.location.href = '/wiki/';
+      } else {
+        this.error.set('Sua conta não possui privilégios arquiteturais ou autorização para visualizar a documentação interna.');
+      }
+    });
   }
 }
