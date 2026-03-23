@@ -4,7 +4,7 @@ import { DatePipe } from '@angular/common';
 import { LucideAngularModule, Search, User, FileText, Activity, Heart, Pill, AlertCircle, ChevronLeft, ChevronRight, Maximize2, Minimize2, Bot, Loader2, History, ChevronDown, ChevronUp } from 'lucide-angular';
 import { ClinicContextService } from '../../core/services/clinic-context.service';
 import { PatientService, Patient } from '../../core/services/patient.service';
-import { ClinicalService, MedicalRecord, MedicalRecordContent } from '../../core/services/clinical.service';
+import { ClinicalService, MedicalRecord, MedicalRecordContent, MedicalRecordType } from '../../core/services/clinical.service';
 
 @Component({
   selector: 'app-clinical',
@@ -313,14 +313,14 @@ export class ClinicalComponent {
 
   selectedClinicId = this.clinicContext.selectedClinicId;
 
-  readonly recordTypes = [
+  readonly recordTypes: { value: MedicalRecordType; label: string }[] = [
     { value: 'EVOLUCAO', label: 'Evolução' },
     { value: 'RECEITA', label: 'Receita' },
     { value: 'EXAME', label: 'Exame' },
     { value: 'TRIAGEM', label: 'Triagem' }
-  ] as const;
+  ];
 
-  record = {
+  record: { type: MedicalRecordType; chief_complaint: string; observations: string; diagnosis: string; prescriptions: string } = {
     type: 'EVOLUCAO',
     chief_complaint: '',
     observations: '',
