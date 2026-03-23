@@ -101,7 +101,7 @@ interface MedicalRecord {
                   <h2 class="text-xl font-bold text-white">{{ selectedPatient()!.name }}</h2>
                   <p class="text-sm text-slate-400">
                     {{ selectedPatient()!.cpf || 'Sem CPF' }} • 
-                    {{ selectedPatient()!.birth_date ? calculateAge(selectedPatient()!.birth_date) + ' anos' : 'Sem data de nasc.' }}
+                    {{ selectedPatient()!.birth_date ? calculateAge(selectedPatient()!.birth_date!) + ' anos' : 'Sem data de nasc.' }}
                   </p>
                 </div>
               </div>
