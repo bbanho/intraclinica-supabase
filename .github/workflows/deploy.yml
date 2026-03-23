@@ -9,6 +9,9 @@ on:
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      deployments: write
 
     steps:
       - name: 📥 Checkout do Repositório
@@ -23,7 +26,7 @@ jobs:
           compiler: pdflatex
           args: "-interaction=nonstopmode -halt-on-error"
 
-      # -- PARTE 2: COMPILAR O SAAS (ANGULAR 21) --
+      # -- PARTE 2: COMPILAR O SAAS (ANGULAR 18+) --
       - name: ⚙️ Setup Node.js 20
         uses: actions/setup-node@v4
         with:
@@ -31,27 +34,27 @@ jobs:
 
       - name: 📦 Build Frontend (Angular)
         run: |
-          cd frontend
+          cd frontend-v2
           npm ci
+          ./node_modules/.bin/tsc --noEmit -p tsconfig.app.json
           npm run build -- --configuration=production
 
       # -- PARTE 3: MERGE DE ASSETS (APP + DOCS + PDFs) --
       - name: 🔄 Integrar Documentação com o App Compilado
         run: |
-          # Cria a pasta /documentacao/ dentro da pasta de publicação final do Angular
-          mkdir -p frontend/dist/documentacao
+          # Cria a pasta /documentacao/ dentro da pasta de publicação final do Angular (browser)
+          mkdir -p frontend-v2/dist/frontend-v2/browser/documentacao
           
-          # Copia o portal React (index.html), os arquivos .md e o PDF gerado
-          cp -r documentacao/* frontend/dist/documentacao/
+          # Copia o portal estático (index.html), os arquivos .md e o PDF gerado
+          cp -r documentacao/* frontend-v2/dist/frontend-v2/browser/documentacao/
 
       # -- PARTE 4: PUBLICAÇÃO (CLOUDFLARE PAGES) --
-      # Substitua isso pelo seu provedor (Vercel, GitHub Pages, etc.)
-      # - name: ☁️ Deploy no Cloudflare Pages
-      #   uses: cloudflare/pages-action@v1
-      #   with:
-      #     apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-      #     accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-      #     projectName: 'intraclinica'
-      #     directory: 'frontend/dist'
-      #     gitHubToken: ${{ secrets.GITHUB_TOKEN }}
-      #     branch: main
+      - name: ☁️ Deploy no Cloudflare Pages
+        uses: cloudflare/pages-action@v1
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          projectName: 'intraclinica'
+          directory: 'frontend-v2/dist/frontend-v2/browser'
+          gitHubToken: ${{ secrets.GITHUB_TOKEN }}
+          branch: main
