@@ -26,9 +26,17 @@ export default withMermaid(defineConfig({
       {
         text: 'Core Architecture',
         items: [
+          { text: 'IAM Security Model', link: '/core-architecture/iam-security-model' },
           { text: 'Multi-Tenant Security', link: '/core-architecture/multi-tenant-security' },
           { text: 'Database Schema', link: '/core-architecture/database' },
           { text: 'AI Integrations', link: '/core-architecture/ai-integrations' }
+        ]
+      },
+      {
+        text: 'Raw Reports (Deep Dives)',
+        items: [
+          { text: 'Legacy Frontend Actions', link: '/raw-reports/legacy-frontend-actions' },
+          { text: 'Database Business Rules', link: '/raw-reports/database-business-rules' }
         ]
       },
       {
