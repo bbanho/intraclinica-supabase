@@ -43,9 +43,10 @@ export class InventoryService {
     if (error) throw error;
     
     // Map avg_cost_price (DB column) -> cost (interface property)
-    return (data as any[]).map(p => ({
-      ...p,
-      cost: p.avg_cost_price ?? 0
+    // Destructure to exclude avg_cost_price so final objects strictly match Product interface
+    return (data as any[]).map(({ avg_cost_price, ...rest }) => ({
+      ...rest,
+      cost: avg_cost_price ?? 0
     })) as Product[];
   }
 

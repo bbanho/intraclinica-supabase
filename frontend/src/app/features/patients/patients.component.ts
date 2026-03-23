@@ -5,6 +5,9 @@ import { PatientService, Patient } from '../../core/services/patient.service';
 import { ClinicContextService } from '../../core/services/clinic-context.service';
 import { PatientModalComponent } from './patient-modal/patient-modal.component';
 
+// Defined outside class so it's created once, not on every formatGender() call
+const GENDER_MAP: Record<string, string> = { M: 'Masculino', F: 'Feminino', O: 'Outro' };
+
 @Component({
   selector: 'app-patients',
   standalone: true,
@@ -23,7 +26,7 @@ import { PatientModalComponent } from './patient-modal/patient-modal.component';
             <input
               type="text"
               placeholder="Buscar por nome ou CPF..."
-              (input)="searchTerm.set($any($event.target).value)"
+              (input)="onSearch($event)"
               class="pl-9 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none w-56"
             />
           </div>
@@ -180,6 +183,11 @@ export class PatientsComponent {
     });
   }
 
+  onSearch(event: Event) {
+    const input = event.target as HTMLInputElement;
+    this.searchTerm.set(input.value);
+  }
+
   async loadPatients() {
     try {
       this.loading.set(true);
@@ -242,7 +250,6 @@ export class PatientsComponent {
   }
 
   formatGender(gender: string | null): string {
-    const map: Record<string, string> = { M: 'Masculino', F: 'Feminino', O: 'Outro' };
-    return gender ? (map[gender] ?? gender) : '-';
+    return gender ? (GENDER_MAP[gender] ?? gender) : '-';
   }
 }
