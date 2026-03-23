@@ -1,10 +1,8 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
 import { LucideAngularModule, Mail, Lock, LogIn, Hospital } from 'lucide-angular';
-import { AuthService } from '../../core/services/auth.service';
-// Fake supabase auth for POC
-import { createClient } from '@supabase/supabase-js';
+import { AuthStore } from '../../core/store/auth.store';
 
 @Component({
   selector: 'app-login',
@@ -125,10 +123,10 @@ export class LoginComponent {
 
   private fb = inject(FormBuilder);
   private router = inject(Router);
-  private auth = inject(AuthService);
+  private authStore = inject(AuthStore);
 
-  isLoading = signal(false);
-  errorMessage = signal<string | null>(null);
+  isLoading = this.authStore.isLoading;
+  errorMessage = this.authStore.error;
 
   loginForm = this.fb.group({
     email: ['bmbanho@gmail.com', [Validators.required, Validators.email]],
@@ -141,23 +139,16 @@ export class LoginComponent {
       return;
     }
 
-    this.errorMessage.set(null);
-    this.isLoading.set(true);
-
     try {
       const { email, password } = this.loginForm.value;
       if (!email || !password) return;
 
-      // Chama a função real do Supabase
-      await this.auth.signInWithEmail(email, password);
+      await this.authStore.login(email, password);
       
       // Sucesso: Vai para a Recepção
       this.router.navigate(['/reception']);
     } catch (err: any) {
-      // Captura o erro retornado pelo Supabase ou rede
-      this.errorMessage.set(err.message || 'Falha ao fazer login. Verifique suas credenciais.');
-    } finally {
-      this.isLoading.set(false);
+      console.error('Login error:', err);
     }
   }
 }
