@@ -1,128 +1,99 @@
 ---
-title: Testing Workflow
-description: How to run unit tests, E2E tests, and type checking in IntraClinica.
+title: "Testing Workflow"
+description: "How to run unit tests, E2E tests, and type checking in IntraClinica."
 ---
 
 # Testing Workflow
 
-IntraClinica uses **Vitest** for unit tests and **Playwright** for E2E/UI audits. All frontend operations run inside `/frontend`.
+IntraClinica uses a modern, signal-based testing stack centered on **Vitest** and **Playwright**. All frontend operations must be executed inside the `/frontend` directory.
 
-## Commands
+## Type Safety Mandate
 
-### Unit Tests
-
-```bash
-cd frontend
-npm run test              # run all tests once
-npm run test -- auth.spec.ts    # single file
-npx vitest run path/to/file.spec.ts  # alternative
-```
-
-### Type Checking
+The codebase enforces a zero-tolerance policy for TypeScript errors. Every PR is audited by GitHub Actions, and the build will fail if any type mismatches exist.
 
 ```bash
-cd frontend
+# Inside /frontend
 ./node_modules/.bin/tsc --noEmit
 ```
 
-::: warning Zero errors before commit
-`tsc --noEmit` must report **exactly 0 errors** before committing. Supabase generated types and strict Angular generics will surface errors that `ng build` silently swallows.
+::: danger Strict Error Policy
+The `tsc --noEmit` command must report **exactly 0 errors** before any code is committed. Supabase-generated types and strict Angular generics surface critical errors that `ng build` might ignore.
 :::
 
-### E2E / UI Audits
+## Unit Testing: Vitest
+
+We use **Vitest** for fast, reactive unit testing. Legacy Karma configurations have been removed from the repository.
+
+### Commands
+
+| Action | Command |
+| :--- | :--- |
+| **Run all tests** | `npm run test` |
+| **Single file** | `npm run test -- <filename>` |
+| **Specific path** | `npx vitest run path/to/file.spec.ts` |
+| **Watch mode** | `npx vitest` |
+| **Coverage report** | `npx vitest run --coverage` |
+
+### Mocking Patterns
+
+Vitest handles Supabase client mocking through `vi.mock()` in `src/test-setup.ts`. This ensures unit tests never perform real network requests to the database (file: `frontend/src/test-setup.ts`).
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant T as Test Runner
+    participant S as Store/Service
+    participant M as Supabase Mock
+    
+    T->>S: trigger action()
+    S->>M: supabase.from('table').select()
+    M-->>S: returns { data: [], error: null }
+    S-->>T: assert state change
+```
+
+## E2E Testing: Playwright
+
+**Playwright** is used for UI audits and end-to-end flows. 
+
+::: info Future Work
+The Playwright suite is currently under development. While the configuration exists in `playwright.config.ts`, full coverage for complex multi-tenant flows is not yet fully implemented.
+:::
+
+### Basic Commands
 
 ```bash
-cd frontend
 npx playwright test              # run all E2E specs
 npx playwright test --ui          # interactive UI mode
-npx playwright test reception     # single spec
+npx playwright test reception     # run specific feature tests
 ```
 
-### Dev Server
+## CI/CD Pipeline
 
-```bash
-cd frontend
-npm run dev   # Angular dev server on http://localhost:3000
-```
+The project uses GitHub Actions for continuous integration. Every push triggers a verification flow that ensures the application is deploy-ready.
 
-### Production Build
-
-```bash
-cd frontend
-npm run build  # production build output to dist/
+```mermaid
+graph TD
+    A[Git Push] --> B(Checkout Code)
+    B --> C(Install Dependencies)
+    C --> D{tsc --noEmit}
+    D -- Errors --> E[Fail Build]
+    D -- Success --> F[Run Vitest]
+    F -- Fail --> G[Fail Build]
+    F -- Pass --> H[Build Production Assets]
+    H --> I[Deploy to Vercel/Supabase]
+    
+    style D fill:#2d333b,border:#6d5dfc,color:#e6edf3
+    style F fill:#2d333b,border:#6d5dfc,color:#e6edf3
+    style H fill:#2d333b,border:#6d5dfc,color:#e6edf3
 ```
 
 ## Test File Conventions
 
-- Unit test files: `*.spec.ts` alongside the source file
-- E2E specs: `e2e/*.spec.ts`
-- Fixtures: `e2e/fixtures/*.ts`
+- **Unit tests**: `*.spec.ts` located in the same folder as the target component or service.
+- **E2E specs**: `e2e/*.spec.ts` for cross-feature flows.
+- **Integration tests**: `src/app/core/store/*.spec.ts` for verifying complex Signal store logic.
 
-## Vitest Configuration
-
-Vitest is configured via `vitest.config.ts` at the frontend root. Key settings:
-
-```typescript
-// vitest.config.ts
-export default defineConfig({
-  environment: 'jsdom',
-  globals: true,          // provides describe, it, expect globally
-  setupFiles: ['src/test-setup.ts'],
-  include: ['src/**/*.{test,spec}.{js,mjs}']
-})
-```
-
-## Mocking Supabase Clients
-
-Vitest mocks `@supabase/supabase-js` to avoid real DB calls during unit tests:
-
-```typescript
-// test-setup.ts
-import { vi } from 'vitest'
-import * as supabaseModule from '@supabase/supabase-js'
-
-vi.mock('@supabase/supabase-js', () => ({
-  createClient: vi.fn(() => ({
-    from: vi.fn().mockReturnValue({
-      select: vi.fn().mockReturnValue({
-        eq: vi.fn().mockResolvedValue({ data: [], error: null })
-      })
-    }),
-    rpc: vi.fn()
-  }))
-}))
-```
-
-## Playwright Configuration
-
-Playwright uses `playwright.config.ts`:
-
-```typescript
-export default defineConfig({
-  testDir: './e2e',
-  use: {
-    baseURL: 'http://localhost:3000',
-    trace: 'on-first-retry'
-  },
-  webServer: {
-    command: 'npm run dev',
-    url: 'http://localhost:3000',
-    reuseExistingServer: true
-  }
-})
-```
-
-## Coverage
-
-Generate coverage reports with:
-
-```bash
-npx vitest run --coverage
-```
-
-Coverage thresholds are enforced in CI — PRs that drop coverage below the threshold will fail.
-
-## Related Pages
+## Related Documentation
 
 - [Local Development](./local-development) — dev server setup
-- [Core Architecture: Multi-Tenant Security](../core-architecture/multi-tenant-security) — clinicId context
+- [Core Architecture: Multi-Tenant Security](../core-architecture/multi-tenant-security) — filtering by clinicId in tests

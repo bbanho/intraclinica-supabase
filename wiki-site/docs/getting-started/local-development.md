@@ -7,19 +7,60 @@ description: "How to run the development server, build for production, and enfor
 
 IntraClinica is a strict Angular 18 application integrating with a local or remote Supabase instance.
 
-This guide covers the fundamental commands to start the development server, run type checks, and build the application. As dictated by `AGENTS.md:12`, all commands **must** be executed within the `frontend/` directory.
+This guide covers the fundamental commands to start the development server, run type checks, and build the application. As dictated by `AGENTS.md`, all frontend operations **must** be executed within the `frontend/` directory.
 
-## 1. Starting the Dev Server
+## 1. Directory Structure
 
-The default method to run the project locally uses the Angular CLI, wrapped in an npm script for convenience.
+The project root for the application is `frontend/`. Any legacy references to `frontend-v2/` should be ignored as that version has been archived.
+
+```text
+/ (Project Root)
+├── frontend/             <-- Active Angular 18 project
+├── wiki-site/            <-- Documentation portal
+└── supabase/             <-- Supabase migrations and functions
+```
+
+## 2. Frontend Commands
+
+All commands below must be run from the `frontend/` directory.
+
+### Starting the Dev Server
+Runs `ng serve` on `http://localhost:3000`.
 
 ```bash
 cd frontend
 npm run dev
 ```
 
-### Why not simply `ng serve`?
-Running `npm run dev` ensures that environment variables (like Supabase API keys) and Node flags configured in `package.json` are properly passed to the build process.
+### Type Checking (MANDATORY)
+As mandated by `AGENTS.md`, committing code with TypeScript errors is strictly prohibited. You must run the TypeScript compiler in dry-run mode before creating a Pull Request.
+
+```bash
+cd frontend
+./node_modules/.bin/tsc --noEmit
+```
+
+### Running Tests
+IntraClinica uses **Vitest** for unit testing. You can run all tests or target specific files.
+
+```bash
+cd frontend
+# Run all unit tests
+npm run test
+
+# Run a single test file
+npx vitest run path/to/file.spec.ts
+```
+
+### Production Build
+To test production optimizations (tree-shaking, minification, and AOT compilation) locally.
+
+```bash
+cd frontend
+npm run build
+```
+
+The output will be placed in the `frontend/dist/` directory.
 
 ```mermaid
 %%{init: {'theme': 'dark', 'themeVariables': { 'primaryColor': '#2d333b', 'primaryBorderColor': '#6d5dfc', 'primaryTextColor': '#e6edf3', 'lineColor': '#8b949e', 'background': '#161b22' }}}%%
@@ -36,47 +77,37 @@ graph TD
     style Output fill:#2d333b,stroke:#6d5dfc,color:#e6edf3
 ```
 
-## 2. Type Checking (The Golden Rule)
+## 3. Deployment & Previews
 
-As mandated by `AGENTS.md:19`, committing code with TypeScript errors is strictly prohibited. You must run the TypeScript compiler in dry-run mode before creating a Pull Request.
+IntraClinica uses Cloudflare Pages for hosting. 
 
-```bash
-cd frontend
-./node_modules/.bin/tsc --noEmit
-```
-
-### Why `tsc --noEmit`?
-Angular's `ng build` sometimes obfuscates deeper type errors, or ignores them depending on `angular.json` strictness settings. 
-
-Running `tsc --noEmit` directly invokes the compiler using `tsconfig.app.json` without outputting JavaScript files. If it returns 0 errors, the codebase is structurally sound.
+### Automated Previews
+Every Pull Request automatically triggers a **Cloudflare Pages Preview** deployment via GitHub Actions.
+1. Push your branch to GitHub.
+2. A GitHub Action starts the build process.
+3. Once finished, a comment is posted to the PR with a unique preview URL.
 
 ```mermaid
 %%{init: {'theme': 'dark', 'themeVariables': { 'primaryColor': '#2d333b', 'primaryBorderColor': '#6d5dfc', 'primaryTextColor': '#e6edf3', 'lineColor': '#8b949e', 'background': '#161b22' }}}%%
 sequenceDiagram
     autonumber
     participant Dev as Developer
-    participant Git as Git Worktree
-    participant TSC as TypeScript Compiler
-    participant PR as Pull Request
-
-    Dev->>Git: Modifies core/services/
-    Dev->>TSC: tsc --noEmit
-    Note over TSC: Checks all .ts files
-    TSC-->>Dev: 0 Errors
-    Dev->>PR: gh pr create
-    Note right of PR: Gemini Code Assist<br>begins review
+    participant GH as GitHub Actions
+    participant CF as Cloudflare Pages
+    
+    Dev->>GH: git push origin feat/feature
+    GH->>GH: npm run build
+    GH->>CF: Upload assets
+    CF-->>GH: Preview URL generated
+    GH-->>Dev: URL posted in PR comment
 ```
 
-## 3. Production Build
+## 4. Supabase Local Development
 
-To test production optimizations (tree-shaking, minification, and AOT compilation) locally, run the build command.
+If you need to modify the database schema or Edge Functions:
 
-```bash
-cd frontend
-npm run build
-```
+1. **Start Supabase locally**: Ensure Docker is running and execute `supabase start`.
+2. **Link Project**: Use `supabase link --project-ref <your-project-id>`.
+3. **Database Changes**: All schema changes must be handled via migrations in the `supabase/migrations/` directory. Never modify the production database directly.
 
-The output will be placed in the `frontend/dist/` directory.
-
-### Why test production builds?
-Certain features, particularly the Lazy Loading of the LocalAiService (WebLLM/WebGPU, see `AGENTS.md:113`), behave differently when bundled. Testing the production build ensures that chunks are correctly separated and that the initial bundle size remains small.
+For more details on IAM and multi-tenant security, see the [IAM Security Model](/core-architecture/iam-security-model) and [Multi-Tenant Security](/core-architecture/multi-tenant-security).

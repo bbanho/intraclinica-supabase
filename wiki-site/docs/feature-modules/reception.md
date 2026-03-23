@@ -7,9 +7,52 @@ description: "How the Reception feature manages the clinic agenda using Angular 
 
 The Reception module is the core interface for clinic administrators and front-desk staff. It handles scheduling, patient check-ins, and daily agenda views.
 
-This document details the recent refactoring history of the Reception feature, focusing on the migration to Angular 18's new control flow and the elimination of legacy structural directives.
+## 1. IAM Permissions & Security
 
-## 1. Migration to Angular 18 Control Flow
+Access to the Reception module is strictly governed by the Identity and Access Management (IAM) system. All operations are gated by specific permission keys.
+
+### Permission Gates
+
+| Permission Key | Description |
+| :--- | :--- |
+| `appointments.read` | Grants view access to the daily agenda and waitlist. |
+| `appointments.write` | Required to create, edit, or cancel appointments. Gates the **Novo Agendamento** modal. |
+| `appointments.call` | Allows changing an appointment status to "Chamado" and assigning a consultation room. |
+
+### Modal Access
+
+The **Appointment Modal** (Source: `frontend/src/app/features/reception/appointment-modal/appointment-modal.component.ts`) includes a proactive check for the `appointments.write` permission. Users lacking this key are prevented from opening the form, ensuring data integrity at the UI level.
+
+## 2. Doctor Lookup Resolution
+
+The Reception module requires a dynamic list of doctors for scheduling. Historically, this used a static JSONB check on the `app_user` table.
+
+### Modern Implementation
+
+Current implementation in `AppointmentService.getDoctors()` still references the `iam_bindings` column for backward compatibility, but the system is transitioning to a centralized permission resolution using the `roles/doctor` base package (Source: `frontend/src/app/core/models/iam.types.ts:22`).
+
+```typescript
+// Current Logic (frontend/src/app/core/services/appointment.service.ts:73)
+.contains('iam_bindings', { [clinicId]: ['DOCTOR'] })
+```
+
+*Note: Future refactors will consolidate this under the centralized `iam.can()` resolver to unify role-based logic.*
+
+## 3. Status Transitions
+
+Appointment statuses are updated in real-time. Each transition is audited and potentially gated by the `appointments.call` permission when moving a patient from the waitlist to an active consultation.
+
+```mermaid
+%%{init: {'theme': 'dark', 'themeVariables': { 'primaryColor': '#2d333b', 'primaryBorderColor': '#6d5dfc', 'primaryTextColor': '#e6edf3', 'lineColor': '#8b949e', 'background': '#161b22' }}}%%
+stateDiagram-v2
+    [*] --> Agendado
+    Agendado --> Aguardando: Patient Arrived
+    Aguardando --> EmConsulta: Called (appointments.call)
+    EmConsulta --> Finalizado: Done
+    Agendado --> Cancelado: Cancelled (appointments.write)
+```
+
+## 4. Migration to Angular 18 Control Flow
 
 Historically, the Reception feature relied heavily on `*ngIf`, `*ngFor`, and `*ngSwitch` directives to render the daily agenda and conditional UI states (e.g., loading spinners, empty states).
 

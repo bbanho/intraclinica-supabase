@@ -5,7 +5,20 @@ description: Product stock management, warehouse transfers, and dispense workflo
 
 # Inventory Module
 
-The Inventory module (`features/inventory/`) handles products, stock levels, warehouse transfers, and dispense operations tied to clinical prescriptions.
+The Inventory module (`features/inventory/`) handles products, stock levels, warehouse transfers, and dispense operations tied to clinical prescriptions. It ensures that clinics maintain optimal supply levels while providing a full audit trail of movements.
+
+## IAM Permissions
+
+Access to inventory data and operations is controlled by three distinct permission tiers in the `iam_bindings` configuration.
+
+| Permission | Description | Access Level |
+|------------|-------------|--------------|
+| `inventory.read` | View product catalog, current stock levels, and basic metadata. | Basic Staff |
+| `inventory.write` | Add/deduct stock, create new products, and edit basic product info. | Stock Clerks / Admins |
+| `inventory.view_cost` | View sensitive cost price and supplier data. | Managers / Owners |
+
+> [!IMPORTANT]
+> The `inventory.view_cost` permission is required to see the `avg_cost_price` and total stock value in the dashboard (frontend/src/app/features/inventory/inventory.component.ts:103).
 
 ## Data Model
 
@@ -15,13 +28,16 @@ Master catalog of available products/medications.
 
 ```sql
 product {
-  id           uuid PRIMARY KEY DEFAULT gen_random_uuid()
-  clinic_id    uuid REFERENCES clinic(id)  -- NULL = multi-clinic catalog
-  name         text NOT NULL
-  sku          text UNIQUE
-  category     text  -- e.g., 'medication', 'supply', 'equipment'
-  unit         text  -- e.g., 'tablet', 'ml', 'box'
-  created_at   timestamptz DEFAULT now()
+  id               uuid PRIMARY KEY DEFAULT gen_random_uuid()
+  clinic_id        uuid REFERENCES clinic(id)  -- NULL = multi-clinic catalog
+  name             text NOT NULL
+  sku              text UNIQUE
+  barcode          text
+  category         text  -- e.g., 'medication', 'supply', 'equipment'
+  unit             text  -- e.g., 'tablet', 'ml', 'box'
+  price            numeric(10,2) DEFAULT 0
+  avg_cost_price   numeric(10,2) DEFAULT 0
+  created_at       timestamptz DEFAULT now()
 }
 ```
 
@@ -42,156 +58,88 @@ inventory_stock {
 }
 ```
 
-### `inventory_transaction`
+## Atomic Operations (RPC)
 
-Audit log for all stock movements.
+Stock updates must always be atomic to prevent race conditions. IntraClinica uses PostgreSQL RPC functions for all critical movements.
 
-```sql
-inventory_transaction {
-  id            uuid PRIMARY KEY DEFAULT gen_random_uuid()
-  clinic_id     uuid NOT NULL REFERENCES clinic(id)
-  product_id    uuid NOT NULL REFERENCES product(id)
-  movement_type text NOT NULL  -- 'IN', 'OUT', 'TRANSFER_IN', 'TRANSFER_OUT', 'ADJUSTMENT'
-  quantity      integer NOT NULL
-  reference_id  uuid  -- links to medical_record.dispense or transfer request
-  performed_by  uuid REFERENCES app_user(id)
-  created_at    timestamptz DEFAULT now()
-}
-```
+### Product Creation
 
-## Atomic Stock Operations
-
-Stock updates must always be atomic — never trust two sequential `UPDATE` calls.
-
-### `create_product_with_stock`
-
-Used when creating a new product AND initializing its first stock record in one shot.
+The `create_product_with_stock` RPC handles the simultaneous creation of a product catalog entry and its initial stock level in a single transaction.
 
 ```sql
+-- Implementation in frontend/src/app/core/services/inventory.service.ts:58
 CREATE OR REPLACE FUNCTION create_product_with_stock(
-  p_clinic_id   UUID,
-  p_name        TEXT,
-  p_sku         TEXT,
-  p_category    TEXT,
-  p_unit        TEXT,
-  p_warehouse_id UUID,
-  p_quantity    INTEGER DEFAULT 0
+  p_clinic_id     UUID,
+  p_name          TEXT,
+  p_category      TEXT,
+  p_price         NUMERIC,
+  p_cost          NUMERIC,
+  p_min_stock     INTEGER,
+  p_current_stock INTEGER,
+  p_barcode       TEXT
 ) RETURNS product AS $$
 DECLARE
   v_product product;
 BEGIN
-  INSERT INTO product (clinic_id, name, sku, category, unit)
-  VALUES (p_clinic_id, p_name, p_sku, p_category, p_unit)
+  INSERT INTO product (clinic_id, name, category, price, avg_cost_price, barcode)
+  VALUES (p_clinic_id, p_name, p_category, p_price, p_cost, p_barcode)
   RETURNING * INTO v_product;
 
-  INSERT INTO inventory_stock (clinic_id, warehouse_id, product_id, quantity)
-  VALUES (p_clinic_id, p_warehouse_id, v_product.id, p_quantity);
+  INSERT INTO inventory_stock (clinic_id, product_id, quantity, min_quantity)
+  VALUES (p_clinic_id, v_product.id, p_current_stock, p_min_stock);
 
   RETURN v_product;
 END;
 $$ LANGUAGE plpgsql;
 ```
 
-### `dispense_inventory`
+### Dispensing & Transfers
 
-Deducts stock and creates an audit trail atomically.
+- **`dispense_inventory`**: Deducts stock and creates an audit trail (`inventory_transaction`) atomically.
+- **`transfer_inventory`**: Moves stock between two warehouses within the same clinic.
 
-```sql
-CREATE OR REPLACE FUNCTION dispense_inventory(
-  p_clinic_id    UUID,
-  p_product_id   UUID,
-  p_quantity     INTEGER,
-  p_reference_id UUID,
-  p_performed_by UUID
-) RETURNS inventory_transaction AS $$
-BEGIN
-  -- Deduct stock
-  UPDATE inventory_stock
-  SET quantity = quantity - p_quantity,
-      updated_at = now()
-  WHERE clinic_id = p_clinic_id
-    AND product_id = p_product_id
-    AND quantity >= p_quantity;  -- prevents negative stock
+## UI Features
 
-  -- Create audit trail
-  RETURN INSERT INTO inventory_transaction
-    (clinic_id, product_id, movement_type, quantity, reference_id, performed_by)
-  VALUES
-    (p_clinic_id, p_product_id, 'OUT', p_quantity, p_reference_id, p_performed_by)
-  RETURNING *;
-END;
-$$ LANGUAGE plpgsql;
-```
+### Product Modal
+The `ProductModalComponent` (frontend/src/app/features/inventory/product-modal/product-modal.component.ts) handles new product intake.
 
-## Multi-Warehouse Transfers
+| Field | Requirement | Permission Required |
+|-------|-------------|---------------------|
+| Name | Mandatory | `inventory.write` |
+| Category | Optional | `inventory.write` |
+| Selling Price | Mandatory (>=0) | `inventory.write` |
+| Cost Price | Mandatory (>=0) | `inventory.view_cost` |
+| Initial Stock | Mandatory (>=0) | `inventory.write` |
+| Min. Stock | Mandatory (>=0) | `inventory.write` |
 
-When a clinic has multiple warehouses, transfers go through a two-step process:
+### Filtering & Alerts
+Implemented in recent updates (PR #71), the inventory dashboard now supports:
 
-1. `TRANSFER_OUT` at source warehouse (reduces source stock, logs `TRANSFER_OUT` transaction)
-2. `TRANSFER_IN` at destination warehouse (increases dest stock, logs `TRANSFER_IN` transaction)
+1. **Category Filtering**: A dynamic dropdown appears if more than two product categories exist (frontend/src/app/features/inventory/inventory.component.ts:119).
+2. **Low-Stock Highlighting**: Cards turn red and display an "Abaixo do Mín." badge when `current_stock < min_stock`.
+3. **Audit Trail**: All movements are logged in `inventory_transaction` via RPC calls.
 
-Both steps are executed via a single RPC `transfer_inventory`:
+## System Architecture
 
-```sql
-CREATE OR REPLACE FUNCTION transfer_inventory(
-  p_clinic_id      UUID,
-  p_product_id     UUID,
-  p_quantity       INTEGER,
-  p_source_warehouse UUID,
-  p_dest_warehouse  UUID,
-  p_performed_by   UUID
-) RETURNS JSONB AS $$
-BEGIN
-  -- Out
-  UPDATE inventory_stock
-  SET quantity = quantity - p_quantity, updated_at = now()
-  WHERE clinic_id = p_clinic_id AND warehouse_id = p_source_warehouse AND product_id = p_product_id;
+```mermaid
+sequenceDiagram
+    autonumber
+    participant UI as Inventory UI
+    participant Store as InventoryStore (Signal)
+    participant SVC as InventoryService
+    participant RPC as Postgres RPC
+    participant DB as Supabase Tables
 
-  INSERT INTO inventory_transaction
-    (clinic_id, product_id, movement_type, quantity, performed_by)
-  VALUES
-    (p_clinic_id, p_product_id, 'TRANSFER_OUT', p_quantity, p_performed_by);
-
-  -- In
-  UPDATE inventory_stock
-  SET quantity = quantity + p_quantity, updated_at = now()
-  WHERE clinic_id = p_clinic_id AND warehouse_id = p_dest_warehouse AND product_id = p_product_id;
-
-  INSERT INTO inventory_transaction
-    (clinic_id, product_id, movement_type, quantity, performed_by)
-  VALUES
-    (p_clinic_id, p_product_id, 'TRANSFER_IN', p_quantity, p_performed_by);
-
-  RETURN jsonb_build_object('transferred', p_quantity, 'product_id', p_product_id);
-END;
-$$ LANGUAGE plpgsql;
-```
-
-## Low-Stock Alerts
-
-The `min_quantity` column on `inventory_stock` drives low-stock warnings. The `InventoryStore` exposes a computed signal:
-
-```typescript
-readonly lowStockItems = computed(() =>
-  this.svc.stocks().filter(s => s.quantity <= s.min_quantity)
-)
-```
-
-## Multi-Tenant Filtering
-
-Every query MUST include `clinic_id` in the `WHERE` clause:
-
-```typescript
-const clinicId = this.context.selectedClinicId()
-if (!clinicId || clinicId === 'all') return []  // abort — global context invalid for inventory
-
-const { data } = await this.supabase
-  .from('inventory_stock')
-  .select('*, product:product_id(*), warehouse:warehouse_id(*)')
-  .eq('clinic_id', clinicId)
+    UI->>Store: openNewProductModal()
+    Store->>SVC: createProduct(dto)
+    Note over SVC,RPC: Atomic Transaction
+    SVC->>RPC: create_product_with_stock()
+    RPC->>DB: INSERT product
+    RPC->>DB: INSERT inventory_stock
+    DB-->>UI: Refresh Signals
 ```
 
 ## Related Pages
 
-- [Multi-Tenant Security](../core-architecture/multi-tenant-security) — clinicId filtering
-- [Database Schema](../core-architecture/database) — RPC functions
+- [Multi-Tenant Security](../core-architecture/multi-tenant-security) — clinicId filtering logic.
+- [Database Schema](../core-architecture/database) — Complete list of inventory tables.

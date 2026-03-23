@@ -5,84 +5,114 @@ description: "How IntraClinica handles local WebLLM/WebGPU and cloud-based Gemin
 
 # AI Integrations
 
-IntraClinica heavily utilizes AI for intelligent data processing, clinical record summarization, and user assistance. 
-
-This document details the dual-pronged approach to AI integration, contrasting the local, privacy-first `LocalAiService` with the cloud-based `GeminiService` fallback.
+IntraClinica utilizes a dual AI strategy to balance patient privacy, processing power, and cost efficiency. This approach combines on-device Large Language Models (LLMs) with cloud-based intelligence.
 
 ## 1. The Dual AI Strategy
 
-The application leverages two distinct AI providers depending on the user's hardware capabilities, internet connection, and the sensitivity of the data being processed.
+We prioritize local processing to ensure patient data remains on the user's device whenever possible. The system automatically routes requests based on hardware capabilities and task complexity.
 
-### Why Dual Providers?
-
-As dictated by `AGENTS.md:110`, we prioritize patient data privacy. For highly sensitive operations (e.g., parsing raw clinical notes), we attempt to use a local Large Language Model running directly in the browser. For less sensitive tasks or on weak devices, we fall back to a cloud provider.
+- **Local First**: Clinical note parsing and sensitive patient data analysis are performed locally via WebLLM.
+- **Cloud Fallback**: Complex reasoning, strategic insights, and social media content generation use the Gemini API.
 
 ```mermaid
 %%{init: {'theme': 'dark', 'themeVariables': { 'primaryColor': '#2d333b', 'primaryBorderColor': '#6d5dfc', 'primaryTextColor': '#e6edf3', 'lineColor': '#8b949e', 'background': '#161b22' }}}%%
 graph TD
-    User(User Request) --> LocalAiService(LocalAiService)
-    LocalAiService -- Hardware Supports WebGPU --> Browser(Local WebLLM via WebGPU)
-    LocalAiService -- Weak Hardware/No WebGPU --> GeminiService(GeminiService)
-    GeminiService --> Cloud(Google GenAI API)
+    User(User Request) --> Orchestrator(AiOrchestratorService)
+    Orchestrator -- WebGPU Available? --> Decision{Decision}
+    Decision -- Yes --> Local(LocalAiService)
+    Decision -- No/Complex Task --> Cloud(GeminiService)
+    Local --> Browser(Local WebLLM)
+    Cloud --> Google(Google GenAI SDK)
     
     style User fill:#2d333b,stroke:#6d5dfc,color:#e6edf3
-    style LocalAiService fill:#2d333b,stroke:#6d5dfc,color:#e6edf3
-    style Browser fill:#161b22,stroke:#30363d,color:#e6edf3
-    style GeminiService fill:#161b22,stroke:#30363d,color:#e6edf3
+    style Orchestrator fill:#2d333b,stroke:#6d5dfc,color:#e6edf3
+    style Decision fill:#2d333b,stroke:#6d5dfc,color:#e6edf3
+    style Local fill:#161b22,stroke:#30363d,color:#e6edf3
     style Cloud fill:#161b22,stroke:#30363d,color:#e6edf3
+    style Browser fill:#161b22,stroke:#30363d,color:#e6edf3
+    style Google fill:#161b22,stroke:#30363d,color:#e6edf3
 ```
 
 ## 2. LocalAiService (WebLLM & WebGPU)
 
-The `LocalAiService` provides inference running entirely on the client's device, ensuring zero sensitive data leaves the browser. It utilizes `@mlc-ai/web-llm` and `@tensorflow/tfjs`.
+The `LocalAiService` enables private, on-device inference using the `@mlc-ai/web-llm` and `@tensorflow/tfjs` libraries.
 
-### The Strict Lazy-Loading Rule
+### Dynamic Import Pattern
 
-According to `AGENTS.md:113`, there is a critical rule regarding TensorFlow and WebGPU imports: **they must be dynamic**.
-
-If you use top-level static imports (e.g., `import * as tf from '@tensorflow/tfjs'`), the JavaScript engine will execute the module load sequence immediately. On devices without GPUs or WebGL support, this will crash the application before the UI even renders.
-
-### Correct Implementation
-
-You must use dynamic imports inside the initialization function:
+To prevent application crashes on devices without WebGPU or WebGL support, all AI-related libraries must be loaded dynamically. **Static top-level imports are strictly forbidden.**
 
 ```typescript
-// frontend/src/app/core/services/local-ai.service.ts
-async initializeModel() {
+// Example of the required dynamic import pattern
+async initialize() {
   if (navigator.gpu) {
-    const tf = await import('@tensorflow/tfjs');
-    const { CreateMLCEngine } = await import('@mlc-ai/web-llm');
-    // ...
+    try {
+      const tf = await import('@tensorflow/tfjs');
+      const { CreateMLCEngine } = await import('@mlc-ai/web-llm');
+      // Initialize engine...
+    } catch (err) {
+      console.error('Failed to load local AI modules', err);
+    }
   }
 }
 ```
+
+### Available Local Models
+
+The service supports several lightweight models optimized for browser execution:
+- **Gemma-2b**: Google's open-weights model for general clinical tasks.
+- **Phi-3-mini**: Microsoft's efficient model for high-performance reasoning.
+- **Llama-3-8B**: Meta's powerful model for complex summarization (requires high-end GPU).
+
+## 3. GeminiService (Cloud Intelligence)
+
+The `GeminiService` utilizes the `@google/genai` SDK to access Google's latest frontier models. This service acts as the primary engine for non-sensitive tasks and as a fallback when WebGPU is unavailable.
+
+### Model Selection
+The system currently leverages the following models:
+- `gemini-2.5-flash`: The default for high-speed, low-latency interactions.
+- `gemini-2.0-flash`: Optimized for balanced performance and multimodal tasks.
+
+### Core Capabilities
+- **Live Connect**: Real-time interaction with clinical data.
+- **Inventory Risk Analysis**: Predicting stockouts and optimizing procurement.
+- **Strategic Insights**: Analyzing clinic performance metrics.
+- **Social Media Content**: Generating marketing material from clinical success stories (anonymized).
+- **Clinical Audio Processing**: Transcribing and analyzing recorded consultations.
+
+## 4. AiOrchestratorService Pattern
+
+The `AiOrchestratorService` acts as a facade that abstracts the complexity of model routing and fallback logic.
 
 ```mermaid
 %%{init: {'theme': 'dark', 'themeVariables': { 'primaryColor': '#2d333b', 'primaryBorderColor': '#6d5dfc', 'primaryTextColor': '#e6edf3', 'lineColor': '#8b949e', 'background': '#161b22' }}}%%
 sequenceDiagram
     autonumber
-    participant UI as Angular Component
-    participant Service as LocalAiService
-    participant Browser as WebGPU API
-    participant Modules as JS Bundler
+    participant App as Feature Component
+    participant Orch as AiOrchestratorService
+    participant Local as LocalAiService
+    participant Cloud as GeminiService
 
-    UI->>Service: request summarization
-    Service->>Browser: check navigator.gpu
-    Browser-->>Service: true
-    Note over Service: Dynamic Import Triggered
-    Service->>Modules: await import('@tensorflow/tfjs')
-    Modules-->>Service: module loaded
-    Service->>Browser: CreateMLCEngine()
-    Browser-->>Service: Engine Ready
-    Service-->>UI: returns summary
+    App->>Orch: analyze(prompt, sensitive)
+    Orch->>Local: checkAvailability()
+    alt WebGPU Ready & Task Suitable
+        Orch->>Local: process(prompt)
+        Local-->>Orch: result
+    else WebGPU Missing or Local Error
+        Orch->>Cloud: process(prompt)
+        Cloud-->>Orch: result
+    end
+    Orch-->>App: final analysis
 ```
 
-## 3. GeminiService (Cloud Fallback)
+## 5. Privacy & Compliance (HIPAA / LGPD)
 
-When the user's device lacks WebGPU support, or when the task requires a significantly larger parameter model, the application relies on the `GeminiService` which connects to the Google GenAI SDK (`AGENTS.md:118`).
+The local processing strategy is a cornerstone of our compliance framework:
+- **Zero-Data Out**: By using `LocalAiService`, raw patient data never leaves the browser memory, significantly reducing HIPAA and LGPD risk profiles.
+- **Encryption**: All models are cached in the browser's IndexedDB using standard encryption protocols.
+- **User Choice**: Users can explicitly toggle between local and cloud processing in their workspace settings.
 
-### Graceful Degradation
+## 6. Implementation Notes
 
-Cloud APIs are subject to network failures, latency spikes, and quota limits. The `GeminiService` must handle these gracefully.
-
-If the API call fails, the service must catch the error and provide a sensible fallback to the UI (e.g., returning the original text unmodified or a standard error message string) rather than crashing the component.
+- **Navigator Check**: Always verify `navigator.gpu` before attempting `LocalAiService` initialization.
+- **Memory Management**: WebLLM engines must be explicitly disposed of when no longer needed to free up VRAM.
+- **Quota Handling**: `GeminiService` implements exponential backoff for `429 Too Many Requests` errors.

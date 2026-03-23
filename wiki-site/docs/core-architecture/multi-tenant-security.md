@@ -11,19 +11,19 @@ This document explains *why* we moved away from legacy abstraction tables and *h
 
 ## 1. The IAM Bindings Strategy
 
-Historically, identifying a user's role (e.g., Doctor vs. Receptionist) relied on a static `type` column in a monolithic `actor` table. This failed in a multi-tenant environment because a single user might be a Doctor at Clinic A but only a Receptionist at Clinic B.
+IntraClinica uses a hierarchical IAM (Identity and Access Management) model based on the **Role → Grant → Block** pattern. This ensures that permissions are granular and clinic-specific.
 
-We solved this by introducing the `iam_bindings` JSONB column in the `app_user` table (Source: `AGENTS.md:73`).
+We solved the multi-tenancy challenge by introducing the `iam_bindings` JSONB column in the `app_user` table (Source: `AGENTS.md:73`). This column stores a mapping of clinic IDs to their respective roles and specific permission overrides.
 
 ### Why JSONB for IAM?
-Using JSONB allows us to map a single `user_id` to multiple clinics with distinct roles without creating complex junction tables that degrade query performance.
+Using JSONB allows us to map a single `user_id` to multiple clinics with distinct roles and granular permissions without creating complex junction tables that degrade query performance.
 
 ```mermaid
 %%{init: {'theme': 'dark', 'themeVariables': { 'primaryColor': '#2d333b', 'primaryBorderColor': '#6d5dfc', 'primaryTextColor': '#e6edf3', 'lineColor': '#8b949e', 'background': '#161b22' }}}%%
 graph TD
     User(app_user<br>id: 123) --> IAM(iam_bindings JSONB)
-    IAM --> C1["Clinic A: ['DOCTOR']"]
-    IAM --> C2["Clinic B: ['RECEPTIONIST']"]
+    IAM --> C1["Clinic A: ['roles/doctor']"]
+    IAM --> C2["Clinic B: ['roles/reception']"]
     
     style User fill:#2d333b,stroke:#6d5dfc,color:#e6edf3
     style IAM fill:#2d333b,stroke:#6d5dfc,color:#e6edf3
@@ -31,13 +31,17 @@ graph TD
     style C2 fill:#161b22,stroke:#30363d,color:#e6edf3
 ```
 
-When querying for doctors in a specific clinic, the frontend constructs queries checking if the JSONB payload contains the specific clinic key with the 'DOCTOR' array element.
+When querying for doctors or verifying access in a specific clinic, the system evaluates the JSONB payload. For example, to check if a user can read clinical records, we verify the presence of the `clinical.read_records` permission, which is typically granted by the `roles/doctor` role.
 
 ## 2. Row Level Security (RLS)
 
 At the database level, every table containing tenant-specific data must have a `clinic_id` column.
 
-PostgreSQL Row Level Security (RLS) policies are written to evaluate the authenticated user's JWT token against the `clinic_id` of the row being accessed.
+PostgreSQL Row Level Security (RLS) policies are written to evaluate the authenticated user's JWT token against the `clinic_id` of the row being accessed. Instead of legacy functions like `is_super_admin()`, we now use the `has_permission()` RPC function, which internally handles role hierarchies, grants, and blocks.
+
+### Key IAM Functions
+- **`has_permission(permission_key)`**: The primary RPC for checking if the current user has a specific grant in the active clinic.
+- **`has_clinic_role(role_key)`**: Now superseded by `has_permission()` with the `roles/<role>` permission key for internal consistency.
 
 ### The Flow of a Secured Request
 
@@ -62,9 +66,12 @@ sequenceDiagram
 
 ## 3. Frontend Context Enforcement
 
-In the Angular application, localized features (e.g., `features/inventory/`, `features/clinical/`) must always be aware of the active clinic context.
+In the Angular application, localized features (e.g., `features/inventory/`, `features/clinical/`) must always be aware of the active clinic context and user permissions.
 
 As mandated by `AGENTS.md:78`, you must always retrieve the active clinic ID via the context service:
 `const clinicId = this.context.selectedClinicId();`
+
+### Permission Checks (`IamService`)
+Before executing UI actions, always verify permissions using the `IamService.can()` method. This API integrates with the hierarchical IAM model to determine if the user has the required grant (or role) for the active clinic.
 
 **Critical Rule:** Never fetch, display, or mutate data if `clinicId === 'all'` or `null`. The UI must abort the operation or show an empty state to prevent data corruption or cross-tenant leaks.

@@ -7,6 +7,63 @@ description: Patient records, medical history, and clinical workflow in IntraCli
 
 The Clinical module (`features/clinical/`) manages patient records — the most security-sensitive data in a medical SaaS. All clinical data is strictly scoped to the active `clinicId`.
 
+## IAM Permissions
+
+Clinical data access is governed by granular IAM permissions within the `iam_bindings` JSONB column. 
+
+| Permission | Description |
+| :--- | :--- |
+| `clinical.read_records` | View patient medical history and previous encounters. |
+| `clinical.write` | Create and sign new medical records (evolutions, recipes, exams, triage). |
+| `clinical.perform_procedure` | Execute clinical procedures that trigger inventory stock deductions. |
+
+## Record Types
+
+Every `medical_record` entry must specify a `record_type`. Each type requires the `clinical.write` permission for creation.
+
+- **`EVOLUCAO`**: Standard clinical progress note describing the patient's current status and plan.
+- **`RECEITA`**: Medical prescription for medications or treatments.
+- **`EXAME`**: Requests for laboratory tests or diagnostic imaging.
+- **`TRIAGEM`**: Initial nursing assessment, vital signs, and risk classification.
+
+## UI & UX Patterns
+
+### Full-Screen Focus Mode
+To maximize the typing area for doctors, the clinical workstation component includes a **Focus Mode**. When active, the main application sidebar and header are hidden via `@angular/cdk` overlay or CSS grid state changes, providing a distraction-free environment for medical documentation.
+
+### AI Assist (WebLLM)
+IntraClinica uses on-device LLMs to assist with clinical text generation. The `ClinicalStore` provides a stub for this interaction:
+
+```typescript
+/**
+ * Triggers local AI inference to suggest clinical text or summarize notes.
+ * Uses WebLLM via LocalAiService.
+ */
+async assistWithAI(context: string): Promise<string> {
+  // Placeholder for WebLLM integration
+  return await this.localAi.generateClinicalSuggestion(context);
+}
+```
+
+## Atomic Operations (RPC)
+
+The system uses specialized PostgreSQL functions to ensure data integrity during clinical encounters.
+
+### `create_medical_record`
+This RPC handles the atomic creation of medical records. It ensures that the author, patient, and clinic IDs are validated against RLS policies before insertion.
+
+```sql
+-- intra-clinic.create_medical_record
+-- Atomic record creation with automatic audit logging
+SELECT create_medical_record(
+  p_clinic_id := '...',
+  p_patient_id := '...',
+  p_author_id := '...',
+  p_record_type := 'EVOLUCAO', -- One of the defined types
+  p_content := '{...}'
+);
+```
+
 ## Data Model
 
 ### `patient`

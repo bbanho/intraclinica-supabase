@@ -35,6 +35,7 @@ export default withMermaid(defineConfig({
       {
         text: 'Raw Reports (Deep Dives)',
         items: [
+          { text: 'Exhaustive Deep Dive', link: '/raw-reports/exhaustive-deep-dive' },
           { text: 'Legacy Frontend Actions', link: '/raw-reports/legacy-frontend-actions' },
           { text: 'Database Business Rules', link: '/raw-reports/database-business-rules' }
         ]
