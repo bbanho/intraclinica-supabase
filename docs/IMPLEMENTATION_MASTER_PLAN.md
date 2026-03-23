@@ -177,9 +177,12 @@ O arquivo de workflow (`.github/workflows/deploy-cloudflare.yml`) deve seguir es
     - Instala dependências (`npm ci`).
     - Roda a verificação de tipagem estrita do TypeScript (`npx tsc --noEmit`). Se falhar, o deploy é abortado imediatamente.
     - Roda os testes unitários (`npm run test -- --watch=false --browsers=ChromeHeadless`).
-3.  **Build (Compilação):** Executa `npm run build` na pasta `frontend`.
-4.  **Integração Documental (Opcional):** Copia os artefatos de documentação (`documentacao/`) para uma subpasta pública (ex: `/docs`) dentro de `dist/frontend/browser/`, para que a documentação fique acessível via URL.
-5.  **Publish (Cloudflare API):** Usa a action oficial `cloudflare/pages-action` para enviar a pasta `/dist/frontend/browser/` para o projeto configurado na Cloudflare.
+3.  **Build (Compilação):** Executa `npm run build` na pasta `frontend-v2`.
+4.  **Integração Documental (Opcional):** Copia os artefatos de documentação (`documentacao/`) para uma subpasta pública (ex: `/docs`) dentro de `dist/frontend-v2/browser/`, para que a documentação fique acessível via URL.
+5.  **Publish (Cloudflare API):** Usa a action oficial `cloudflare/pages-action` para enviar a pasta `/dist/frontend-v2/browser/` para o projeto configurado na Cloudflare.
     - Exige os secrets: `CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_API_TOKEN` e `CLOUDFLARE_PROJECT_NAME`.
 
-Com este pipeline, a entrega de valor aos stakeholders e médicos parceiros se torna instantânea, validando o trabalho arquitetural com o mundo real.
+## 10. Histórico de Refatoração (V1 -> V2 -> Atual)
+**Nota de Histórico:** O diretório original do repositório era `frontend/` (V1 legado). Posteriormente, uma refatoração massiva foi iniciada no diretório `frontend-v2/` para implementar o Angular 18+ com Tailwind, Signals e CDK, seguindo o padrão estrangulador descrito neste documento. Após a conclusão bem sucedida da refatoração e a estabilização da arquitetura (FSD + Headless UI + Signals), o repositório foi limpo: o `frontend/` legado foi movido para `archive/frontend-legacy/` e o diretório `frontend-v2/` assumiu o nome raiz `frontend/`. 
+
+Todos os fluxos de trabalho (CI/CD) e comandos agora apontam diretamente para a pasta `frontend/`.
