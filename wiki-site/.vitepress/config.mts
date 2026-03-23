@@ -3,6 +3,7 @@ import { withMermaid } from 'vitepress-plugin-mermaid'
 
 export default withMermaid(defineConfig({
   srcDir: 'docs',
+  base: '/wiki/',
   title: "IntraClinica Wiki",
   description: "Official Documentation for IntraClinica (Angular 18 / Supabase)",
   appearance: 'dark',

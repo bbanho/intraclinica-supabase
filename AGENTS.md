@@ -73,8 +73,18 @@ The `actor` abstraction table has been flattened and removed to improve performa
 - **Branching:** Create a new branch for every feature or fix (e.g., `feat/my-feature`, `fix/issue-description`, `refactor/tech-debt`).
 - **Validation:** Run `tsc --noEmit -p tsconfig.app.json` inside `/frontend` before committing.
 - **Commits:** Commit messages must follow Conventional Commits (e.g., `feat(reception): add new agenda calendar`).
-- **Pull Requests:** Do not push directly to `main`. Push branches and use `gh pr create` to submit Pull Requests so automated AI review bots can audit your code before merging.
+- **Pull Requests:** Do not push directly to `main`. Structural or severe changes directly to `main` are strictly forbidden (only minor undocumented tweaks are allowed). Push branches and use `gh pr create` to submit Pull Requests so automated AI review bots can audit your code before merging.
 - **Review:** Always address bot comments and reviews before executing `gh pr merge`.
+
+---
+
+## 📚 Wiki & Documentation Maintenance (MANDATORY)
+
+IntraClinica maintains a strict "Docs as Code" policy. The VitePress documentation portal (`wiki-site/`) is the single source of truth for architecture and onboarding.
+
+1. **Wiki Skills**: When making architectural changes, modifying FSD structures, or implementing complex logic, you **MUST** use the `wiki-*` skills (e.g., `wiki-architect`, `wiki-page-writer`, `wiki-changelog`, `wiki-vitepress`) to update the documentation.
+2. **Synchronous Updates**: Every PR that introduces a feature, architectural shift, or database change must contain the corresponding Markdown updates in `wiki-site/docs/`.
+3. **No Undocumented Features**: Merging a structural PR without the accompanying wiki update is a violation of the repo rules. The wiki must reflect the codebase with 100% accuracy at all times.
 
 ---
 
