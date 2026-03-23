@@ -111,3 +111,45 @@ Access control is no longer based on simple "type" strings. It relies on the `ia
 - **Multi-Tenant Isolation**: Every query is filtered by `clinic_id` via `has_clinic_access(clinic_id)`.
 - **Permission Checks**: Functional access is checked via `has_permission(uid, clinic_id, 'permission.name')`.
 - **Role Dictionary**: Standard roles like `roles/doctor` and `roles/clinic_admin` define the default permission sets (Source: `supabase/migrations/20260323000001_iam_core_system.sql:58`).
+
+## 5. Complete Entity Relationship Diagram
+
+The following diagram represents the canonical schema after all migrations:
+
+```mermaid
+erDiagram
+    CLINIC ||--o{ ACTOR : "governs"
+    CLINIC ||--o{ INVENTORY_ITEM : "owns"
+    CLINIC ||--o{ APPOINTMENT : "schedules"
+    CLINIC ||--o{ PROCEDURE_TYPE : "offers"
+    CLINIC ||--o{ FINANCIAL_TRANSACTION : "records"
+    CLINIC ||--o{ ACCESS_REQUEST : "receives"
+    
+    ACTOR ||--o| USER : "specializes"
+    ACTOR ||--o| PATIENT : "specializes"
+    ACTOR ||--o{ CONTACT : "has"
+    ACTOR ||--o{ INVENTORY_MOVEMENT : "performs"
+    
+    USER ||--o{ APPOINTMENT : "attends"
+    USER ||--o{ CLINICAL_RECORD : "writes"
+    USER ||--o{ ACCESS_REQUEST : "requests"
+    
+    PATIENT ||--o{ APPOINTMENT : "schedules"
+    PATIENT ||--o{ CLINICAL_RECORD : "has"
+    
+    INVENTORY_ITEM ||--o{ PROCEDURE_RECIPE : "supply for"
+    INVENTORY_ITEM ||--o{ INVENTORY_MOVEMENT : "moves"
+    INVENTORY_ITEM ||--o{ BATCH : "batched in"
+    
+    PROCEDURE_TYPE ||--o{ PROCEDURE_RECIPE : "defines"
+    
+    PRODUCT ||--o{ BATCH : "contains"
+    PRODUCT ||--o{ STOCK_TRANSACTION : "registers"
+    PRODUCT ||--o{ PRODUCT_HISTORY : "tracks"
+    
+    FINANCIAL_CATEGORY ||--o{ FINANCIAL_TRANSACTION : "classifies"
+```
+
+::: info IAM Protected Document
+This page contains technical database schema details. Access requires the `ai.use` permission.
+:::

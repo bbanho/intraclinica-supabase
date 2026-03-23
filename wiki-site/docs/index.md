@@ -25,6 +25,7 @@ features:
 Access the technical blueprints and reference guides for the IntraClinica platform.
 
 - **[Exhaustive Deep-Dive](/raw-reports/exhaustive-deep-dive)** — The comprehensive technical reference and architectural audit.
+- **[Session Cold Boot & Schema Drift](/raw-reports/session-cold-boot-incident)** — Analysis of session state loss and UUID mismatch incident.
 - **[IAM & Security Model](/core-architecture/iam-security-model)** — Details on multi-tenant isolation, `iam_bindings`, and RLS.
 - **[Database Schema](/core-architecture/database)** — Tables, RPC functions, and migration strategies.
 - **[Zero-to-Hero Onboarding](/onboarding/zero-to-hero)** — Quick start guide for new contributors and environment setup.
