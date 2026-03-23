@@ -1,19 +1,17 @@
 import { inject } from '@angular/core';
 import { Router, CanActivateFn } from '@angular/router';
-import { SupabaseService } from '../services/supabase.service';
+import { AuthService } from '../services/auth.service';
 
-export const authGuard: CanActivateFn = async (route, state) => {
-  const supabase = inject(SupabaseService);
+export const authGuard: CanActivateFn = async () => {
   const router = inject(Router);
+  const auth = inject(AuthService);
 
-  // getSession() reads from localStorage — no network round-trip.
-  // This is reliable even right after signInWithPassword resolves,
-  // avoiding the race condition with onAuthStateChange.
-  const { data } = await supabase.auth.getSession();
+  // Garantimos que pegamos a sessão atual direto do Supabase pra evitar bugs de F5
+  const { data: { session } } = await auth.supabaseClient.auth.getSession();
 
-  if (data.session) {
-    return true;
+  if (!session) {
+    router.navigate(['/login']);
+    return false;
   }
-
-  return router.createUrlTree(['/login']);
+  return true;
 };

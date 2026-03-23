@@ -1,25 +1,27 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
-</div>
+# FrontendV2
 
-# IntraClinica Frontend
+This project was generated with [Angular CLI](https://github.com/angular/angular-cli) version 18.2.21.
 
-Canonical Angular application for the current IntraClinica codebase.
+## Development server
 
-If you are deciding where to implement new UI or Supabase-integrated work, use this directory.
+Run `ng serve` for a dev server. Navigate to `http://localhost:4200/`. The application will automatically reload if you change any of the source files.
 
-## Run Locally
+## Code scaffolding
 
-**Prerequisites:**  Node.js
+Run `ng generate component component-name` to generate a new component. You can also use `ng generate directive|pipe|service|class|guard|interface|enum|module`.
 
+## Build
 
-1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
+Run `ng build` to build the project. The build artifacts will be stored in the `dist/` directory.
 
-## Notes
+## Running unit tests
 
-- This is the active frontend.
-- The sibling directory `../intraclinica-angular` is legacy and should not receive new feature work.
+Run `ng test` to execute the unit tests via [Karma](https://karma-runner.github.io).
+
+## Running end-to-end tests
+
+Run `ng e2e` to execute the end-to-end tests via a platform of your choice. To use this command, you need to first add a package that implements end-to-end testing capabilities.
+
+## Further help
+
+To get more help on the Angular CLI use `ng help` or go check out the [Angular CLI Overview and Command Reference](https://angular.dev/tools/cli) page.

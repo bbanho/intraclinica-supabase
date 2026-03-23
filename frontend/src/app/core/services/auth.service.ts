@@ -1,25 +1,41 @@
-import { Injectable, inject } from '@angular/core';
+import { Injectable, inject, signal } from '@angular/core';
+import { User, Session } from '@supabase/supabase-js';
 import { SupabaseService } from './supabase.service';
-import { AuthStateService } from './auth-state.service';
 
 @Injectable({
-  providedIn: 'root',
+  providedIn: 'root'
 })
 export class AuthService {
-  private supabase = inject(SupabaseService);
-  private authState = inject(AuthStateService);
+  private supabase = inject(SupabaseService).clientInstance;
+
+  // Signal state management
+  public currentUser = signal<User | null>(null);
+  public currentSession = signal<Session | null>(null);
 
   constructor() {
-    // Session init is handled by AuthStateService constructor automatically.
+    this.supabase.auth.getSession().then(({ data: { session } }) => {
+      this.currentSession.set(session);
+      this.currentUser.set(session?.user || null);
+    });
+
+    this.supabase.auth.onAuthStateChange((_event, session) => {
+      this.currentSession.set(session);
+      this.currentUser.set(session?.user || null);
+    });
   }
 
-  async login(email: string, password: string): Promise<boolean> {
-    const { error } = await this.supabase.auth.signInWithPassword({ email, password });
-    if (error) console.error('Login failed:', error.message);
-    return !error;
+  get supabaseClient() {
+    return this.supabase;
   }
 
-  async logout() {
-    await this.authState.logout();
+  async signInWithEmail(email: string, password: string) {
+    const { data, error } = await this.supabase.auth.signInWithPassword({ email, password });
+    if (error) throw error;
+    return data;
+  }
+
+  async signOut() {
+    const { error } = await this.supabase.auth.signOut();
+    if (error) throw error;
   }
 }

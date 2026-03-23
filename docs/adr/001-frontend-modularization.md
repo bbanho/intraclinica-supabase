@@ -15,7 +15,7 @@ Adotamos o padrão **Feature-Sliced Design (FSD)** adaptado para Angular 18+ com
 2.  **A "Camada Visível" (Pintura):** Todo o design visual será codificado exclusivamente com **Tailwind CSS** usando os utilitários sobre as estruturas invisíveis do CDK.
 3.  **Muros de Concreto (Isolamento de Features):** É expressamente PROIBIDO que a pasta `src/app/features/X` importe qualquer arquivo da pasta `src/app/features/Y`. Toda comunicação entre módulos se dá via injeção de `Signals` ou de Services na pasta `/core/services` e `/core/store`. 
 4.  **Toggles por Clínica:** Os roteamentos dos módulos serão gerenciados via *Lazy Loading* (`loadComponent` no `app.routes.ts`) protegidos por `Guards` baseados nos metadados de permissão do usuário logado (IAM/SaaS Plan do Supabase), garantindo que código de módulos não contratados sequer seja baixado.
-5.  **Padrão Estrangulador:** O frontend legado (V1) permanece operante. O frontend-v2 o estrangula módulo a módulo, seguindo a ordem de dependência bottom-up (Core -> Pacientes/Estoque -> Operacional -> Complexos).
+5.  **Padrão Estrangulador:** O frontend legado (V1) permanece operante. O frontend o estrangula módulo a módulo, seguindo a ordem de dependência bottom-up (Core -> Pacientes/Estoque -> Operacional -> Complexos).
 
 ## 4. Consequências
 

@@ -177,9 +177,9 @@ O arquivo de workflow (`.github/workflows/deploy-cloudflare.yml`) deve seguir es
     - Instala dependências (`npm ci`).
     - Roda a verificação de tipagem estrita do TypeScript (`npx tsc --noEmit`). Se falhar, o deploy é abortado imediatamente.
     - Roda os testes unitários (`npm run test -- --watch=false --browsers=ChromeHeadless`).
-3.  **Build (Compilação):** Executa `npm run build` na pasta `frontend-v2`.
-4.  **Integração Documental (Opcional):** Copia os artefatos de documentação (`documentacao/`) para uma subpasta pública (ex: `/docs`) dentro de `dist/frontend-v2/browser/`, para que a documentação fique acessível via URL.
-5.  **Publish (Cloudflare API):** Usa a action oficial `cloudflare/pages-action` para enviar a pasta `/dist/frontend-v2/browser/` para o projeto configurado na Cloudflare.
+3.  **Build (Compilação):** Executa `npm run build` na pasta `frontend`.
+4.  **Integração Documental (Opcional):** Copia os artefatos de documentação (`documentacao/`) para uma subpasta pública (ex: `/docs`) dentro de `dist/frontend/browser/`, para que a documentação fique acessível via URL.
+5.  **Publish (Cloudflare API):** Usa a action oficial `cloudflare/pages-action` para enviar a pasta `/dist/frontend/browser/` para o projeto configurado na Cloudflare.
     - Exige os secrets: `CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_API_TOKEN` e `CLOUDFLARE_PROJECT_NAME`.
 
 Com este pipeline, a entrega de valor aos stakeholders e médicos parceiros se torna instantânea, validando o trabalho arquitetural com o mundo real.

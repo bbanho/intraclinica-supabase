@@ -25,7 +25,7 @@ jobs:
 
       - name: 📦 Build Frontend (Angular)
         run: |
-          cd frontend-v2
+          cd frontend
           npm ci
           ./node_modules/.bin/tsc --noEmit -p tsconfig.app.json
           npm run build -- --configuration=production
@@ -34,10 +34,10 @@ jobs:
       - name: 🔄 Integrar Documentação com o App Compilado
         run: |
           # Cria a pasta /doc/ dentro da pasta de publicação final do Angular (browser)
-          mkdir -p frontend-v2/dist/frontend-v2/browser/doc
+          mkdir -p frontend/dist/frontend/browser/doc
           
           # Copia o portal estático (index.html) e os arquivos Markdown para /doc/
-          cp -r documentacao/* frontend-v2/dist/frontend-v2/browser/doc/
+          cp -r documentacao/* frontend/dist/frontend/browser/doc/
 
       # -- PARTE 3: PUBLICAÇÃO (CLOUDFLARE PAGES) --
       - name: ☁️ Deploy no Cloudflare Pages
@@ -46,6 +46,6 @@ jobs:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           projectName: 'intraclinica'
-          directory: 'frontend-v2/dist/frontend-v2/browser'
+          directory: 'frontend/dist/frontend/browser'
           gitHubToken: ${{ secrets.GITHUB_TOKEN }}
           branch: main

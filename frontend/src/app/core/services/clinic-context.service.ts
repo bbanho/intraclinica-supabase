@@ -1,15 +1,13 @@
-import { Injectable, signal, computed } from '@angular/core';
-import { Clinic } from '../models/types';
+import { Injectable, signal } from '@angular/core';
 
 @Injectable({
   providedIn: 'root'
 })
 export class ClinicContextService {
-  selectedClinic = signal<string | null>(null);
-  accessibleClinics = signal<Clinic[]>([]);
+  // Sentinel: 'all' = Super Admin global view. 'null' = No clinic selected. UUID = specific clinic.
+  public selectedClinicId = signal<string | null>(null);
 
-  clinicId = computed(() => {
-    const clinic = this.selectedClinic();
-    return clinic === 'all' ? null : clinic;
-  });
+  setContext(clinicId: string | 'all' | null) {
+    this.selectedClinicId.set(clinicId);
+  }
 }
