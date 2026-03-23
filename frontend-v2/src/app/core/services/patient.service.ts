@@ -14,6 +14,7 @@ export interface Patient {
   cpf: string | null;
   birth_date: string | null;
   gender: string | null;
+  phone: string | null;
   actor?: PatientActor;
 }
 
@@ -81,7 +82,8 @@ export class PatientService {
         id: actor.id,
         clinic_id: clinicId,
         cpf: payload.cpf,
-        birth_date: payload.birth_date
+        birth_date: payload.birth_date,
+        phone: payload.phone
       })
       .select('*, actor!inner(id, name, type)')
       .single();
@@ -109,6 +111,7 @@ export class PatientService {
       .update({
         cpf: payload.cpf,
         birth_date: payload.birth_date,
+        phone: payload.phone,
         updated_at: new Date().toISOString()
       })
       .eq('id', id)

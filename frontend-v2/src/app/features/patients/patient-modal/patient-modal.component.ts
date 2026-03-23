@@ -131,7 +131,7 @@ export class PatientModalComponent {
       this.form.patchValue({
         name: this.data.patient.actor?.name || '',
         cpf: this.data.patient.cpf || '',
-        phone: '', 
+        phone: this.data.patient.phone || '', 
         birth_date: this.data.patient.birth_date || ''
       });
     }
@@ -157,7 +157,7 @@ export class PatientModalComponent {
       this.error.set(null);
       this.form.disable();
 
-      const payload = this.form.value as any;
+      const payload = this.form.getRawValue() as any;
 
       if (this.isEditing() && this.patientId) {
         await this.patientService.updatePatient(this.patientId, payload);
