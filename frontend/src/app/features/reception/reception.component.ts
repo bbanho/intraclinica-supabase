@@ -9,8 +9,7 @@ import { AppointmentService, Appointment } from '../../core/services/appointment
 @Component({
   selector: 'app-reception',
   standalone: true,
-  imports: [DialogModule, LucideAngularModule],
-  providers: [DatePipe],
+  imports: [DialogModule, LucideAngularModule, DatePipe],
   template: `
     <div class="p-8 max-w-7xl mx-auto space-y-8">
       

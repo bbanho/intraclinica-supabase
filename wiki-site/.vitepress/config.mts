@@ -8,6 +8,13 @@ export default withMermaid(defineConfig({
   description: "Official Documentation for IntraClinica (Angular 18 / Supabase)",
   appearance: 'dark',
   ignoreDeadLinks: false,
+  lastUpdated: {
+    text: 'Atualizado em',
+    formatOptions: {
+      dateStyle: 'short',
+      timeStyle: 'short'
+    }
+  },
   themeConfig: {
     logo: 'https://angular.dev/assets/images/logos/angular/angular.svg',
     nav: [
@@ -50,7 +57,13 @@ export default withMermaid(defineConfig({
           { text: 'Patients', link: '/feature-modules/patients' },
           { text: 'Clinical', link: '/feature-modules/clinical' },
           { text: 'Inventory', link: '/feature-modules/inventory' },
-          { text: 'Admin Panel', link: '/feature-modules/admin-panel' }
+          { text: 'Admin Panel', link: '/feature-modules/admin-panel' },
+          { text: 'Case Studies', link: '/feature-modules/case-studies/' },
+          { text: '  - No-Show Prevention', link: '/feature-modules/case-studies/no-show-case' },
+          { text: '  - Inventory Rupture', link: '/feature-modules/case-studies/inventory-rupture-case' },
+          { text: '  - AI Medical Records', link: '/feature-modules/case-studies/clinical-ai-case' },
+          { text: '  - Medical Marketing', link: '/feature-modules/case-studies/marketing-ai-case' },
+          { text: '  - SaaS Governance', link: '/feature-modules/case-studies/saas-governance-case' }
         ]
       },
       {
