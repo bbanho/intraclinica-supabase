@@ -85,6 +85,12 @@ import { ClinicalService, MedicalRecord, MedicalRecordContent } from '../../core
               </button>
 
               @if (recordsOpen()) {
+                @if (recordsError()) {
+                  <div class="px-4 py-2 flex items-center gap-2 text-red-400 text-xs">
+                    <lucide-icon [img]="AlertCircleIcon" class="w-3 h-3 shrink-0"></lucide-icon>
+                    {{ recordsError() }}
+                  </div>
+                } @else {
                 <div class="max-h-64 overflow-y-auto">
                   @for (rec of records(); track rec.id) {
                     <div class="px-4 py-3 border-t border-slate-700/50 hover:bg-slate-700/20 transition-colors">
@@ -101,6 +107,7 @@ import { ClinicalService, MedicalRecord, MedicalRecordContent } from '../../core
                     </div>
                   }
                 </div>
+                }
               }
             </div>
           }
@@ -286,6 +293,7 @@ export class ClinicalComponent {
   records = signal<MedicalRecord[]>([]);
   saveError = signal<string | null>(null);
   recordsOpen = signal(true);
+  recordsError = signal<string | null>(null);
 
   selectedClinicId = this.clinicContext.selectedClinicId;
 
@@ -378,11 +386,13 @@ export class ClinicalComponent {
   }
 
   async loadRecords(patientId: string) {
+    this.recordsError.set(null);
     try {
       const data = await this.clinicalService.getRecordsByPatient(patientId);
       this.records.set(data);
-    } catch (err) {
-      console.error('Error loading records:', err);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Erro ao carregar histórico';
+      this.recordsError.set(message);
     }
   }
 
