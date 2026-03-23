@@ -100,6 +100,51 @@ As mandated by `AGENTS.md:105`, the Reception feature avoids heavy, monolithic c
 
 All layouts (CSS Grid for calendars, Flexbox for lists) are constructed strictly with Tailwind CSS utility classes. Floating elements, such as the date picker popup or the appointment detail modal, are built using primitives from the `@angular/cdk` (Component Dev Kit).
 
+## 4. Doctor Grid & Room Status
+
+The Reception module displays a **Doctor Grid** at the top, showing all doctors with their current room assignments and online status.
+
+### Features
+- Shows doctor avatar/initials with room assignment
+- Color-coded status (emerald = assigned, slate = offline)
+- Real-time status based on `assignedRoom` property
+
+### Source
+`frontend/src/app/features/reception/reception.component.ts`
+
+## 5. Agenda Calendar (Weekly View)
+
+The Reception module includes a **Weekly Agenda Calendar** for visualizing appointments across the entire week.
+
+### Features
+- **Weekly View**: Displays 7 days (Mon-Sun) with hour rows (08:00-18:00)
+- **Doctor Filter**: Filter appointments by specific doctor
+- **Week Navigation**: Previous/Next week buttons + "Hoje" to reset
+- **Slot Click**: Click any empty slot to create a new appointment with pre-filled date/time
+- **Color-coded Appointments**: Different colors for each status (Agendado, Aguardando, Chamado, Em Atendimento, Realizado)
+
+### Source
+`frontend/src/app/features/reception/agenda-calendar.component.ts`
+
+### Tab System
+The Reception module uses a tab interface:
+- **Fila Hoje**: Traditional waiting list view with patient cards
+- **Agenda Semanal**: Weekly calendar view
+
+## 6. Enhanced Appointment Modal
+
+The appointment creation modal includes **patient search** functionality:
+- Real-time search by patient name or CPF
+- Dropdown results with patient selection
+- Option to create new patient inline
+
+### Source
+`frontend/src/app/features/reception/appointment-modal/appointment-modal.component.ts`
+
+## 7. Notification Center Integration
+
+The Reception module integrates with the **Notification Center** (bell icon in header) which shows pending access requests that require approval.
+
 ### Data Flow in Reception
 
 ```mermaid

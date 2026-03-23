@@ -21,16 +21,30 @@ Access to the Admin Panel is strictly controlled via the IAM binding system. It 
 
 ## Features
 
-### 1. Clinic Governance List
+### 1. SaaS Metrics Dashboard
+The Admin Panel now includes a **Metrics Dashboard** at the top showing key platform statistics:
+- **Total Clinics**: Count of active clinics in the platform
+- **Total Users**: Count of registered users across all clinics
+- **Pending Access Requests**: Number of access requests awaiting approval
+
+### 2. Quick Actions
+Quick action buttons for common administrative tasks:
+- Link to manage clinics
+- Link to manage users
+
+### 3. Clinic Governance List
 Displays all clinics registered in the platform, showing their status (e.g., `active`, `inactive`) and unique identifiers.
 - **Source**: `frontend/src/app/features/admin-panel/admin-panel.component.ts:141`
 - **Data**: Fetches directly from the `clinic` table.
 
-### 2. Module Toggle (UI Config)
+### 4. Module Toggle (UI Config)
 Platform admins can enable or disable specific UI modules for any clinic. This directly impacts the sidebar navigation and feature access for the end-users of that specific clinic.
 - **Modules Tracked**: `reception`, `clinical`, `inventory`, `patients`.
 - **Mechanism**: Toggling a card performs an `upsert` (Update or Insert) on the `clinic_module` table.
 - **Verification**: Changes are immediate and reflected after a background data refresh (frontend/src/app/features/admin-panel/admin-panel.component.ts:179).
+
+### 5. Recent Activity Log
+Displays recent platform activity such as new user registrations.
 
 ## Data Model
 

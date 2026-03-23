@@ -29,6 +29,18 @@ Access the technical blueprints and reference guides for the IntraClinica platfo
 - **[Database Schema](/core-architecture/database)** — Tables, RPC functions, and migration strategies.
 - **[Zero-to-Hero Onboarding](/onboarding/zero-to-hero)** — Quick start guide for new contributors and environment setup.
 
+## 📦 Feature Modules
+
+Quick links to feature documentation:
+
+- **[Reception](/feature-modules/reception)** — Reception module with agenda calendar, doctor grid, and patient queue
+- **[Clinical](/feature-modules/clinical)** — Medical records with AI assistance
+- **[Inventory](/feature-modules/inventory)** — Stock management with alerts
+- **[Patients](/feature-modules/patients)** — Patient demographics and records
+- **[Admin Panel](/feature-modules/admin-panel)** — SaaS governance and clinic management
+- **[Reports Dashboard](/feature-modules/reports)** — KPIs, charts, and operational analytics
+- **[Auth](/feature-modules/auth)** — Authentication and authorization
+
 ::: info Deployment
 This wiki is automatically deployed via GitHub Actions to Cloudflare Pages on merge to main.
 :::
