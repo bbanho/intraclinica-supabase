@@ -1,5 +1,4 @@
 import { Component, inject, signal, effect, computed } from '@angular/core';
-import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { LucideAngularModule, Search, User, FileText, Activity, Heart, Pill, AlertCircle, ChevronLeft, ChevronRight, Maximize2, Minimize2, Bot, Loader2 } from 'lucide-angular';
 import { ClinicContextService } from '../../core/services/clinic-context.service';
@@ -20,7 +19,7 @@ interface MedicalRecord {
 @Component({
   selector: 'app-clinical',
   standalone: true,
-  imports: [CommonModule, FormsModule, LucideAngularModule],
+  imports: [FormsModule, LucideAngularModule],
   template: `
     @if (!selectedClinicId() || selectedClinicId() === 'all') {
       <div class="h-full flex items-center justify-center p-8">
@@ -46,9 +45,9 @@ interface MedicalRecord {
               <input
                 type="text"
                 placeholder="Buscar paciente..."
-                [(ngModel)]="searchTerm"
+                [value]="searchTerm()"
+                (input)="onPatientSearch($event)"
                 class="w-full pl-9 pr-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-sm text-white placeholder-slate-400 focus:ring-2 focus:ring-teal-500/50 focus:border-teal-500 outline-none"
-              />
             </div>
           </div>
 
@@ -241,7 +240,7 @@ export class ClinicalComponent {
 
   patients = signal<Patient[]>([]);
   selectedPatient = signal<Patient | null>(null);
-  searchTerm = '';
+  searchTerm = signal('');
   focusMode = signal(true);
   saving = signal(false);
   aiLoading = signal(false);
@@ -256,7 +255,7 @@ export class ClinicalComponent {
   };
 
   filteredPatients = computed(() => {
-    const term = this.searchTerm.toLowerCase().trim();
+    const term = this.searchTerm().toLowerCase().trim();
     if (!term) return this.patients();
     return this.patients().filter(p =>
       p.name.toLowerCase().includes(term) ||
@@ -282,6 +281,11 @@ export class ClinicalComponent {
     } catch (err) {
       console.error('Error loading patients:', err);
     }
+  }
+
+  onPatientSearch(event: Event) {
+    const input = event.target as HTMLInputElement;
+    this.searchTerm.set(input.value);
   }
 
   selectPatient(patient: Patient) {
