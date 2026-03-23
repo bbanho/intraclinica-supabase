@@ -49,10 +49,11 @@ jobs:
       - name: 🔄 Integrar Wiki no App Compilado
         if: github.event_name != 'workflow_dispatch' || github.event.inputs.target == 'all'
         run: |
-          mkdir -p frontend/dist/frontend/browser/wiki
           cd wiki-site
           npm ci
           npm run docs:build
+          cd ..
+          mkdir -p frontend/dist/frontend/browser/wiki
           cp -r wiki-site/.vitepress/dist/* frontend/dist/frontend/browser/wiki/
 
       - name: ☁️ Deploy no Cloudflare Pages
