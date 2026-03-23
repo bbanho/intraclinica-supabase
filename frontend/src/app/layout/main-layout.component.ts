@@ -1,6 +1,5 @@
-import { Component, inject, computed, OnInit, signal } from '@angular/core';
+import { Component, inject, OnInit, signal } from '@angular/core';
 import { RouterOutlet, RouterLink, RouterLinkActive } from '@angular/router';
-import { CommonModule } from '@angular/common';
 import { AuthService } from '../core/services/auth.service';
 import { ClinicContextService } from '../core/services/clinic-context.service';
 import { SupabaseService } from '../core/services/supabase.service';
@@ -9,7 +8,7 @@ import { LucideAngularModule, LayoutDashboard, Users, Calendar, Box, LogOut, Bui
 @Component({
   selector: 'app-main-layout',
   standalone: true,
-  imports: [CommonModule, RouterOutlet, RouterLink, RouterLinkActive, LucideAngularModule],
+  imports: [RouterOutlet, RouterLink, RouterLinkActive, LucideAngularModule],
   template: `
     <div class="h-screen w-full flex bg-slate-50 overflow-hidden text-slate-800 relative">
       
@@ -115,7 +114,7 @@ import { LucideAngularModule, LayoutDashboard, Users, Calendar, Box, LogOut, Bui
                 [disabled]="!isSuperAdmin()"
                 (change)="onContextChange($any($event.target).value)"
              >
-                <option value="all" *ngIf="isSuperAdmin()">[ Global SaaS View ]</option>
+                 @if (isSuperAdmin()) { <option value="all">[ Global SaaS View ]</option> }
                 <!-- Loop real coming from Supabase -->
                 @for (clinic of myClinics(); track clinic.id) {
                   <option [value]="clinic.id" [selected]="context.selectedClinicId() === clinic.id">{{ clinic.name }}</option>

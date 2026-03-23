@@ -1,8 +1,9 @@
-import { Component, OnInit, inject, signal, computed } from '@angular/core';
+import { Component, inject, signal, computed, effect } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Dialog, DialogModule } from '@angular/cdk/dialog';
 import { LucideAngularModule, Plus, Package, Search, AlertCircle, TrendingDown, TrendingUp, RefreshCw } from 'lucide-angular';
 import { InventoryService, Product } from '../../core/services/inventory.service';
+import { ClinicContextService } from '../../core/services/clinic-context.service';
 import { ProductModalComponent } from './product-modal/product-modal.component';
 
 @Component({
@@ -155,10 +156,7 @@ import { ProductModalComponent } from './product-modal/product-modal.component';
                 <div class="text-sm text-gray-500" [class.text-rose-700]="product.current_stock < product.min_stock">
                   Min: {{ product.min_stock }}
                 </div>
-                <div class="font-semibold" [ngClass]="{
-                  'text-rose-600': product.current_stock < product.min_stock,
-                  'text-emerald-600': product.current_stock >= product.min_stock
-                }">
+                <div class="font-semibold" [class.text-rose-600]="product.current_stock < product.min_stock" [class.text-emerald-600]="product.current_stock >= product.min_stock">
                   {{ product.current_stock }} em estoque
                 </div>
               </div>
@@ -169,8 +167,9 @@ import { ProductModalComponent } from './product-modal/product-modal.component';
     </div>
   `
 })
-export class InventoryComponent implements OnInit {
+export class InventoryComponent {
   private inventoryService = inject(InventoryService);
+  private clinicContext = inject(ClinicContextService);
   private dialog = inject(Dialog);
 
   readonly PlusIcon = Plus;
@@ -193,8 +192,15 @@ export class InventoryComponent implements OnInit {
     return this.products().filter(p => p.current_stock < p.min_stock).length;
   });
 
-  ngOnInit() {
-    this.loadProducts();
+  constructor() {
+    effect(() => {
+      const clinicId = this.clinicContext.selectedClinicId();
+      if (clinicId && clinicId !== 'all') {
+        this.loadProducts();
+      } else {
+        this.products.set([]);
+      }
+    });
   }
 
   async loadProducts() {

@@ -41,7 +41,12 @@ export class InventoryService {
       .order('name');
 
     if (error) throw error;
-    return data as Product[];
+    
+    // Map avg_cost_price (DB column) -> cost (interface property)
+    return (data as any[]).map(p => ({
+      ...p,
+      cost: p.avg_cost_price ?? 0
+    })) as Product[];
   }
 
   async createProduct(dto: CreateProductDto): Promise<Product> {

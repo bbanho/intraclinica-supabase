@@ -73,6 +73,20 @@ import { LucideAngularModule, X } from 'lucide-angular';
             class="w-full px-4 py-2 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all disabled:opacity-60"
           />
         </div>
+
+        <div class="space-y-1">
+          <label for="gender" class="block text-sm font-medium text-gray-700">Gênero</label>
+          <select
+            id="gender"
+            formControlName="gender"
+            class="w-full px-4 py-2 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all disabled:opacity-60"
+          >
+            <option value="">Prefiro não informar</option>
+            <option value="M">Masculino</option>
+            <option value="F">Feminino</option>
+            <option value="O">Outro</option>
+          </select>
+        </div>
       </form>
 
       <div class="px-6 py-4 border-t border-gray-100 bg-gray-50 flex justify-end gap-3 rounded-b-xl">
@@ -119,7 +133,8 @@ export class PatientModalComponent {
     name: ['', Validators.required],
     cpf: [''],
     phone: [''],
-    birth_date: ['']
+    birth_date: [''],
+    gender: ['']
   });
 
   patientId: string | null = null;
@@ -132,7 +147,8 @@ export class PatientModalComponent {
         name: this.data.patient.name || '',
         cpf: this.data.patient.cpf || '',
         phone: this.data.patient.phone || '', 
-        birth_date: this.data.patient.birth_date || ''
+        birth_date: this.data.patient.birth_date || '',
+        gender: this.data.patient.gender || ''
       });
     }
   }
@@ -162,7 +178,8 @@ export class PatientModalComponent {
         name: rawValues.name!,
         cpf: rawValues.cpf || null,
         phone: rawValues.phone || null,
-        birth_date: rawValues.birth_date || null
+        birth_date: rawValues.birth_date || null,
+        gender: rawValues.gender || null
       };
 
       if (this.isEditing() && this.patientId) {
