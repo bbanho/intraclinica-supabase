@@ -45,7 +45,7 @@ jobs:
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          projectName: 'intraclinica'
+          projectName: 'intraclinica-supabase'
           directory: 'frontend/dist/frontend/browser'
           gitHubToken: ${{ secrets.GITHUB_TOKEN }}
           branch: main
