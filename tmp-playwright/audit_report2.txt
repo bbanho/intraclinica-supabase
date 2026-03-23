@@ -1,0 +1,28 @@
+
+AUDIT REPORT 2
+============
+Errors:
+[NETWORK ERROR] 400 https://prolahgqlwfriwfpzjdm.supabase.co/rest/v1/clinic?select=id%2Cname&id=in.%28all%29
+
+Console Errors:
+[CONSOLE ERROR] Me: Acquiring an exclusive Navigator LockManager lock "lock:sb-prolahgqlwfriwfpzjdm-auth-token" immediately failed
+    at Tn.<anonymous> (https://intraclinica.axio.eng.br/chunk-QUWUAJQ2.js:27:19387)
+    at Generator.next (<anonymous>)
+    at https://intraclinica.axio.eng.br/chunk-PHTPUPUX.js:1:874
+    at new Z (https://intraclinica.axio.eng.br/polyfills-FFHMD2TL.js:2:2237)
+    at kd (https://intraclinica.axio.eng.br/chunk-PHTPUPUX.js:1:694)
+    at https://intraclinica.axio.eng.br/chunk-QUWUAJQ2.js:27:19047
+[CONSOLE ERROR] ERROR S: NG0600
+    at https://intraclinica.axio.eng.br/chunk-PHTPUPUX.js:7:94154
+    at Ba (https://intraclinica.axio.eng.br/chunk-PHTPUPUX.js:3:25725)
+    at zo (https://intraclinica.axio.eng.br/chunk-PHTPUPUX.js:3:25877)
+    at WM.n.set (https://intraclinica.axio.eng.br/chunk-PHTPUPUX.js:7:68066)
+    at os.effectFn (https://intraclinica.axio.eng.br/chunk-BDVGTZ4I.js:1:23157)
+    at os.runEffect (https://intraclinica.axio.eng.br/chunk-PHTPUPUX.js:7:106813)
+    at Object.fn (https://intraclinica.axio.eng.br/chunk-PHTPUPUX.js:7:106697)
+    at Object.a [as run] (https://intraclinica.axio.eng.br/chunk-PHTPUPUX.js:3:26537)
+    at os.run (https://intraclinica.axio.eng.br/chunk-PHTPUPUX.js:7:106911)
+    at rs.flushQueue (https://intraclinica.axio.eng.br/chunk-PHTPUPUX.js:7:106562)
+[CONSOLE ERROR] Failed to load resource: the server responded with a status of 400 ()
+[CONSOLE ERROR] [MainLayout] Falha ao carregar clínicas: {code: 22P02, details: null, hint: null, message: invalid input syntax for type uuid: "all"}
+  
