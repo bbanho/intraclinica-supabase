@@ -1,0 +1,101 @@
+name: 🤖 Auto-Merge
+
+on:
+  workflow_run:
+    workflows: ["✅ CI"]
+    types: [completed]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+env:
+  GEMINI_APP_NAME: Gemini Code Assist
+
+jobs:
+  auto-merge:
+    if: >
+      github.event.workflow_run.conclusion == 'success'
+      && github.event.workflow_run.event == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - name: 🔍 Get PR Number
+        id: pr-number
+        run: |
+          PR_NUMBER=$(echo '${{ toJson(github.event.workflow_run.pull_requests) }}' | jq -r '.[0].number')
+          if [ "$PR_NUMBER" == "null" ] || [ -z "$PR_NUMBER" ]; then
+            echo "No PR associated with this workflow run"
+            exit 1
+          fi
+          echo "PR_NUMBER=$PR_NUMBER" >> $GITHUB_OUTPUT
+
+      - name: 📋 Get Changed Files
+        id: changed-files
+        run: |
+          FILES=$(gh api repos/$GITHUB_REPOSITORY/pulls/${{ steps.pr-number.outputs.PR_NUMBER }}/files --jq '.files[].filename')
+          echo "CHANGED_FILES<<EOF" >> $GITHUB_OUTPUT
+          echo "$FILES" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      - name: 🚦 Check Path Filter
+        id: path-check
+        run: |
+          echo "Changed files:"
+          echo '${{ steps.changed-files.outputs.CHANGED_FILES }}'
+          
+          NON_WHITELISTED=$(echo '${{ steps.changed-files.outputs.CHANGED_FILES }}' | grep -vE '^(frontend/|wiki-site/)' || true)
+          if [ -n "$NON_WHITELISTED" ]; then
+            echo ""
+            echo "ERROR: Non-whitelisted paths detected:"
+            echo "$NON_WHITELISTED"
+            echo ""
+            echo "Only auto-merging PRs that change only frontend/** or wiki-site/**"
+            exit 1
+          fi
+          echo "Path filter: PASSED"
+
+      - name: 🔬 Check Gemini Review State
+        id: gemini-check
+        run: |
+          echo "Checking Gemini reviews..."
+          
+          GEMINI_REVIEWS=$(gh api repos/$GITHUB_REPOSITORY/pulls/${{ steps.pr-number.outputs.PR_NUMBER }}/reviews --jq \
+            "[.[] | select(.app.name == \"$GEMINI_APP_NAME\")]")
+          
+          if [ -z "$GEMINI_REVIEWS" ] || [ "$GEMINI_REVIEWS" == "[]" ]; then
+            echo "No Gemini reviews found yet - waiting for review to complete"
+            exit 1
+          fi
+          
+          CHANGES_REQUESTED_COUNT=$(echo "$GEMINI_REVIEWS" | jq '[.[] | select(.state == "CHANGES_REQUESTED")] | length')
+          
+          if [ "$CHANGES_REQUESTED_COUNT" -gt 0 ]; then
+            echo "Gemini has $CHANGES_REQUESTED_COUNT CHANGES_REQUESTED review(s)"
+            echo "Blocking auto-merge - human review required"
+            exit 1
+          fi
+          
+          echo "Gemini review state: PASSED (no blocking issues)"
+
+      - name: ✅ Check Mergeable Status
+        id: mergeable-check
+        run: |
+          MERGEABLE=$(gh api repos/$GITHUB_REPOSITORY/pulls/${{ steps.pr-number.outputs.PR_NUMBER }} --jq '.mergeable')
+          MERGE_STATE=$(gh api repos/$GITHUB_REPOSITORY/pulls/${{ steps.pr-number.outputs.PR_NUMBER }} --jq '.mergeable_state')
+          
+          echo "Mergeable: $MERGEABLE"
+          echo "Merge state: $MERGE_STATE"
+          
+          if [ "$MERGEABLE" != "true" ]; then
+            echo "PR is not mergeable (mergeable=$MERGEABLE, state=$MERGE_STATE)"
+            exit 1
+          fi
+          echo "Mergeable check: PASSED"
+
+      - name: 🚀 Auto-Merge PR
+        run: |
+          gh pr merge ${{ steps.pr-number.outputs.PR_NUMBER }} \
+            --squash \
+            --delete-branch \
+            --auto
+          echo "Successfully auto-merged PR #${{ steps.pr-number.outputs.PR_NUMBER }}"

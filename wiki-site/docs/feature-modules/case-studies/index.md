@@ -28,6 +28,6 @@ These cases demonstrate core IntraClinica architectural principles:
 
 ## 🔗 Cross-References
 
-- [IAM Security Model](../core-architecture/iam-security-model) — Roles, grants, blocks hierarchy
-- [Core Services](../core-architecture/services) — Signal-based service architecture
-- [Database Schema](../core-architecture/database) — ER diagrams and table relationships
+- [IAM Security Model](../../core-architecture/iam-security-model) — Roles, grants, blocks hierarchy
+- [Core Services](../../core-architecture/services) — Signal-based service architecture
+- [Database Schema](../../core-architecture/database) — ER diagrams and table relationships

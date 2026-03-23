@@ -8,6 +8,11 @@ on:
       - 'frontend/**'
       - 'wiki-site/**'
       - '.github/workflows/deploy.yml'
+  pull_request:
+    paths:
+      - 'frontend/**'
+      - 'wiki-site/**'
+      - '.github/workflows/deploy.yml'
   workflow_dispatch:
     inputs:
       target:
@@ -47,7 +52,7 @@ jobs:
           npm run build -- --configuration=production
 
       - name: 🔄 Integrar Wiki no App Compilado
-        if: github.event_name != 'workflow_dispatch' || github.event.inputs.target == 'all'
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         run: |
           cd wiki-site
           npm ci
@@ -57,6 +62,7 @@ jobs:
           cp -r wiki-site/.vitepress/dist/* frontend/dist/frontend/browser/wiki/
 
       - name: ☁️ Deploy no Cloudflare Pages
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         uses: cloudflare/pages-action@v1
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
