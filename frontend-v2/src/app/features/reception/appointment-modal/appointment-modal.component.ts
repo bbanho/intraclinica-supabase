@@ -1,8 +1,10 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, inject, signal, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { DialogRef } from '@angular/cdk/dialog';
 import { LucideAngularModule, X, User, Calendar, Clock, Stethoscope, ArrowRight } from 'lucide-angular';
+import { PatientService, Patient } from '../../../core/services/patient.service';
+import { AppointmentService } from '../../../core/services/appointment.service';
 
 @Component({
   selector: 'app-appointment-modal',
@@ -20,7 +22,7 @@ import { LucideAngularModule, X, User, Calendar, Clock, Stethoscope, ArrowRight 
           </div>
           <div>
             <h2 class="text-xl font-black text-slate-800 tracking-tight">Novo Agendamento</h2>
-            <p class="text-sm font-medium text-slate-500">Preencha os dados do paciente</p>
+            <p class="text-sm font-medium text-slate-500">Preencha os dados do agendamento</p>
           </div>
         </div>
         <button 
@@ -37,22 +39,25 @@ import { LucideAngularModule, X, User, Calendar, Clock, Stethoscope, ArrowRight 
           
           <!-- Patient Field -->
           <div class="space-y-2">
-            <label for="patientName" class="block text-sm font-bold text-slate-700">Nome do Paciente</label>
+            <label for="patientId" class="block text-sm font-bold text-slate-700">Paciente</label>
             <div class="relative">
               <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400">
                 <lucide-icon [img]="User" [size]="20"></lucide-icon>
               </div>
-              <input 
-                id="patientName" 
-                type="text" 
-                formControlName="patientName"
-                placeholder="Ex: Maria Silva..."
-                class="block w-full pl-12 pr-4 py-3.5 bg-slate-50 border-0 text-slate-900 rounded-2xl ring-1 ring-inset ring-slate-200 focus:ring-2 focus:ring-inset focus:ring-teal-600 sm:text-sm font-medium transition-all"
-                [class.ring-red-300]="isFieldInvalid('patientName')"
+              <select 
+                id="patientId" 
+                formControlName="patientId"
+                class="block w-full pl-12 pr-10 py-3.5 bg-slate-50 border-0 text-slate-900 rounded-2xl ring-1 ring-inset ring-slate-200 focus:ring-2 focus:ring-inset focus:ring-teal-600 sm:text-sm font-medium appearance-none transition-all cursor-pointer"
+                [class.ring-red-300]="isFieldInvalid('patientId')"
               >
+                <option value="" disabled selected>Selecione um paciente...</option>
+                @for (patient of patients(); track patient.id) {
+                  <option [value]="patient.id">{{ patient.actor?.name }} (CPF: {{ patient.cpf || 'N/A' }})</option>
+                }
+              </select>
             </div>
-            @if (isFieldInvalid('patientName')) {
-              <p class="text-sm text-red-500 font-bold ml-1 animate-in fade-in slide-in-from-top-1">O nome é obrigatório.</p>
+            @if (isFieldInvalid('patientId')) {
+              <p class="text-sm text-red-500 font-bold ml-1 animate-in fade-in slide-in-from-top-1">A seleção do paciente é obrigatória.</p>
             }
           </div>
 
@@ -95,21 +100,21 @@ import { LucideAngularModule, X, User, Calendar, Clock, Stethoscope, ArrowRight 
 
           <!-- Doctor/Procedure Type -->
           <div class="space-y-2">
-            <label for="doctor" class="block text-sm font-bold text-slate-700">Médico / Especialidade</label>
+            <label for="doctorId" class="block text-sm font-bold text-slate-700">Médico Responsável</label>
             <div class="relative">
               <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400">
                 <lucide-icon [img]="Stethoscope" [size]="20"></lucide-icon>
               </div>
               <select 
-                id="doctor" 
-                formControlName="doctor"
+                id="doctorId" 
+                formControlName="doctorId"
                 class="block w-full pl-12 pr-10 py-3.5 bg-slate-50 border-0 text-slate-900 rounded-2xl ring-1 ring-inset ring-slate-200 focus:ring-2 focus:ring-inset focus:ring-teal-600 sm:text-sm font-medium appearance-none transition-all cursor-pointer"
-                [class.ring-red-300]="isFieldInvalid('doctor')"
+                [class.ring-red-300]="isFieldInvalid('doctorId')"
               >
                 <option value="" disabled selected>Selecione um profissional</option>
-                <option value="dr-silva">Dr. Silva (Cardiologia)</option>
-                <option value="dra-ana">Dra. Ana (Pediatria)</option>
-                <option value="dr-joao">Dr. João (Ortopedia)</option>
+                @for (doc of doctors(); track doc.id) {
+                  <option [value]="doc.id">{{ doc.name }}</option>
+                }
               </select>
             </div>
           </div>
@@ -128,7 +133,7 @@ import { LucideAngularModule, X, User, Calendar, Clock, Stethoscope, ArrowRight 
         </button>
         <button 
           (click)="save()"
-          [disabled]="appointmentForm.invalid || isSaving()"
+          [disabled]="appointmentForm.invalid || isSaving() || isLoadingData()"
           class="bg-teal-600 text-white px-8 py-3.5 rounded-2xl font-bold text-sm hover:bg-teal-700 transition-all shadow-lg shadow-teal-100 active:scale-95 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
         >
           @if (isSaving()) {
@@ -147,7 +152,7 @@ import { LucideAngularModule, X, User, Calendar, Clock, Stethoscope, ArrowRight 
     </div>
   `
 })
-export class AppointmentModalComponent {
+export class AppointmentModalComponent implements OnInit {
   readonly X = X;
   readonly User = User;
   readonly Calendar = Calendar;
@@ -157,15 +162,37 @@ export class AppointmentModalComponent {
 
   private fb = inject(FormBuilder);
   private dialogRef = inject(DialogRef<any>);
+  private patientService = inject(PatientService);
+  private appointmentService = inject(AppointmentService);
 
   isSaving = signal(false);
+  isLoadingData = signal(true);
+
+  patients = signal<Patient[]>([]);
+  doctors = signal<{id: string, name: string}[]>([]);
 
   appointmentForm = this.fb.group({
-    patientName: ['', [Validators.required, Validators.minLength(3)]],
+    patientId: ['', [Validators.required]],
     date: ['', [Validators.required]],
     time: ['', [Validators.required]],
-    doctor: ['', [Validators.required]]
+    doctorId: ['', [Validators.required]]
   });
+
+  async ngOnInit() {
+    try {
+      this.isLoadingData.set(true);
+      const [patientsList, doctorsList] = await Promise.all([
+        this.patientService.getPatients(),
+        this.appointmentService.getDoctors()
+      ]);
+      this.patients.set(patientsList);
+      this.doctors.set(doctorsList);
+    } catch (err) {
+      console.error('Failed to load modal data', err);
+    } finally {
+      this.isLoadingData.set(false);
+    }
+  }
 
   isFieldInvalid(field: string): boolean {
     const control = this.appointmentForm.get(field);
@@ -183,15 +210,27 @@ export class AppointmentModalComponent {
     }
 
     this.isSaving.set(true);
+    const formVals = this.appointmentForm.value;
+    
+    // Combine date and time
+    // Actually we should handle local timezone, but appending 'T' + time + ':00' and parsing with new Date() is safer for local.
+    const localDate = new Date(formVals.date + 'T' + formVals.time);
+    
+    const selectedPatient = this.patients().find(p => p.id === formVals.patientId);
 
     try {
-      // Fake network delay
-      await new Promise(resolve => setTimeout(resolve, 800));
+      await this.appointmentService.createAppointment({
+        patient_id: formVals.patientId!,
+        patient_name: selectedPatient?.actor?.name || 'Unknown',
+        appointment_date: localDate.toISOString(),
+        doctor_actor_id: formVals.doctorId!,
+        duration_minutes: 60
+      });
       
-      // Close the dialog and pass the data back to the parent
-      this.dialogRef.close(this.appointmentForm.value);
+      this.dialogRef.close(true); // Signal success
     } catch (err) {
       console.error(err);
+      alert('Erro ao criar o agendamento.');
     } finally {
       this.isSaving.set(false);
     }
