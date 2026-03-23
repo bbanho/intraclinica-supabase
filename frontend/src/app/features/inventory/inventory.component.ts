@@ -120,8 +120,9 @@ import { ProductModalComponent } from './product-modal/product-modal.component';
           <div class="mb-4 flex items-center gap-3">
             <label class="text-sm font-medium text-gray-600">Filtrar por categoria:</label>
             <select 
+              #categorySelect
               [value]="selectedCategory()"
-              (change)="selectedCategory.set($any($event.target).value)"
+              (change)="selectedCategory.set(categorySelect.value)"
               class="px-3 py-1.5 text-sm border border-gray-200 rounded-md bg-white hover:border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             >
               @for (cat of categories(); track cat) {
