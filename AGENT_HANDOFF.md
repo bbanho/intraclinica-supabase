@@ -1,30 +1,28 @@
 # Handoff de Contexto (IntraClinica Supabase)
 
 ## 1. Estado Atual do Projeto
-- **Stack:** Angular 17+ (Frontend) e Supabase / PostgreSQL (Backend).
-- **Status da Arquitetura:** A aplicação atingiu um grau crítico de maturidade. A UI (FSD/Headless) e a Segurança RLS (IAM Bindings) estão operacionais e blindadas contra vazamento de dados multi-tenant.
-- **Base de Conhecimento Central:** A documentação para o cliente final fica em `documentacao/`. A documentação de arquitetura do desenvolvedor fica em `docs/IMPLEMENTATION_MASTER_PLAN.md` e nos arquivos ADR em `docs/adr/`. 
+- **Stack:** Angular 18+ (Frontend), Supabase / PostgreSQL (Backend), Tailwind CSS, Angular CDK.
+- **Status da Arquitetura:** O projeto passou por uma refatoração arquitetural massiva. A tabela `actor` foi **DELETADA** (Flattening). Os dados de nome agora residem diretamente em `patient` e `app_user`. A segurança multi-tenant está 100% blindada via PostgreSQL RLS usando a coluna `iam_bindings` (JSONB) indexada com GIN.
+- **Estrutura do Repositório:** O frontend legado foi arquivado (`archive/frontend-legacy/`). A pasta oficial do projeto moderno (anteriormente `frontend-v2`) agora é simplesmente `frontend/`. 
+- **Base de Conhecimento Central:** Antes de criar tabelas ou arquiteturas, consulte a documentação DEV em `docs/` e o `docs/IMPLEMENTATION_MASTER_PLAN.md`. 
 
-## 2. Refatoração Urgente do Banco de Dados (O Achatamento / Flattening)
-- **Problema:** A tabela abstrata `actor` (superclasse de `app_user` e `patient`) causa gargalos de performance (JOINs), quebra a atomicidade no frontend (obriga dupla inserção não transacional) e polui o TypeScript com tipos aninhados (`patient.actor.name`).
-- **Decisão (ADR 003):** Achatar o modelo de dados. A tabela `actor` será removida. `patient` e `app_user` receberão a coluna `name` diretamente. O polimorfismo será sacrificado em prol da **simplicidade mecânica**, performance e queries atômicas nativas (PostgREST).
-- **Ação Imediata (Top Priority):** O desenvolvimento de novas UIs está **PAUSADO**. Estamos na branch `refactor/db-flattening`. A tarefa atual é executar o plano de achatamento:
-  1. Criar a migração SQL que altera `patient` e `app_user`, remove `actor` e ajusta todas as Foreign Keys (`doctor_actor_id` vira `doctor_id` apontando para `app_user`).
-  2. Criar a RPC `create_product_with_stock` para resolver a dupla inserção do estoque de forma transacional no banco.
-  3. Refatorar o Angular (`PatientService`, `InventoryService`, `AppointmentService`) para consumir a nova estrutura plana e as novas RPCs, removendo as tipagens aninhadas (`actor?: PatientActor`).
+## 2. CI/CD & Deploy Automatizado (Foco Atual)
+- **Status:** Configuramos um pipeline no GitHub Actions (`.github/workflows/deploy.yml`) para compilar o Angular (`npm run build`) e publicar estaticamente no **Cloudflare Pages**. A documentação em Markdown (`documentacao/`) está sendo injetada na pasta de build `/doc/`.
+- **Ação Imediata para o Próximo Agente:** Verificar se o último deploy no Cloudflare Pages rodou com sucesso. Caso o GitHub Actions falhe (por problemas de dependências no `package-lock.json` ou falha no token do Cloudflare), corrija o pipeline antes de avançar para a UI.
 
-## 3. Próximos Passos Imediatos (Pós-Refatoração do Banco)
+## 3. Próximos Passos Imediatos (UI & Features)
 
-1. **Retomar CRUDs Raiz (Pacientes e Estoque):** ⏳ **PAUSADO**
-   - Apenas voltar para cá quando a API REST do Supabase estiver com suas operações sensíveis protegidas por RPCs e o achatamento estiver validado.
-   - **Ação:** Implementar o Web Worker (csv/xlsx) para geração de etiquetas do estoque e API de leitor de código de barras.
+1. **Retomar CRUDs Raiz (Pacientes e Estoque):** ⏳ **PENDENTE**
+   - A fundação do banco de dados e os Services do Angular (`PatientService`, `InventoryService`) já estão conectados às novas transações atômicas e ao esquema achatado.
+   - **Ação:** Finalizar a UI. Implementar o Web Worker (parser de csv/xlsx) para a geração de etiquetas do Estoque e a API do leitor de código de barras (Hardware API) descrita no Master Plan.
 
 2. **O Prontuário Médico (Clinical) - Modo Foco:** 📝 **PLANEJADO**
    - **Ação:** Criar o módulo `clinical`. A UI deve ser Full-Screen (escondendo o Sidebar) para maximizar a área de digitação do médico.
-   - **Integração IA:** Implementar o *Dynamic Import* do `@mlc-ai/web-llm` conforme o Master Plan.
+   - **Integração IA:** Implementar o *Dynamic Import* do `@mlc-ai/web-llm` para sumarização e análise clínica off-line, garantindo que o carregamento da IA não trave a thread principal do Angular.
 
 ## 4. Regras de Ouro (Invariáveis)
-O próximo agente **deve** respeitar estas regras:
-1. **Multi-Tenant Seguro (DB Level):** Todo o RLS é garantido via banco de dados pela coluna `iam_bindings` do JSONB e as funções `has_clinic_access`. **Nunca** remover essas defesas ao recriar/atualizar tabelas.
-2. **Angular Moderno:** Proibido `*ngIf`/`*ngFor`. Use `@if`, `@for` e componentes `standalone: true`. A aplicação é 100% `Signals`.
-3. **Git Flow:** Estamos na branch `refactor/db-flattening`. Garanta `tsc --noEmit` zerado antes de qualquer merge.
+O próximo agente **deve** respeitar rigorosamente estas regras:
+1. **Multi-Tenant Seguro (DB Level):** Todo o RLS é garantido no banco de dados lendo a coluna `iam_bindings` do JSONB através das funções `has_clinic_access` e `has_clinic_role`. Use sempre `(select auth.uid())` nas funções de RLS para cache de performance. **Nunca remova essas defesas.**
+2. **Angular Moderno & Signals:** É terminantemente proibido usar `*ngIf`, `*ngFor` ou `NgModule`. Use o novo control flow (`@if`, `@for`), componentes `standalone: true` e a arquitetura 100% orientada a `Signals`.
+3. **FSD (Feature-Sliced Design):** A UI de um módulo (`features/`) **nunca** importa ou acopla componentes de outro módulo.
+4. **Git Flow:** Crie branches padronizadas (`feat/`, `fix/`, `ci/`), valide a tipagem com `npx tsc --noEmit` localmente na pasta `frontend/` e nunca dê push direto na `main` se a alteração for grande (faça PRs).
