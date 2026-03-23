@@ -80,6 +80,8 @@ export interface Appointment {
   status: 'Agendado' | 'Aguardando' | 'Chamado' | 'Em Atendimento' | 'Realizado' | 'Cancelado' | string;
   type: string;
   roomNumber?: string;
+  /** Duration of the appointment in minutes. Defaults to 60. Used for conflict detection. */
+  durationMinutes?: number;
   timestamp: string;
 }
 

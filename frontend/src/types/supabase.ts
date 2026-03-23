@@ -159,6 +159,7 @@ export type Database = {
           appointment_date: string
           clinic_id: string
           doctor_actor_id: string | null
+          duration_minutes: number
           id: string
           patient_id: string
           patient_name: string
@@ -171,6 +172,7 @@ export type Database = {
           appointment_date: string
           clinic_id: string
           doctor_actor_id?: string | null
+          duration_minutes?: number
           id?: string
           patient_id: string
           patient_name: string
@@ -183,6 +185,7 @@ export type Database = {
           appointment_date?: string
           clinic_id?: string
           doctor_actor_id?: string | null
+          duration_minutes?: number
           id?: string
           patient_id?: string
           patient_name?: string
@@ -674,11 +677,13 @@ export type Database = {
           p_priority?: string
           p_room_number?: string
           p_status?: string
+          p_duration_minutes?: number
         }
         Returns: {
           appointment_date: string
           clinic_id: string
           doctor_actor_id: string | null
+          duration_minutes: number
           id: string
           patient_id: string
           patient_name: string

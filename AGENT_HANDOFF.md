@@ -17,10 +17,23 @@ O próximo agente **deve** respeitar estas regras inegociáveis:
 4. **Git Flow:** Nunca faça commit direto na `main`. Crie branches (`feat/`, `fix/`, `refactor/`), valide com `./node_modules/.bin/tsc --noEmit` e abra Pull Requests.
 
 ## 3. Próximos Passos Imediatos (Backlog Ativo)
-A interface de agendamento e o fluxo de atendimento médico estão prontos no Frontend. As próximas prioridades identificadas são:
 
-1. **Validação de Conflito de Horários (Backend/Database):**
-   - Atualmente, é possível agendar dois pacientes para o mesmo médico no mesmo horário.
-   - **Ação:** Precisamos investigar e criar uma *constraint* ou um *trigger* (função RPC no Supabase) na tabela `appointment` que bloqueie agendamentos sobrepostos para o mesmo `doctor_actor_id` na mesma data/hora.
-2. **Teste End-to-End do Fluxo Clínico:**
-   - Criar uma consulta de teste, fazer o check-in na Recepção (status `Aguardando`), e atender via aba Prontuário para validar se a conexão Fila -> Consultório -> Insumos está 100% fluida após as refatorações.
+1. **Validação de Conflito de Horários (Backend/Database):** ✅ **CONCLUÍDO**
+   - Migration aplicada com constraint `EXCLUDE USING gist`, limitando conflitos com a nova coluna `duration_minutes`. Script de deduplicação mitigou o erro `23P01`.
+   - Trigger com erro `P0001` em português adicionado. 
+
+2. **Migração Arquitetural Greenfield (Frontend V2):** ✅ **CONCLUÍDO (Fundação)**
+   - O frontend legado (V1) provou-se frágil para E2E (modais engolidos por `overflow-hidden` e Tailwind mal balanceado).
+   - Abortamos os testes no legado e criamos o `frontend-v2` com **Angular 18 + Angular CDK (Headless) + Tailwind CSS**. A "Prova de Vida" da recepção (com modais CDK) isolou perfeitamente o Z-index.
+   - O `IMPLEMENTATION_MASTER_PLAN.md` foi escrito ditando regras imutáveis de Módulos Independentes.
+
+3. **Arquitetura Fail-Loud e Config-Driven UI:** ✅ **CONCLUÍDO (Testado)**
+   - Desenhamos o `AdminPanelComponent` (Painel Global SaaS) como a fundação do sistema.
+   - Provamos a arquitetura **Fail-Loud** com Signals: O Toggle de "Ativar Módulo" não muda visualmente se o Supabase estourar erro (Ex: *Foreign Key* ou *RLS*). O front nunca mente o estado do banco.
+
+4. **Ajuste de Políticas RLS (Supabase):** ⏳ **PRÓXIMO PASSO (BLOQUEANTE)**
+   - O `SUPER_ADMIN` (ex: `bmbanho@gmail.com`) loga perfeitamente na V2, mas é bloqueado pelo RLS ao tentar ativar módulos (`INSERT`/`UPDATE` na `clinic_module`).
+   - **Ação Imediata:** Revisar as policies SQL da tabela `clinic_module` para permitir que roles de `SUPER_ADMIN` na tabela `app_user` editem os módulos.
+
+## 4. O "Master Plan" (Documentação Central)
+O projeto agora é regido pelos documentos `/docs/adr/001-frontend-modularization.md` e `/docs/IMPLEMENTATION_MASTER_PLAN.md`. A arquitetura proíbe acoplamento de UI e dita Lazy Loading (Dynamic Imports) para integrações pesadas como o WebLLM e WebWorkers para CSV.

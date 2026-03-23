@@ -73,6 +73,7 @@ erDiagram
         uuid patient_id FK
         timestamp date
         text status
+        numeric duration_minutes
     }
 ```
 
