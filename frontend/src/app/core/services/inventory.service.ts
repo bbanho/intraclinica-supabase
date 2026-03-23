@@ -41,7 +41,13 @@ export class InventoryService {
       .order('name');
 
     if (error) throw error;
-    return data as Product[];
+    
+    // Map avg_cost_price (DB column) -> cost (interface property)
+    // Destructure to exclude avg_cost_price so final objects strictly match Product interface
+    return (data as any[]).map(({ avg_cost_price, ...rest }) => ({
+      ...rest,
+      cost: avg_cost_price ?? 0
+    })) as Product[];
   }
 
   async createProduct(dto: CreateProductDto): Promise<Product> {

@@ -1,15 +1,14 @@
-import { Component, inject, computed, OnInit, signal } from '@angular/core';
+import { Component, inject, OnInit, signal } from '@angular/core';
 import { RouterOutlet, RouterLink, RouterLinkActive } from '@angular/router';
-import { CommonModule } from '@angular/common';
 import { AuthService } from '../core/services/auth.service';
 import { ClinicContextService } from '../core/services/clinic-context.service';
 import { SupabaseService } from '../core/services/supabase.service';
-import { LucideAngularModule, LayoutDashboard, Users, Calendar, Box, LogOut, Building2, ShieldAlert, Menu, X } from 'lucide-angular';
+import { LucideAngularModule, LayoutDashboard, Users, Calendar, Box, LogOut, Building2, ShieldAlert, Menu, X, Stethoscope } from 'lucide-angular';
 
 @Component({
   selector: 'app-main-layout',
   standalone: true,
-  imports: [CommonModule, RouterOutlet, RouterLink, RouterLinkActive, LucideAngularModule],
+  imports: [RouterOutlet, RouterLink, RouterLinkActive, LucideAngularModule],
   template: `
     <div class="h-screen w-full flex bg-slate-50 overflow-hidden text-slate-800 relative">
       
@@ -75,6 +74,11 @@ import { LucideAngularModule, LayoutDashboard, Users, Calendar, Box, LogOut, Bui
             <lucide-icon [img]="Box" [size]="20" class="text-slate-400 group-[.bg-teal-600]:text-white transition-colors"></lucide-icon>
             Estoque
           </a>
+          
+          <a routerLink="/clinical" routerLinkActive="bg-teal-600 text-white" (click)="closeMobileMenu()" class="flex items-center gap-3 px-4 py-3.5 rounded-xl text-slate-300 hover:text-white hover:bg-white/10 transition-all font-medium group">
+            <lucide-icon [img]="Stethoscope" [size]="20" class="text-slate-400 group-[.bg-teal-600]:text-white transition-colors"></lucide-icon>
+            Prontuário
+          </a>
 
         </nav>
 
@@ -115,7 +119,7 @@ import { LucideAngularModule, LayoutDashboard, Users, Calendar, Box, LogOut, Bui
                 [disabled]="!isSuperAdmin()"
                 (change)="onContextChange($any($event.target).value)"
              >
-                <option value="all" *ngIf="isSuperAdmin()">[ Global SaaS View ]</option>
+                 @if (isSuperAdmin()) { <option value="all">[ Global SaaS View ]</option> }
                 <!-- Loop real coming from Supabase -->
                 @for (clinic of myClinics(); track clinic.id) {
                   <option [value]="clinic.id" [selected]="context.selectedClinicId() === clinic.id">{{ clinic.name }}</option>
@@ -152,6 +156,7 @@ export class MainLayoutComponent implements OnInit {
   readonly ShieldAlert = ShieldAlert;
   readonly Menu = Menu;
   readonly X = X;
+  readonly Stethoscope = Stethoscope;
 
   ngOnInit() {
     this.checkAdminRole();

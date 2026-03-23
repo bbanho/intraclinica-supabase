@@ -17,6 +17,7 @@ export interface PatientFormDto {
   cpf: string | null;
   phone: string | null;
   birth_date: string | null;
+  gender: string | null;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -66,7 +67,8 @@ export class PatientService {
         name: payload.name,
         cpf: payload.cpf,
         birth_date: payload.birth_date,
-        phone: payload.phone
+        phone: payload.phone,
+        gender: payload.gender
       })
       .select('*')
       .single();
@@ -88,6 +90,7 @@ export class PatientService {
         cpf: payload.cpf,
         birth_date: payload.birth_date,
         phone: payload.phone,
+        gender: payload.gender,
         updated_at: new Date().toISOString()
       })
       .eq('id', id)
