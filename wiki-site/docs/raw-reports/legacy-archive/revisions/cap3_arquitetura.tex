@@ -1,0 +1,42 @@
+ \chapter{Arquitetura e Governança do IntraClinica}
+
+Esta arquitetura do IntraClinica é baseada em camadas que garantem a integridade dos dados, a soberania do profissional de saúde e o cumprimento das premissas de soberania e MedX.
+
+\section{Persistência e Backend-as-a-Service (BaaS)}
+
+O sistema utiliza o \textbf{Supabase (PostgreSQL 16)} como fonte única da verdade, oferecendo garantias de integridade dos dados relacionais, auditáveis e exportáveis a qualquer momento sem lock-in de fornecedor.
+
+\subsection{Isolamento Multi-Tenancy via RLS}
+Para a expansão da rede de parceiros, a segurança é garantida no nível do banco de dados através de \textbf{Row Level Security (RLS)}. Cada registro clínico ou de estoque é vinculado a um identificador único de clínica (\textit{clinic\_id}). O motor do Postgres garante que um usuário só acesse dados para os quais seu perfil (\textit{profiles}) tenha autorização explícita, impedindo vazamentos transversais de dados.
+
+\section{Esquema Relacional}
+
+O coração do IntraClinica é um esquema relacional normalizado, projetado para garantir a integridade dos dados clínicos e a rastreabilidade total do inventário. Além das tabelas já mencionadas na seção anterior, o sistema inclui tabelas específicas relacionadas à identidade, IAM bindings (stored as JSONB), stock transactions, appointments, social posts e access requests.
+
+\subsection{Entidades e Relacionamentos (ER)}
+
+A modelagem utiliza o padrão de \textbf{Supertipo/Subtipo} para a entidade \texttt{Actor}. Um \texttt{Actor} representa qualquer ente humano no sistema, que pode se especializar como um \texttt{Patient} (paciente) ou um \texttt{User} (profissional/usuário).
+
+\subsection{Segurança e Permissões}
+
+Para garantir a integridade de dados e o cumprimento das políticas de soberania e MedX, foi desenvolvido um serviço de autenticação e permissões Angular chamado \textbf{AuthService}, que utiliza Supabase para operações básicas de verificação de autenticação e segurança. O checkPermission função verifica se o usuário possui a autorização necessária para uma determinada operação, consultando as IAM bindings armazenadas no banco de dados Supabase.
+
+\section{Integração com outras ferramentas}
+
+O sistema IntraClinica integra-se com várias outras ferramentas para melhorar a funcionalidade e eficiência. Algumas destas ferramentas são:
+\begin{itemize}
+    \item \textbf{Axio Nexus:} A malha neural Axio Nexus garante que o código-fonte do IntraClinica seja verificado constantemente para assegurar a integridade de dados e cumprimento das políticas de soberania e MedX.
+    \item \textbf{Axio Coordinator:} O pacote Axio Coordinator é uma ferramenta de web development que usa várias bibliotecas para otimizar a funcionalidade do IntraClinica, como Actix-Web, Tokio, SQLX e Notify.
+    \item \textbf{Qdrant:} O serviço Qdrant é uma ferramenta de semântica que integra-se com o IntraClinica para ajudar na recuperação e análise de dados.
+\end{itemize}
+
+\section{Infraestrutura de Engenharia e Governança (Axio Nexus)}
+
+O desenvolvimento e a manutenção do IntraClinica não dependem de supervisão humana constante para integridade de dados, mas são governados pela malha neural \textbf{Axio Nexus}. Diferente de um módulo do sistema, o Nexus atua como a infraestrutura de inteligência que sustenta o projeto.
+
+O motor \textbf{Weaver Worker} realiza a mineração contínua do código-fonte e da documentação técnica, operando em três níveis:
+\begin{itemize}
+    \item \textbf{Auditoria de Conformidade:} Verifica se as implementações em Angular e PostgreSQL respeitam as premissas de soberania e MedX.
+    \item \textbf{Tecelagem Topológica (T4):} Conecta decisões de arquitetura à implementação real, prevenindo a dívida técnica e a perda de genealogia do projeto.
+    \item \textbf{Persistência Cognitiva:} Garante que a inteligência acumulada durante o desenvolvimento seja soberana e local, independente de provedores de IA externos.
+\end{itemize}

@@ -1,0 +1,31 @@
+erDiagram
+    CLINIC ||--o{ ACTOR : "governa"
+    CLINIC ||--o{ INVENTORY_ITEM : "possui"
+    CLINIC ||--o{ APPOINTMENT : "agenda"
+    CLINIC ||--o{ PROCEDURE_TYPE : "oferece"
+    CLINIC ||--o{ FINANCIAL_TRANSACTION : "registra"
+    CLINIC ||--o{ ACCESS_REQUEST : "recebe"
+    
+    ACTOR ||--o| USER : "especializa"
+    ACTOR ||--o| PATIENT : "especializa"
+    ACTOR ||--o{ CONTACT : "possui"
+    ACTOR ||--o{ INVENTORY_MOVEMENT : "realiza"
+    
+    USER ||--o{ APPOINTMENT : "atende"
+    USER ||--o{ CLINICAL_RECORD : "escreve"
+    USER ||--o{ ACCESS_REQUEST : "solicita"
+    
+    PATIENT ||--o{ APPOINTMENT : "agenda"
+    PATIENT ||--o{ CLINICAL_RECORD : "possui"
+    
+    INVENTORY_ITEM ||--o{ PROCEDURE_RECIPE : "insumo de"
+    INVENTORY_ITEM ||--o{ INVENTORY_MOVEMENT : "movimenta"
+    INVENTORY_ITEM ||--o{ BATCH : "loteado em"
+    
+    PROCEDURE_TYPE ||--o{ PROCEDURE_RECIPE : "define"
+    
+    PRODUCT ||--o{ BATCH : "contem"
+    PRODUCT ||--o{ STOCK_TRANSACTION : "registra"
+    PRODUCT ||--o{ PRODUCT_HISTORY : "rastreia"
+    
+    FINANCIAL_CATEGORY ||--o{ FINANCIAL_TRANSACTION : "classifica"

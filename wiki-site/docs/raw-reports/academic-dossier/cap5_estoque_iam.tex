@@ -1,0 +1,32 @@
+\chapter{Governança: Estoque e Matriz de Acesso}
+
+A sustentabilidade financeira e a segurança jurídica da rede IntraClinica residem no controle rigoroso sobre os insumos e sobre quem manipula a informação.
+
+\section{O Guardião de Estoque Inteligente}
+
+O estoque no IntraClinica não é um módulo isolado, mas uma consequência do atendimento.
+\begin{itemize}
+    \item \textbf{Receita de Procedimento:} Para cada ato médico (ex: aplicação de injetável, pequena cirurgia), existe uma ``receita'' cadastrada no sistema.
+    \item \textbf{Baixa Atômica:} Ao finalizar o procedimento no prontuário, o sistema automaticamente propõe a baixa dos insumos associados. Se uma sutura foi realizada, o kit de sutura e os fios são deduzidos do inventário instantaneamente.
+    \item \textbf{Alertas de Anomalia:} A inteligência local monitora desvios estatísticos. Se o consumo de um determinado profissional ou turno diverge do padrão para aquele procedimento, a Diretoria Médica recebe um alerta silencioso de auditoria.
+\end{itemize}
+
+\section{Gestão de Identidade e Acesso (IAM)}
+
+Para viabilizar a curadoria de médicos parceiros, implementamos uma matriz de acesso baseada no princípio do menor privilégio.
+
+\begin{table}[h!]
+\centering
+\caption{Matriz de Funções e Escopos}
+\vspace{0.3cm}
+\begin{tabular}{@{}ll@{}}
+\toprule
+\textbf{Papel (Role)} & \textbf{Responsabilidade e Acesso} \\ \midrule
+Diretoria Médica & Gestão total, auditoria e definição de protocolos. \\
+Médico Especialista & Acesso pleno ao prontuário e atendimento clínico. \\
+Secretariado & Foco em agendamento, check-in e dados cadastrais. \\
+Gestor de Estoque & Controle de suprimentos, validades e custos. \\ \bottomrule
+\end{tabular}
+\end{table}
+
+Essa estrutura garante que a intimidade do paciente (contida no prontuário médico) seja acessada apenas por profissionais autorizados, cumprindo rigorosamente as normativas do CFM e da LGPD.

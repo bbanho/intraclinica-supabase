@@ -1,0 +1,44 @@
+\chapter{Diagramas de Lógica e Fluxo}
+
+Este apêndice contém as representações visuais dos processos automatizados e da estrutura de dados do sistema IntraClinica.
+
+\section{Diagrama de Entidade e Relacionamento (ER)}
+
+A estrutura relacional do banco de dados PostgreSQL do IntraClinica está representada graficamente no diagrama abaixo.
+
+\begin{figure}[h!]
+    \centering
+    \includegraphics[width=\textwidth]{db_schema_v2.mermaid}
+    \caption{Diagrama de Entidade e Relacionamento - IntraClinica}
+    \label{fig:db_schema}
+\end{figure}
+
+O diagrama detalha as relações entre as entidades de identidade (\texttt{clinic}, \texttt{actor}), o módulo clínico (\texttt{appointment}, \texttt{clinical\_record}) e o motor de suprimentos (\texttt{inventory\_item}, \texttt{procedure\_recipe}).
+
+\section{Fluxo de Baixa de Estoque Atômica}
+
+O diagrama a seguir detalha como o sistema lida com a transação de baixa de insumos durante um procedimento clínico:
+
+\begin{enumerate}
+    \item O Médico finaliza o procedimento na interface Angular.
+    \item O sistema dispara uma chamada RPC (\textit{Remote Procedure Call}) para o Supabase.
+    \item O Postgres inicia uma transação atômica.
+    \item Busca-se a receita cadastrada para aquele tipo de procedimento (\texttt{procedure\_recipe}).
+    \item Para cada item, registra-se um rastro de movimentação (\texttt{inventory\_movement}) e deduz-se a quantidade do saldo atual (\texttt{inventory\_item}).
+    \item A transação é confirmada e o médico recebe o log de auditoria na tela.
+\end{enumerate}
+
+\section{Diagrama de Estados da Consulta}
+
+Representação da progressão lógica do atendimento:
+
+\texttt{Agendado [Check-in] -> Aguardando [Chamada] -> Em Atendimento [Finalização] -> Realizado}
+
+\section{Estrutura de Governança Nexus}
+
+O ecossistema é governado pela arquitetura Axio Nexus, que atua como o engenheiro chefe e garantidor da integridade sistêmica:
+\begin{itemize}
+    \item \textbf{Tier 1:} Fragmentos brutos do código e documentação.
+    \item \textbf{Tier 2:} Essência lógica destilada para governança.
+    \item \textbf{Tier 4 (Topologia):} Links de causalidade que sustentam a inteligência do projeto.
+\end{itemize}

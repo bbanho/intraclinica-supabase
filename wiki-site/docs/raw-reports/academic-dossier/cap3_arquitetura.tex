@@ -1,0 +1,43 @@
+\chapter{Fundação Tecnológica e Soberania}
+
+A arquitetura do IntraClinica é dividida em camadas que garantem a integridade do dado e a soberania do profissional de saúde.
+
+\section{Persistência e Backend-as-a-Service (BaaS)}
+
+O sistema utiliza o \textbf{Supabase (PostgreSQL 16)} como fonte única da verdade. A escolha pelo PostgreSQL garante que o dado seja relacional, auditável e exportável a qualquer momento, sem lock-in de fornecedor.
+
+\subsection{Isolamento Multi-Tenancy via RLS}
+Para a expansão da rede de parceiros, a segurança é garantida no nível do banco de dados através de \textbf{Row Level Security (RLS)}. Cada registro clínico ou de estoque é vinculado a um identificador único de clínica (\textit{clinic\_id}). O motor do Postgres garante que um usuário só acesse dados para os quais seu perfil (\textit{profiles}) tenha autorização explícita, impedindo vazamentos transversais de dados.
+
+\section{Modelo de Dados Relacional}
+
+O coração do IntraClinica é um modelo relacional normalizado, conforme ilustrado graficamente no diagrama \texttt{db\_schema.svg} (ver Apêndice A). Esta estrutura foi desenhada para garantir a integridade dos dados clínicos e a rastreabilidade total do inventário. A estrutura é centrada no conceito de \textbf{Multi-Tenancy}, onde cada tabela core possui uma chave estrangeira para a entidade \texttt{clinic}.
+
+\subsection{Entidades e Relacionamentos (ER)}
+
+A modelagem utiliza o padrão de \textbf{Supertipo/Subtipo} para a entidade \texttt{Actor}. Um \texttt{Actor} representa qualquer ente humano no sistema, que pode se especializar como um \texttt{Patient} (paciente) ou um \texttt{User} (profissional/usuário).
+
+Principais módulos do banco:
+\begin{itemize}
+    \item \textbf{Módulo de Identidade:} Tabelas \texttt{clinic}, \texttt{actor}, \texttt{user} e \texttt{patient}.
+    \item \textbf{Módulo Clínico:} Tabelas \texttt{appointment} (agendamentos) e \texttt{clinical\_record} (prontuário).
+    \item \textbf{Módulo de Suprimentos:} Tabelas \texttt{inventory\_item}, \texttt{procedure\_recipe} e \texttt{inventory\_movement}.
+    \item \textbf{Módulo Financeiro:} Tabelas \texttt{financial\_transaction} e \texttt{financial\_category}.
+\end{itemize}
+
+O diagrama detalhado deste modelo, representando a genealogia das tabelas e suas restrições, encontra-se no \textbf{Apêndice A}.
+
+\section{Reatividade Granular via Angular 21}
+
+O frontend é desenvolvido em \textbf{Angular 21}, utilizando a nova arquitetura de \textbf{Signals}. Isso permite que a interface reaja instantaneamente a mudanças no banco de dados sem a necessidade de recarregamentos pesados de página, otimizando o fluxo de trabalho na recepção e no consultório.
+
+\section{Infraestrutura de Engenharia e Governança (Axio Nexus)}
+
+O desenvolvimento e a manutenção do IntraClinica não dependem de supervisão humana constante para integridade de dados, mas são governados pela malha neural \textbf{Axio Nexus}. Diferente de um módulo do sistema, o Nexus atua como a infraestrutura de inteligência que sustenta o projeto.
+
+O motor \textbf{Weaver Worker} realiza a mineração contínua do código-fonte e da documentação técnica, operando em três níveis:
+\begin{itemize}
+    \item \textbf{Auditoria de Conformidade:} Verifica se as implementações em Angular e PostgreSQL respeitam as premissas de soberania e Experiência Clínica Soberana (Ecossistema IntraClinica).
+    \item \textbf{Tecelagem Topológica (T4):} Conecta decisões de arquitetura à implementação real, prevenindo a dívida técnica e a perda de genealogia do projeto.
+    \item \textbf{Persistência Cognitiva:} Garante que a inteligência acumulada durante o desenvolvimento seja soberana e local, independente de provedores de IA externos.
+\end{itemize}

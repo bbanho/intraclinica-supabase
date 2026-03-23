@@ -1,0 +1,98 @@
+\documentclass[
+	12pt,				% tamanho da fonte
+	openright,			% capítulos começam em pág ímpar (insere página vazia caso preciso)
+	oneside,			% para impressão em apenas um lado. Substitua por twoside para frente e verso
+	a4paper,			% tamanho do papel. 
+	english,			% idioma adicional para hifenização
+	brazil				% o último idioma é o principal do documento
+	]{abntex2}
+
+% --- PACOTES BÁSICOS ---
+\usepackage{lmodern}			% Usa a fonte Latin Modern			
+\usepackage[T1]{fontenc}		% Selecao de codigos de fonte.
+\usepackage[utf8]{inputenc}		% Codificacao do documento (conversão automática dos acentos)
+\usepackage{lastpage}			% Usado no Cabeçalho
+\usepackage{indentfirst}		% Indenta o primeiro parágrafo de cada seção.
+\usepackage{color}				% Controle das cores
+\usepackage{graphicx}			% Inclusão de gráficos
+\usepackage{microtype} 			% para melhorias de justificação
+\usepackage{tabularx}
+\usepackage{booktabs}
+
+% --- PACOTES DE CITAÇÕES ---
+\usepackage[brazilian,hyperpageref]{backref}	 % Paginas com as citações na bibl
+\usepackage[alf]{abntex2cite}	% Citações padrão ABNT
+
+% --- CONFIGURAÇÕES DE APARÊNCIA ---
+\definecolor{blue}{RGB}{41,5,195}
+\hypersetup{
+    pdftitle={Dossiê Estratégico IntraClinica}, 
+    pdfauthor={Bruno},
+    pdfsubject={Soberania Digital e Inteligência Clínica},
+    pdfkeywords={Gestão Clínica, Soberania de Dados, Experiência Clínica Soberana (Ecossistema IntraClinica), IA Local},
+    colorlinks=true,
+    linkcolor=blue,
+    citecolor=blue,
+    filecolor=magenta,
+    urlcolor=blue,
+    bookmarksdepth=4
+}
+
+% --- DADOS DO TRABALHO ---
+\titulo{Dossiê Estratégico IntraClinica:\\Soberania Digital e Excelência na Prática Médica (Experiência Clínica Soberana (Ecossistema IntraClinica))}
+\autor{Ecossistema IntraClinica}
+\local{São José do Rio Preto - SP}
+\data{2026}
+\instituicao{IntraClinica - Inovação e Curadoria Médica}
+\tipotrabalho{Relatório Técnico}
+\preambulo{Relatório técnico-estratégico apresentado à Diretoria Médica para fins de expansão de rede e definição de protocolos de curadoria para médicos parceiros.}
+
+% --- CONFIGURAÇÕES DE PÁGINA ---
+\makeatletter
+\setlength{\parindent}{1.3cm}
+\setlength{\parskip}{0.2cm}  
+\makeatother
+
+% --- INÍCIO DO DOCUMENTO ---
+\begin{document}
+
+\selectlanguage{brazil}
+\frenchspacing 
+
+% --- CAPA ---
+\imprimircapa
+
+% --- FOLHA DE ROSTO ---
+\imprimirfolhaderosto
+
+% --- RESUMO ---
+\begin{resumo}
+ O IntraClinica é um ecossistema de gestão clínica desenhado para priorizar a soberania de dados e a experiência do profissional de saúde (Experiência Clínica Soberana (Ecossistema IntraClinica)). Este dossiê detalha a arquitetura do sistema, fundamentada em tecnologias de código aberto e persistência local, visando mitigar a dependência de plataformas proprietárias. São abordados fluxos de uso-case, desde a recepção até o atendimento clínico monomanual, e a gestão inteligente de insumos via inteligência artificial local.
+ 
+ \vspace{\onelineskip}
+ \noindent
+ \textbf{Palavras-chave}: Soberania de Dados. Gestão Clínica. Experiência Clínica Soberana (Ecossistema IntraClinica). Inteligência Artificial.
+\end{resumo}
+
+% --- SUMÁRIO ---
+\pdfbookmark[0]{\contentsname}{toc}
+\tableofcontents*
+\cleardoublepage
+
+% --- ELEMENTOS TEXTUAIS ---
+\textual
+
+\input{cap1_introducao.tex}
+\input{cap2_visao_medx.tex}
+\input{cap3_arquitetura.tex}
+\input{cap4_casos_uso.tex}
+\input{cap5_estoque_iam.tex}
+\input{cap6_conclusao.tex}
+
+% --- ELEMENTOS PÓS-TEXTUAIS ---
+\postextual
+
+\apendices
+\input{apendice_a_diagramas.tex}
+
+\end{document}

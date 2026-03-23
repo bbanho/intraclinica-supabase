@@ -1,0 +1,51 @@
+ \chapter{Governança: Estoque, Matriz de Acesso e Gerenciamento de Identidade}
+
+O objetivo é garantir a sustentabilidade financeira, segurança jurídica e conformidade com normativas do CFM e da LGPD em nosso sistema IntraClinica. Esse é atingido através da implantação de soluções tecnológicas rigorosamente projetadas para o controle dos insumos, gestão de identidades e acesso.
+
+\section{Controle do Estoque}
+
+O estoque no IntraClinica não é um módulo isolado, mas uma consequência direta do atendimento clínico. Para cada procedimento médico realizado na plataforma, existe uma ``receita'' cadastrada no sistema (por exemplo, aplicação de injetáveis ou pequenas cirurgias). Quando um procedimento é finalizado, o sistema sugestiona automaticamente a baixa dos insumos associados à receita. A baixa é imediata e sem intervenção humana, seja através de uma operação automática, como a dedução de suturas e fios do inventário após um procedimento cirúrgico ou a realização de operações manualmente, caso necessária.
+
+Para garantir a precisão na contabilização dos insumos, o sistema monitora constantemente anomalias estatísticas no consumo de materiais por profissionais e turnos, enviando alertas silenciosos à Diretoria Médica caso haja desvios do padrão estabelecido.
+
+\section{Gestão de Identidade e Acesso (IAM)}
+
+Para garantir a curadoria de médicos parceiros, implementamos uma matriz de acesso baseada no princípio do menor privilégio. Essa estrutura garante que a intimidade do paciente seja acessada apenas por profissionais autorizados e cumprindo rigorosamente as normativas do CFM e da LGPD.
+
+\begin{table}[h!]
+\centering
+\caption{Matriz de Funções e Escopos}
+\vspace{0.3cm}
+\begin{tabular}{@{}ll@{}}
+\toprule
+\textbf{Papel (Role)} & \textbf{Responsabilidade e Acesso} \\ \midrule
+Diretoria Médica & Gestão total, auditoria e definição de protocolos. \\
+Médico Especialista & Acesso pleno ao prontuário e atendimento clínico. \\
+Secretariado & Foco em agendamento, check-in e dados cadastrais. \\
+Gestor de Estoque & Controle de suprimentos, validades e custos. \\ \bottomrule
+\end{tabular}
+\end{table}
+
+Para garantir a integridade dos dados e da segurança do sistema, o IntraClinica utiliza uma arquitetura de estado gerenciada por um sistema de gerenciamento de estado Redux-like. Os atores humanos interagem com o sistema apenas através de uma interface gráfica intuitiva, sem necessidade de manipulação direta do código ou acesso ao estado interno do sistema.
+
+\section{Segurança no Nível da Aplicação}
+
+O IntraClinica utiliza várias tecnologias para garantir a segurança dos dados e a integridade do sistema, como serviços de autenticação e autorização, criptografia de dados sensíveis, e segurança em nível de rede.
+
+\subsection{Autenticação}
+
+O IntraClinica utiliza um sistema de autenticação avançado que garante a verificação da identidade dos usuários antes de permitir o acesso à plataforma. A autenticação se dá através de login e senha ou pelo uso de outros mecanismos de autenticação, como tokens OAuth2.
+
+\subsection{Autorização}
+
+O IntraClinica implementa um sistema de autorização baseado em funções (Role-Based Access Control - RBAC). Essa estrutura garante que cada usuário tenha o acesso aos recursos adequados, de acordo com sua função no sistema. A matriz de funções e escopos descreve as responsabilidades e os privilégios dos diferentes papéis no IntraClinica.
+
+\subsection{Criptografia}
+
+O IntraClinica utiliza algoritmos criptográficos avançados para garantir a integridade dos dados sensíveis, como senhas e informações de crédito. Por exemplo, usamos AES (Advanced Encryption Standard) para encriptar as senhas armazenadas no sistema.
+
+\subsection{Segurança em Nível de Rede}
+
+O IntraClinica utiliza várias medidas para garantir a segurança em nível de rede, como firewalls, VPNs (Virtual Private Networks) e criptografia SSL. Essas medidas garantem que os dados transpassados entre o usuário e o servidor sejam protegidos contra interceptação ou alteração não autorizadas.
+
+O IntraClinica é projetado para ser uma plataforma segura, confiável e fácil de usar, garantindo a privacidade dos dados e a integridade do sistema, conforme a normativa legal vigente.
