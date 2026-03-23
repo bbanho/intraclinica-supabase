@@ -3,6 +3,8 @@ import { SupabaseService } from './supabase.service';
 import { ClinicContextService } from './clinic-context.service';
 import { AuthService } from './auth.service';
 
+export type MedicalRecordType = 'EVOLUCAO' | 'RECEITA' | 'EXAME' | 'TRIAGEM';
+
 export interface MedicalRecordContent {
   chief_complaint: string;
   observations: string;
@@ -16,7 +18,7 @@ export interface MedicalRecord {
   patient_id: string;
   doctor_id: string;
   content: MedicalRecordContent;
-  type: string;
+  type: MedicalRecordType;
   created_at: string;
 }
 
@@ -37,7 +39,7 @@ export class ClinicalService {
   async createRecord(
     patientId: string,
     content: MedicalRecordContent,
-    type = 'EVOLUCAO'
+    type: MedicalRecordType = 'EVOLUCAO'
   ): Promise<MedicalRecord> {
     const doctorId = this.auth.currentUser()?.id;
     if (!doctorId) {

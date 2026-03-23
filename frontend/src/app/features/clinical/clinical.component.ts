@@ -4,7 +4,7 @@ import { DatePipe } from '@angular/common';
 import { LucideAngularModule, Search, User, FileText, Activity, Heart, Pill, AlertCircle, ChevronLeft, ChevronRight, Maximize2, Minimize2, Bot, Loader2, History, ChevronDown, ChevronUp } from 'lucide-angular';
 import { ClinicContextService } from '../../core/services/clinic-context.service';
 import { PatientService, Patient } from '../../core/services/patient.service';
-import { ClinicalService, MedicalRecord, MedicalRecordContent } from '../../core/services/clinical.service';
+import { ClinicalService, MedicalRecord, MedicalRecordContent, MedicalRecordType } from '../../core/services/clinical.service';
 
 @Component({
   selector: 'app-clinical',
@@ -150,6 +150,22 @@ import { ClinicalService, MedicalRecord, MedicalRecordContent } from '../../core
 
             <!-- MEDICAL RECORD FORM -->
             <div class="flex-1 overflow-y-auto p-6 space-y-6">
+              <!-- Record Type -->
+              <div class="space-y-2">
+                <label class="flex items-center gap-2 text-sm font-medium text-slate-300">
+                  <lucide-icon [img]="FileTextIcon" class="w-4 h-4 text-teal-400"></lucide-icon>
+                  Tipo de Registro
+                </label>
+                <select
+                  [(ngModel)]="record.type"
+                  class="w-full px-4 py-3 bg-slate-800 border border-slate-600 rounded-lg text-white focus:ring-2 focus:ring-teal-500/50 focus:border-teal-500 outline-none"
+                >
+                  @for (rt of recordTypes; track rt.value) {
+                    <option [value]="rt.value">{{ rt.label }}</option>
+                  }
+                </select>
+              </div>
+
               <!-- Chief Complaint -->
               <div class="space-y-2">
                 <label class="flex items-center gap-2 text-sm font-medium text-slate-300">
@@ -297,7 +313,15 @@ export class ClinicalComponent {
 
   selectedClinicId = this.clinicContext.selectedClinicId;
 
-  record = {
+  readonly recordTypes: { value: MedicalRecordType; label: string }[] = [
+    { value: 'EVOLUCAO', label: 'Evolução' },
+    { value: 'RECEITA', label: 'Receita' },
+    { value: 'EXAME', label: 'Exame' },
+    { value: 'TRIAGEM', label: 'Triagem' }
+  ];
+
+  record: { type: MedicalRecordType; chief_complaint: string; observations: string; diagnosis: string; prescriptions: string } = {
+    type: 'EVOLUCAO',
     chief_complaint: '',
     observations: '',
     diagnosis: '',
@@ -354,6 +378,7 @@ export class ClinicalComponent {
 
   clearRecord() {
     this.record = {
+      type: 'EVOLUCAO',
       chief_complaint: '',
       observations: '',
       diagnosis: '',
@@ -374,7 +399,7 @@ export class ClinicalComponent {
         diagnosis: this.record.diagnosis,
         prescriptions: this.record.prescriptions
       };
-      await this.clinicalService.createRecord(patient.id, content);
+      await this.clinicalService.createRecord(patient.id, content, this.record.type);
       this.clearRecord();
       await this.loadRecords(patient.id);
     } catch (err: unknown) {
