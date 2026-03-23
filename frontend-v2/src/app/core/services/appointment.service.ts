@@ -12,7 +12,7 @@ export interface Appointment {
   priority: string;
   room_number: string | null;
   timestamp: string;
-  doctor_actor_id: string | null;
+  doctor_id: string | null;
   duration_minutes: number;
 }
 
@@ -20,7 +20,7 @@ export interface AppointmentPayload {
   patient_id: string;
   patient_name: string;
   appointment_date: string;
-  doctor_actor_id?: string;
+  doctor_id?: string;
   duration_minutes?: number;
 }
 
@@ -66,11 +66,11 @@ export class AppointmentService {
 
   async getDoctors(): Promise<{id: string, name: string}[]> {
     const clinicId = this.clinicId;
+    // We now fetch from app_user and filter by iam_bindings containing 'DOCTOR' for this clinic
     const { data, error } = await this.supabase.clientInstance
-      .from('actor')
+      .from('app_user')
       .select('id, name')
-      .eq('clinic_id', clinicId)
-      .eq('type', 'DOCTOR')
+      .contains('iam_bindings', { [clinicId]: ['DOCTOR'] })
       .order('name', { ascending: true });
       
     if (error) throw error;
@@ -104,7 +104,7 @@ export class AppointmentService {
         patient_id: payload.patient_id,
         patient_name: payload.patient_name,
         appointment_date: payload.appointment_date,
-        doctor_actor_id: payload.doctor_actor_id,
+        doctor_id: payload.doctor_id,
         duration_minutes: payload.duration_minutes ?? 60,
         status: 'Agendado',
         priority: 'Normal'

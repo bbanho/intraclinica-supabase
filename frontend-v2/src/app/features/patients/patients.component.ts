@@ -67,7 +67,7 @@ import { PatientModalComponent } from './patient-modal/patient-modal.component';
               <tbody class="divide-y divide-gray-100">
                 @for (patient of patients(); track patient.id) {
                   <tr class="hover:bg-gray-50 transition-colors">
-                    <td class="px-6 py-4 font-medium text-gray-900">{{ patient.actor?.name }}</td>
+                    <td class="px-6 py-4 font-medium text-gray-900">{{ patient.name }}</td>
                     <td class="px-6 py-4">{{ patient.cpf || '-' }}</td>
                     <td class="px-6 py-4">{{ formatDate(patient.birth_date) }}</td>
                     <td class="px-6 py-4 text-right space-x-2">
@@ -140,7 +140,7 @@ export class PatientsComponent implements OnInit {
   }
 
   async deletePatient(patient: Patient) {
-    if (!confirm(`Tem certeza que deseja remover ${patient.actor?.name}?`)) return;
+    if (!confirm(`Tem certeza que deseja remover ${patient.name}?`)) return;
 
     try {
       await this.patientService.deletePatient(patient.id);

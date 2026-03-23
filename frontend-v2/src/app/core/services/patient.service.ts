@@ -2,20 +2,14 @@ import { Injectable, inject } from '@angular/core';
 import { SupabaseService } from './supabase.service';
 import { ClinicContextService } from './clinic-context.service';
 
-export interface PatientActor {
-  id: string;
-  name: string;
-  type: string;
-}
-
 export interface Patient {
   id: string;
   clinic_id: string;
+  name: string;
   cpf: string | null;
   birth_date: string | null;
   gender: string | null;
   phone: string | null;
-  actor?: PatientActor;
 }
 
 export interface PatientFormDto {
@@ -41,7 +35,7 @@ export class PatientService {
   async getPatients(): Promise<Patient[]> {
     const { data, error } = await this.supabase.clientInstance
       .from('patient')
-      .select('*, actor!inner(id, name, type)')
+      .select('*')
       .eq('clinic_id', this.clinicId)
       .order('updated_at', { ascending: false });
 
@@ -52,7 +46,7 @@ export class PatientService {
   async getPatientById(id: string): Promise<Patient> {
     const { data, error } = await this.supabase.clientInstance
       .from('patient')
-      .select('*, actor!inner(id, name, type)')
+      .select('*')
       .eq('clinic_id', this.clinicId)
       .eq('id', id)
       .single();
@@ -64,28 +58,17 @@ export class PatientService {
   async createPatient(payload: PatientFormDto): Promise<Patient> {
     const clinicId = this.clinicId;
 
-    const { data: actor, error: actorError } = await this.supabase.clientInstance
-      .from('actor')
-      .insert({
-        clinic_id: clinicId,
-        type: 'PATIENT',
-        name: payload.name
-      })
-      .select('id')
-      .single();
-
-    if (actorError) throw actorError;
-
     const { data: patient, error: patientError } = await this.supabase.clientInstance
       .from('patient')
       .insert({
-        id: actor.id,
+        id: crypto.randomUUID(),
         clinic_id: clinicId,
+        name: payload.name,
         cpf: payload.cpf,
         birth_date: payload.birth_date,
         phone: payload.phone
       })
-      .select('*, actor!inner(id, name, type)')
+      .select('*')
       .single();
 
     if (patientError) {
@@ -98,17 +81,10 @@ export class PatientService {
   async updatePatient(id: string, payload: PatientFormDto): Promise<Patient> {
     const clinicId = this.clinicId;
 
-    const { error: actorError } = await this.supabase.clientInstance
-      .from('actor')
-      .update({ name: payload.name })
-      .eq('id', id)
-      .eq('clinic_id', clinicId);
-
-    if (actorError) throw actorError;
-
     const { data: patient, error: patientError } = await this.supabase.clientInstance
       .from('patient')
       .update({
+        name: payload.name,
         cpf: payload.cpf,
         birth_date: payload.birth_date,
         phone: payload.phone,
@@ -116,7 +92,7 @@ export class PatientService {
       })
       .eq('id', id)
       .eq('clinic_id', clinicId)
-      .select('*, actor!inner(id, name, type)')
+      .select('*')
       .single();
 
     if (patientError) throw patientError;
@@ -134,13 +110,5 @@ export class PatientService {
       .eq('clinic_id', clinicId);
 
     if (patientError) throw patientError;
-
-    const { error: actorError } = await this.supabase.clientInstance
-      .from('actor')
-      .delete()
-      .eq('id', id)
-      .eq('clinic_id', clinicId);
-
-    if (actorError) throw actorError;
   }
 }

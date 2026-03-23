@@ -2,7 +2,7 @@ import { Component, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { DialogRef, DIALOG_DATA } from '@angular/cdk/dialog';
-import { PatientService, Patient } from '../../../core/services/patient.service';
+import { PatientService, Patient, PatientFormDto } from '../../../core/services/patient.service';
 import { LucideAngularModule, X } from 'lucide-angular';
 
 @Component({
@@ -129,7 +129,7 @@ export class PatientModalComponent {
       this.isEditing.set(true);
       this.patientId = this.data.patient.id;
       this.form.patchValue({
-        name: this.data.patient.actor?.name || '',
+        name: this.data.patient.name || '',
         cpf: this.data.patient.cpf || '',
         phone: this.data.patient.phone || '', 
         birth_date: this.data.patient.birth_date || ''
@@ -157,7 +157,13 @@ export class PatientModalComponent {
       this.error.set(null);
       this.form.disable();
 
-      const payload = this.form.getRawValue() as any;
+      const rawValues = this.form.getRawValue();
+      const payload: PatientFormDto = {
+        name: rawValues.name!,
+        cpf: rawValues.cpf || null,
+        phone: rawValues.phone || null,
+        birth_date: rawValues.birth_date || null
+      };
 
       if (this.isEditing() && this.patientId) {
         await this.patientService.updatePatient(this.patientId, payload);

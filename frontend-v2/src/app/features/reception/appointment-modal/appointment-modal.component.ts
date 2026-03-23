@@ -52,7 +52,7 @@ import { AppointmentService } from '../../../core/services/appointment.service';
               >
                 <option value="" disabled selected>Selecione um paciente...</option>
                 @for (patient of patients(); track patient.id) {
-                  <option [value]="patient.id">{{ patient.actor?.name }} (CPF: {{ patient.cpf || 'N/A' }})</option>
+                  <option [value]="patient.id">{{ patient.name }} (CPF: {{ patient.cpf || 'N/A' }})</option>
                 }
               </select>
             </div>
@@ -221,9 +221,9 @@ export class AppointmentModalComponent implements OnInit {
     try {
       await this.appointmentService.createAppointment({
         patient_id: formVals.patientId!,
-        patient_name: selectedPatient?.actor?.name || 'Unknown',
+        patient_name: selectedPatient?.name || 'Unknown',
         appointment_date: localDate.toISOString(),
-        doctor_actor_id: formVals.doctorId!,
+        doctor_id: formVals.doctorId!,
         duration_minutes: 60
       });
       
