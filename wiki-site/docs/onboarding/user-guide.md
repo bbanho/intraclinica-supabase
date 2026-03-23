@@ -19,7 +19,7 @@ It's raining hard on a Friday. The reception fills with patients from long appoi
 **The Active System Resolution:**
 In the *Reception* module, we abandoned the classic, rigid "day table". We replaced it with a real-time Flow model (Clinical Kanban):
 
-![Reception and Triage](assets/03-reception-board.png)
+![Reception and Triage](../assets/03-reception-board.png)
 
 1. **Intuitive Visual Management:** With one click, the receptionist moves the patient from "Scheduled" (gray) to "Waiting" (yellow) the moment they enter the clinic.
 2. **Instant Synchronization:** In the same fraction of a second the reception clicks "Waiting", the patient's name **flashes on the doctor's screen** (inside the office), indicating that triage has been done. No need for phone calls or papers passing from hand to hand.
@@ -35,7 +35,7 @@ The patient is seated in the dermatology clinic chair, face prepared for harmoni
 **The Active System Resolution:**
 IntraClinica ties *Stock* inseparably with the *Medical Record* (Procedures Module).
 
-![Critical Stock Alert](assets/02-inventory-products.png)
+![Critical Stock Alert](../assets/02-inventory-products.png)
 
 1. **Intelligent Visual Alert:** As seen in the panel above, products are not an inert table. The system lights a red Panic light whenever the balance hits the `min_stock` safety threshold configured by the manager. Botulinic Toxin and PDO Threads are "zeroed out", signaling urgency.
 2. **Automatic Recipe Deduction (Recipe Magic):** The receptionist or doctor doesn't need to remember to go to stock to "write off" the syringe at the end of the day. When creating a "Recipe" (Harmonization = 1 Syringe + 1 Anesthetic), when the doctor clicks **"Procedure Performed"** in the medical record, the exact quantity is swept from the warehouse.
@@ -51,7 +51,7 @@ A poly-symptomatic patient, with a 4-year history and dozens of complaints, ente
 **The Active System Resolution:**
 IntraClinica's AI is a structured medical-legal ally.
 
-![AI Medical Record](assets/05-clinical-execution-main.png)
+![AI Medical Record](../assets/05-clinical-execution-main.png)
 
 1. **Consolidated and Immutable History:** As shown in the image, each return, evolution, and inserted exam is stacked in an auditable way. Each record receives the professional's signature and inviolable date.
 2. **The End of Typing:** The doctor focuses 100% on the patient's eyes. Doesn't touch the keyboard.
@@ -68,7 +68,7 @@ Private clinics depend on *Instagram* for constant private billing. But after an
 **The Active System Resolution:**
 The *Social AI* module transforms technical jargon into medical marketing authority in seconds.
 
-![AI Marketing](assets/09-social-generator.png)
+![AI Marketing](../assets/09-social-generator.png)
 
 1. The doctor (or clinic manager) enters the panel, clicks the generator, and types a five-word rough idea (ex: *"Difference between labial filling and PDO thread"*).
 2. Chooses the clinic's exact **Voice Tone** (ex: *Professional and Technical* or *Human and Welcoming*).
@@ -84,7 +84,7 @@ Medical systems are full of buttons and tabs that 90% of clinics never use. This
 **The Active System Resolution:**
 IntraClinica's Config-Driven UI infrastructure resolves this in real-time at the Administration level.
 
-![SaaS Configuration Panel](assets/10-admin-ui-config.png)
+![SaaS Configuration Panel](../assets/10-admin-ui-config.png)
 
 1. In the "SaaS Settings" tab, the investor/super admin sees all available *features*.
 2. Is it a psychology clinic that doesn't sell products or do minor surgeries? Just **uncheck** "Supply Management" and "Procedures".
