@@ -80,11 +80,12 @@ The `actor` abstraction table has been flattened and removed to improve performa
 
 ## 📚 Wiki & Documentation Maintenance (MANDATORY)
 
-IntraClinica maintains a strict "Docs as Code" policy. The VitePress documentation portal (`wiki-site/`) is the single source of truth for architecture and onboarding.
+IntraClinica maintains a strict "Docs as Code" policy. The legacy `documentacao/` directory is deprecated. The VitePress documentation portal (`wiki-site/`) is the single source of truth for all internal development, architectural, and support documentation.
 
 1. **Wiki Skills**: When making architectural changes, modifying FSD structures, or implementing complex logic, you **MUST** use the `wiki-*` skills (e.g., `wiki-architect`, `wiki-page-writer`, `wiki-changelog`, `wiki-vitepress`) to update the documentation.
 2. **Synchronous Updates**: Every PR that introduces a feature, architectural shift, or database change must contain the corresponding Markdown updates in `wiki-site/docs/`.
 3. **No Undocumented Features**: Merging a structural PR without the accompanying wiki update is a violation of the repo rules. The wiki must reflect the codebase with 100% accuracy at all times.
+4. **IAM-Restricted Access (Wiki & Docs)**: Access to internal documentation portals like `/wiki` must follow the IAM basic principle: **1. Role (Base Package) -> 2. Grants (Cherry-picked concessions) -> 3. Blocks**. For example, a route may be granted to `SUPER_ADMIN` globally, but also permitted to a common user if they possess a specific `iam_bindings` concession for viewing the wiki.
 
 ---
 
