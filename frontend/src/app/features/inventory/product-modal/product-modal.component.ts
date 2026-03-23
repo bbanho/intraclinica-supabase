@@ -3,6 +3,8 @@ import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { DialogRef } from '@angular/cdk/dialog';
 import { LucideAngularModule, X } from 'lucide-angular';
 import { InventoryService, CreateProductDto } from '../../../core/services/inventory.service';
+import { IamService } from '../../../core/services/iam.service';
+import { ClinicContextService } from '../../../core/services/clinic-context.service';
 
 @Component({
   selector: 'app-product-modal',
@@ -159,6 +161,8 @@ export class ProductModalComponent {
   private fb = inject(FormBuilder);
   private dialogRef = inject(DialogRef<ProductModalComponent>);
   private inventoryService = inject(InventoryService);
+  private iam = inject(IamService);
+  private context = inject(ClinicContextService);
 
   readonly XIcon = X;
 
@@ -187,6 +191,12 @@ export class ProductModalComponent {
   async onSubmit() {
     if (this.form.invalid) {
       this.form.markAllAsTouched();
+      return;
+    }
+
+    if (!this.iam.can('inventory.write')) {
+      this.error.set('Você não tem permissão para criar produtos.');
+      this.submitting.set(false);
       return;
     }
 

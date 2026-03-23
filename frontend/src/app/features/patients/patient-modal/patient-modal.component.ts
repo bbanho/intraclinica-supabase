@@ -2,6 +2,8 @@ import { Component, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { DialogRef, DIALOG_DATA } from '@angular/cdk/dialog';
 import { PatientService, Patient, PatientFormDto } from '../../../core/services/patient.service';
+import { IamService } from '../../../core/services/iam.service';
+import { ClinicContextService } from '../../../core/services/clinic-context.service';
 import { LucideAngularModule, X } from 'lucide-angular';
 
 @Component({
@@ -119,6 +121,8 @@ import { LucideAngularModule, X } from 'lucide-angular';
 export class PatientModalComponent {
   private fb = inject(FormBuilder);
   private patientService = inject(PatientService);
+  private iam = inject(IamService);
+  private context = inject(ClinicContextService);
   private dialogRef = inject(DialogRef);
   private data: { patient?: Patient } = inject(DIALOG_DATA) || {};
 
@@ -164,6 +168,11 @@ export class PatientModalComponent {
   async save() {
     if (this.form.invalid) {
       this.form.markAllAsTouched();
+      return;
+    }
+
+    if (!this.iam.can('patients.write')) {
+      this.error.set('Você não tem permissão para criar/editar pacientes.');
       return;
     }
 

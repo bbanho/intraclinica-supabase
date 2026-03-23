@@ -3,6 +3,7 @@ import { Dialog, DialogModule } from '@angular/cdk/dialog';
 import { LucideAngularModule, Plus, Package, Search, AlertCircle, TrendingDown, TrendingUp, RefreshCw } from 'lucide-angular';
 import { InventoryService, Product } from '../../core/services/inventory.service';
 import { ClinicContextService } from '../../core/services/clinic-context.service';
+import { IamService } from '../../core/services/iam.service';
 import { ProductModalComponent } from './product-modal/product-modal.component';
 
 @Component({
@@ -165,10 +166,12 @@ import { ProductModalComponent } from './product-modal/product-modal.component';
                 }
                 
                 <div class="space-y-1 mt-auto">
-                  <div class="flex justify-between text-sm">
-                    <span class="text-gray-500">Custo:</span>
-                    <span class="font-medium">{{ product.cost | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}</span>
-                  </div>
+                  @if (canViewCost()) {
+                    <div class="flex justify-between text-sm">
+                      <span class="text-gray-500">Custo:</span>
+                      <span class="font-medium">{{ product.cost | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}</span>
+                    </div>
+                  }
                   <div class="flex justify-between text-sm">
                     <span class="text-gray-500">Preço:</span>
                     <span class="font-medium">{{ product.price | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}</span>
@@ -194,7 +197,10 @@ import { ProductModalComponent } from './product-modal/product-modal.component';
 export class InventoryComponent {
   private inventoryService = inject(InventoryService);
   private clinicContext = inject(ClinicContextService);
+  private iam = inject(IamService);
   private dialog = inject(Dialog);
+
+  canViewCost = computed(() => this.iam.can('inventory.view_cost'));
 
   readonly PlusIcon = Plus;
   readonly PackageIcon = Package;

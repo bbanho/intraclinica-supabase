@@ -4,6 +4,8 @@ import { DialogRef } from '@angular/cdk/dialog';
 import { LucideAngularModule, X, User, Calendar, Clock, Stethoscope, ArrowRight } from 'lucide-angular';
 import { PatientService, Patient } from '../../../core/services/patient.service';
 import { AppointmentService } from '../../../core/services/appointment.service';
+import { IamService } from '../../../core/services/iam.service';
+import { ClinicContextService } from '../../../core/services/clinic-context.service';
 
 @Component({
   selector: 'app-appointment-modal',
@@ -163,9 +165,12 @@ export class AppointmentModalComponent implements OnInit {
   private dialogRef = inject(DialogRef<any>);
   private patientService = inject(PatientService);
   private appointmentService = inject(AppointmentService);
+  private iam = inject(IamService);
+  private context = inject(ClinicContextService);
 
   isSaving = signal(false);
   isLoadingData = signal(true);
+  error = signal<string | null>(null);
 
   patients = signal<Patient[]>([]);
   doctors = signal<{id: string, name: string}[]>([]);
@@ -205,6 +210,11 @@ export class AppointmentModalComponent implements OnInit {
   async save() {
     if (this.appointmentForm.invalid) {
       this.appointmentForm.markAllAsTouched();
+      return;
+    }
+
+    if (!this.iam.can('appointments.write')) {
+      this.error.set('Você não tem permissão para criar/editar agendamentos.');
       return;
     }
 
