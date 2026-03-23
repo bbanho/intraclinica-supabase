@@ -29,6 +29,8 @@ export default withMermaid(defineConfig({
           { text: 'IAM Security Model', link: '/core-architecture/iam-security-model' },
           { text: 'Multi-Tenant Security', link: '/core-architecture/multi-tenant-security' },
           { text: 'Database Schema', link: '/core-architecture/database' },
+          { text: 'Core Services', link: '/core-architecture/services' },
+          { text: 'Data Models', link: '/core-architecture/models' },
           { text: 'AI Integrations', link: '/core-architecture/ai-integrations' }
         ]
       },
@@ -43,9 +45,12 @@ export default withMermaid(defineConfig({
       {
         text: 'Feature Modules',
         items: [
+          { text: 'Auth & Login', link: '/feature-modules/auth' },
           { text: 'Reception', link: '/feature-modules/reception' },
+          { text: 'Patients', link: '/feature-modules/patients' },
           { text: 'Clinical', link: '/feature-modules/clinical' },
-          { text: 'Inventory', link: '/feature-modules/inventory' }
+          { text: 'Inventory', link: '/feature-modules/inventory' },
+          { text: 'Admin Panel', link: '/feature-modules/admin-panel' }
         ]
       },
       {

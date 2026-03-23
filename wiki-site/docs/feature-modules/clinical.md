@@ -109,12 +109,12 @@ Medical records are semi-structured: each specialty (dermatology, cardiology) us
 
 ## IAM Binding Requirement
 
-To view or write clinical records, the `app_user` must have the `DOCTOR` role in `iam_bindings` for the active `clinicId`:
+To view or write clinical records, the `app_user` must have the `roles/doctor` role in `iam_bindings` for the active `clinicId`:
 
 ```typescript
 const bindings = user.iam_bindings
-if (!bindings?.[clinicId]?.includes('DOCTOR')) {
-  throw new Error('Access denied: DOCTOR role required')
+if (!bindings?.[clinicId]?.includes('roles/doctor')) {
+  throw new Error('Access denied: roles/doctor role required')
 }
 ```
 
