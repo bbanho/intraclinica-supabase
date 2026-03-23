@@ -1,5 +1,4 @@
 import { Component, inject, signal } from '@angular/core';
-import { CommonModule } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { DialogRef, DIALOG_DATA } from '@angular/cdk/dialog';
 import { PatientService, Patient, PatientFormDto } from '../../../core/services/patient.service';
@@ -8,7 +7,7 @@ import { LucideAngularModule, X } from 'lucide-angular';
 @Component({
   selector: 'app-patient-modal',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, LucideAngularModule],
+  imports: [ReactiveFormsModule, LucideAngularModule],
   template: `
     <div class="flex flex-col h-full max-h-[90vh] bg-white rounded-xl shadow-2xl overflow-hidden">
       <div class="flex justify-between items-center px-6 py-4 border-b border-gray-100">

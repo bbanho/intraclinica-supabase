@@ -1,5 +1,4 @@
 import { Component, inject, signal } from '@angular/core';
-import { CommonModule } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
 import { LucideAngularModule, Mail, Lock, LogIn, Hospital } from 'lucide-angular';
@@ -10,7 +9,7 @@ import { createClient } from '@supabase/supabase-js';
 @Component({
   selector: 'app-login',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, LucideAngularModule],
+  imports: [ReactiveFormsModule, LucideAngularModule],
   template: `
     <div class="min-h-screen bg-slate-50 flex">
       <!-- Left Side (Form) -->

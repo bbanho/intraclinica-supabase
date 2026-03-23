@@ -1,5 +1,5 @@
 import { Component, inject, signal, effect, computed } from '@angular/core';
-import { CommonModule, DatePipe } from '@angular/common';
+import { DatePipe } from '@angular/common';
 import { Dialog, DialogModule } from '@angular/cdk/dialog';
 import { LucideAngularModule, Plus, Calendar, Clock, CheckCircle, User, ArrowRight } from 'lucide-angular';
 import { AppointmentModalComponent } from './appointment-modal/appointment-modal.component';
@@ -9,7 +9,7 @@ import { AppointmentService, Appointment } from '../../core/services/appointment
 @Component({
   selector: 'app-reception',
   standalone: true,
-  imports: [CommonModule, DialogModule, LucideAngularModule],
+  imports: [DialogModule, LucideAngularModule],
   providers: [DatePipe],
   template: `
     <div class="p-8 max-w-7xl mx-auto space-y-8">

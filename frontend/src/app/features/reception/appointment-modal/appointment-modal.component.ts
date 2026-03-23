@@ -1,5 +1,4 @@
 import { Component, inject, signal, OnInit } from '@angular/core';
-import { CommonModule } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { DialogRef } from '@angular/cdk/dialog';
 import { LucideAngularModule, X, User, Calendar, Clock, Stethoscope, ArrowRight } from 'lucide-angular';
@@ -9,7 +8,7 @@ import { AppointmentService } from '../../../core/services/appointment.service';
 @Component({
   selector: 'app-appointment-modal',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, LucideAngularModule],
+  imports: [ReactiveFormsModule, LucideAngularModule],
   template: `
     <!-- Overlay/Wrapper -> Managed by CDK, but we can set internal padding -->
     <div class="p-6 md:p-8 w-full max-w-2xl bg-white rounded-3xl shadow-2xl overflow-hidden border border-slate-100 flex flex-col max-h-[90vh]">
