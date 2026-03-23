@@ -3,18 +3,7 @@ import { FormsModule } from '@angular/forms';
 import { LucideAngularModule, Search, User, FileText, Activity, Heart, Pill, AlertCircle, ChevronLeft, ChevronRight, Maximize2, Minimize2, Bot, Loader2 } from 'lucide-angular';
 import { ClinicContextService } from '../../core/services/clinic-context.service';
 import { PatientService, Patient } from '../../core/services/patient.service';
-
-interface MedicalRecord {
-  id: string;
-  patient_id: string;
-  doctor_id: string;
-  date: string;
-  chief_complaint: string;
-  observations: string;
-  diagnosis: string | null;
-  prescriptions: string | null;
-  created_at: string;
-}
+import { ClinicalService, MedicalRecord, MedicalRecordContent } from '../../core/services/clinical.service';
 
 @Component({
   selector: 'app-clinical',
@@ -195,25 +184,33 @@ interface MedicalRecord {
             </div>
 
             <!-- FOOTER: Actions -->
-            <footer class="px-6 py-4 border-t border-slate-700 bg-slate-800/30 flex justify-end gap-3">
-              <button
-                (click)="clearRecord()"
-                class="px-4 py-2 text-slate-300 hover:text-white hover:bg-slate-700 rounded-lg transition-colors font-medium"
-              >
-                Limpar
-              </button>
-              <button
-                (click)="saveRecord()"
-                [disabled]="saving() || !record.chief_complaint"
-                class="px-6 py-2 bg-teal-600 hover:bg-teal-500 text-white font-medium rounded-lg transition-colors disabled:opacity-50 flex items-center gap-2"
-              >
-                @if (saving()) {
-                  <lucide-icon [img]="Loader2Icon" class="w-4 h-4 animate-spin"></lucide-icon>
-                  Salvando...
-                } @else {
-                  Salvar Prontuário
-                }
-              </button>
+            <footer class="px-6 py-4 border-t border-slate-700 bg-slate-800/30 flex flex-col gap-3">
+              @if (saveError()) {
+                <div class="flex items-center gap-2 px-3 py-2 bg-red-900/50 border border-red-700 rounded-lg text-red-300 text-sm">
+                  <lucide-icon [img]="AlertCircleIcon" class="w-4 h-4 shrink-0"></lucide-icon>
+                  {{ saveError() }}
+                </div>
+              }
+              <div class="flex justify-end gap-3">
+                <button
+                  (click)="clearRecord()"
+                  class="px-4 py-2 text-slate-300 hover:text-white hover:bg-slate-700 rounded-lg transition-colors font-medium"
+                >
+                  Limpar
+                </button>
+                <button
+                  (click)="saveRecord()"
+                  [disabled]="saving() || !record.chief_complaint"
+                  class="px-6 py-2 bg-teal-600 hover:bg-teal-500 text-white font-medium rounded-lg transition-colors disabled:opacity-50 flex items-center gap-2"
+                >
+                  @if (saving()) {
+                    <lucide-icon [img]="Loader2Icon" class="w-4 h-4 animate-spin"></lucide-icon>
+                    Salvando...
+                  } @else {
+                    Salvar Prontuário
+                  }
+                </button>
+              </div>
             </footer>
           }
         </main>
@@ -224,6 +221,7 @@ interface MedicalRecord {
 export class ClinicalComponent {
   private clinicContext = inject(ClinicContextService);
   private patientService = inject(PatientService);
+  private clinicalService = inject(ClinicalService);
 
   readonly SearchIcon = Search;
   readonly UserIcon = User;
@@ -245,6 +243,8 @@ export class ClinicalComponent {
   focusMode = signal(true);
   saving = signal(false);
   aiLoading = signal(false);
+  records = signal<MedicalRecord[]>([]);
+  saveError = signal<string | null>(null);
 
   selectedClinicId = this.clinicContext.selectedClinicId;
 
@@ -292,6 +292,7 @@ export class ClinicalComponent {
   selectPatient(patient: Patient) {
     this.selectedPatient.set(patient);
     this.clearRecord();
+    this.loadRecords(patient.id);
   }
 
   toggleFocusMode() {
@@ -308,19 +309,35 @@ export class ClinicalComponent {
   }
 
   async saveRecord() {
-    if (!this.selectedPatient()) return;
-    
+    const patient = this.selectedPatient();
+    if (!patient) return;
+
+    this.saveError.set(null);
     this.saving.set(true);
     try {
-      // TODO: Call RPC to save medical record
-      console.log('Saving record:', this.record, 'for patient:', this.selectedPatient()?.id);
-      // Simulated save
-      await new Promise(r => setTimeout(r, 1000));
+      const content: MedicalRecordContent = {
+        chief_complaint: this.record.chief_complaint,
+        observations: this.record.observations,
+        diagnosis: this.record.diagnosis,
+        prescriptions: this.record.prescriptions
+      };
+      await this.clinicalService.createRecord(patient.id, content);
       this.clearRecord();
-    } catch (err) {
-      console.error('Error saving record:', err);
+      await this.loadRecords(patient.id);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Erro ao salvar prontuário';
+      this.saveError.set(message);
     } finally {
       this.saving.set(false);
+    }
+  }
+
+  async loadRecords(patientId: string) {
+    try {
+      const data = await this.clinicalService.getRecordsByPatient(patientId);
+      this.records.set(data);
+    } catch (err) {
+      console.error('Error loading records:', err);
     }
   }
 
