@@ -62,36 +62,24 @@ import { AppointmentService, Appointment } from '../../core/services/appointment
                <div class="h-20 w-full bg-slate-50 border border-slate-100 rounded-2xl"></div>
                <div class="h-20 w-full bg-slate-50 border border-slate-100 rounded-2xl"></div>
             </div>
-         } @else if (appointments().length === 0) {
-            <div class="flex flex-col items-center justify-center text-center h-48 opacity-60">
-              <lucide-icon [img]="CheckCircle" [size]="48" class="text-slate-300 mb-4"></lucide-icon>
-              <h3 class="text-lg font-bold text-slate-700">Nenhum agendamento para hoje</h3>
-              <p class="text-sm font-medium text-slate-500 max-w-sm mt-1">
-                 A fila está vazia no momento.
-              </p>
-            </div>
-         } @else {
-            <div class="space-y-4">
-              @for (appt of appointments(); track appt.id) {
-                <div class="flex items-center justify-between p-4 bg-slate-50 border border-slate-100 rounded-2xl hover:border-teal-200 transition-colors">
-                  <div class="flex items-center gap-4">
-                    <div class="w-12 h-12 bg-white rounded-xl flex items-center justify-center text-slate-400 shadow-sm border border-slate-100">
-                      <lucide-icon [img]="User" [size]="24"></lucide-icon>
-                    </div>
-                    <div>
-                      <h4 class="font-bold text-slate-800">{{ appt.patient_name }}</h4>
-                      <p class="text-sm text-slate-500 font-medium">
-                        {{ appt.appointment_date | date:'HH:mm' }} • {{ appt.status }}
-                      </p>
-                    </div>
-                  </div>
-                  <div class="flex gap-2">
-                    <!-- Status Actions based on current status -->
-                    @if (appt.status === 'Agendado') {
-                      <button (click)="updateStatus(appt, 'Aguardando')" class="px-4 py-2 bg-amber-50 text-amber-700 text-xs font-bold uppercase rounded-xl hover:bg-amber-100 transition-colors">
-                        Marcar Chegada
-                      </button>
-                    }
+          } @else if (appointments().length === 0) {
+             <div class="flex flex-col items-center justify-center text-center h-48">
+               <div class="w-16 h-16 bg-teal-50 text-teal-400 rounded-full flex items-center justify-center mb-4 ring-4 ring-teal-50">
+                 <lucide-icon [img]="CheckCircle" [size]="32"></lucide-icon>
+               </div>
+               <h3 class="text-lg font-bold text-slate-700">Fila vazia para hoje</h3>
+               <p class="text-sm font-medium text-slate-500 max-w-xs mt-1 mb-6">
+                  Nenhum agendamento registrado ainda. Que tal criar o primeiro?
+               </p>
+               <button 
+                 (click)="openNewAppointmentModal()" 
+                 class="bg-teal-600 text-white px-6 py-3 rounded-2xl font-bold uppercase tracking-widest text-sm hover:bg-teal-700 transition-all shadow-lg shadow-teal-100 active:scale-95 flex items-center gap-2 mx-auto"
+               >
+                 <lucide-icon [img]="Plus" [size]="16"></lucide-icon>
+                 Criar Agendamento
+               </button>
+             </div>
+          }
                     @if (appt.status === 'Aguardando') {
                       <button (click)="updateStatus(appt, 'Em Consulta')" class="px-4 py-2 bg-teal-50 text-teal-700 text-xs font-bold uppercase rounded-xl hover:bg-teal-100 transition-colors flex items-center gap-1">
                         Chamar <lucide-icon [img]="ArrowRight" [size]="14"></lucide-icon>
