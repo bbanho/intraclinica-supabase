@@ -1,9 +1,9 @@
-import { Component, inject, signal, computed, OnInit } from '@angular/core';
+import { Component, inject, signal, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Dialog, DialogModule } from '@angular/cdk/dialog';
-import { LucideAngularModule, Plus, Calendar, User, Building } from 'lucide-angular';
+import { LucideAngularModule, Plus, Calendar, Clock, CheckCircle } from 'lucide-angular';
 import { AppointmentModalComponent } from './appointment-modal/appointment-modal.component';
-import { AuthService } from '../../core/services/auth.service';
+import { ClinicContextService } from '../../core/services/clinic-context.service';
 
 @Component({
   selector: 'app-reception',
@@ -12,23 +12,7 @@ import { AuthService } from '../../core/services/auth.service';
   template: `
     <div class="p-8 max-w-7xl mx-auto space-y-8">
       
-      <!-- GLOBAL HEADER (User Context from Backend) -->
-      <div class="flex justify-between items-center bg-slate-900 text-white p-4 rounded-3xl shadow-sm mb-8">
-        <div class="flex items-center gap-3">
-           <div class="w-10 h-10 bg-white/10 rounded-full flex items-center justify-center">
-              <lucide-icon [img]="User" [size]="20"></lucide-icon>
-           </div>
-           <div>
-              <p class="text-[10px] font-black uppercase tracking-widest text-teal-400">Usuário Autenticado</p>
-              <p class="font-bold text-sm">{{ userEmail() }}</p>
-           </div>
-        </div>
-        <button (click)="logout()" class="px-4 py-2 bg-white/10 hover:bg-white/20 rounded-xl text-xs font-bold uppercase tracking-widest transition-colors">
-          Sair
-        </button>
-      </div>
-
-      <!-- MAIN CARD -->
+      <!-- MAIN HEADER -->
       <div class="flex justify-between items-center bg-white p-6 rounded-3xl shadow-sm border border-slate-100">
         <div class="flex items-center gap-4">
           <div class="p-3 bg-teal-50 text-teal-600 rounded-2xl">
@@ -36,7 +20,7 @@ import { AuthService } from '../../core/services/auth.service';
           </div>
           <div>
             <h1 class="text-2xl font-black text-slate-800 tracking-tight uppercase">Recepção</h1>
-            <p class="text-sm font-medium text-slate-500">Gestão de fluxo e agendamentos</p>
+            <p class="text-sm font-medium text-slate-500">Gestão de fluxo e agendamentos diários</p>
           </div>
         </div>
 
@@ -49,30 +33,31 @@ import { AuthService } from '../../core/services/auth.service';
         </button>
       </div>
 
-      <!-- DATABASE CONSUMPTION MOCK (Clinics) -->
-      <div class="bg-white border border-slate-100 rounded-3xl p-8 shadow-sm">
-         <h3 class="text-xs font-black uppercase tracking-widest text-slate-400 mb-6 flex items-center gap-2">
-           <lucide-icon [img]="Building" [size]="16"></lucide-icon> 
-           Clínicas Disponíveis (Teste de Banco de Dados)
-         </h3>
+      <!-- WAITING LIST MOCK (Will connect to appointments DB later) -->
+      <div class="bg-white border border-slate-100 rounded-3xl p-8 shadow-sm min-h-[400px]">
+         <div class="flex justify-between items-center mb-8">
+           <h3 class="text-xs font-black uppercase tracking-widest text-slate-400 flex items-center gap-2">
+             <lucide-icon [img]="Clock" [size]="16"></lucide-icon> 
+             Fila de Espera (Hoje)
+           </h3>
+           <div class="flex gap-2">
+             <span class="px-3 py-1 bg-slate-100 text-slate-600 rounded-lg text-[10px] font-bold uppercase">Agendados: 0</span>
+             <span class="px-3 py-1 bg-amber-100 text-amber-700 rounded-lg text-[10px] font-bold uppercase">Aguardando: 0</span>
+           </div>
+         </div>
          
-         @if (isLoadingData()) {
-            <div class="animate-pulse flex gap-4">
-               <div class="h-12 w-full bg-slate-100 rounded-xl"></div>
+         @if (isLoading()) {
+            <div class="animate-pulse space-y-4">
+               <div class="h-20 w-full bg-slate-50 border border-slate-100 rounded-2xl"></div>
+               <div class="h-20 w-full bg-slate-50 border border-slate-100 rounded-2xl"></div>
             </div>
          } @else {
-            <div class="grid gap-4">
-              @for (clinic of clinics(); track clinic.id) {
-                 <div class="p-4 border border-slate-100 rounded-2xl flex justify-between items-center bg-slate-50">
-                    <div>
-                      <p class="font-bold text-slate-800">{{ clinic.name }}</p>
-                      <p class="text-xs text-slate-400">ID: {{ clinic.id }}</p>
-                    </div>
-                    <span class="px-3 py-1 bg-teal-100 text-teal-700 rounded-lg text-xs font-bold uppercase">Ativa</span>
-                 </div>
-              } @empty {
-                 <p class="text-slate-500 text-sm font-medium">Nenhuma clínica retornada pelo banco. (RLS bloqueando ou vazio)</p>
-              }
+            <div class="flex flex-col items-center justify-center text-center h-48 opacity-60">
+              <lucide-icon [img]="CheckCircle" [size]="48" class="text-slate-300 mb-4"></lucide-icon>
+              <h3 class="text-lg font-bold text-slate-700">Nenhum paciente na fila</h3>
+              <p class="text-sm font-medium text-slate-500 max-w-sm mt-1">
+                 Os pacientes com status "Aguardando" aparecerão aqui.
+              </p>
             </div>
          }
       </div>
@@ -82,41 +67,17 @@ import { AuthService } from '../../core/services/auth.service';
 })
 export class ReceptionComponent implements OnInit {
   private dialog = inject(Dialog);
-  private authService = inject(AuthService);
+  private context = inject(ClinicContextService);
   
   readonly Plus = Plus;
   readonly Calendar = Calendar;
-  readonly User = User;
-  readonly Building = Building;
+  readonly Clock = Clock;
+  readonly CheckCircle = CheckCircle;
 
-  // Expondo os dados da auth de verdade
-  userEmail = computed(() => this.authService.currentUser()?.email || 'Desconhecido');
-  
-  // Estado pra testarmos a consulta
-  clinics = signal<any[]>([]);
-  isLoadingData = signal(true);
+  isLoading = signal(false);
 
   ngOnInit() {
-    this.fetchData();
-  }
-
-  async fetchData() {
-    this.isLoadingData.set(true);
-    try {
-       // Consumindo o banco REAL do Supabase para provar que o login com RLS tá on
-       const { data, error } = await this.authService.supabaseClient.from('clinic').select('*');
-       if (error) throw error;
-       this.clinics.set(data || []);
-    } catch (e) {
-       console.error("Erro consultando Supabase:", e);
-    } finally {
-       this.isLoadingData.set(false);
-    }
-  }
-
-  logout() {
-    this.authService.signOut();
-    window.location.href = '/login'; // hard redirect limpa a memoria e garante estado isolado
+    // Fica o stub preparatório para a query real usando This.context.selectedClinicId()
   }
 
   openNewAppointmentModal() {
