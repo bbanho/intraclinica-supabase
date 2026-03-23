@@ -3,6 +3,7 @@ import { RouterOutlet, RouterLink, RouterLinkActive } from '@angular/router';
 import { AuthService } from '../core/services/auth.service';
 import { ClinicContextService } from '../core/services/clinic-context.service';
 import { SupabaseService } from '../core/services/supabase.service';
+import { IamService } from '../core/services/iam.service';
 import { LucideAngularModule, LayoutDashboard, Users, Calendar, Box, LogOut, Building2, ShieldAlert, Menu, X, Stethoscope, BookOpen } from 'lucide-angular';
 
 @Component({
@@ -47,43 +48,53 @@ import { LucideAngularModule, LayoutDashboard, Users, Calendar, Box, LogOut, Bui
         <!-- Navigation -->
         <nav class="flex-1 overflow-y-auto p-4 space-y-2 custom-scrollbar">
           
-          <!-- SUPER ADMIN EXCLUSIVE MENU -->
-          @if (isSuperAdmin()) {
+          <!-- SUPER ADMIN / CLOUD CONSOLE EXCLUSIVE MENU -->
+          @if (iam.can('clinics.manage') || iam.can('users.manage')) {
             <div class="mb-6">
               <p class="px-4 text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2">Painel Global</p>
               <a routerLink="/admin" routerLinkActive="bg-teal-600 text-white" (click)="closeMobileMenu()" class="flex items-center gap-3 px-4 py-3.5 rounded-xl text-slate-300 hover:text-white hover:bg-white/10 transition-all font-medium group">
                 <lucide-icon [img]="ShieldAlert" [size]="20" class="text-slate-400 group-hover:text-white transition-colors"></lucide-icon>
-                Governança SaaS
+                Governança IAM
               </a>
             </div>
           }
 
           <p class="px-4 text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2">Módulos da Clínica</p>
           
-          <a routerLink="/reception" routerLinkActive="bg-teal-600 text-white" (click)="closeMobileMenu()" class="flex items-center gap-3 px-4 py-3.5 rounded-xl text-slate-300 hover:text-white hover:bg-white/10 transition-all font-medium group">
-            <lucide-icon [img]="Calendar" [size]="20" class="text-slate-400 group-[.bg-teal-600]:text-white transition-colors"></lucide-icon>
-            Recepção
-          </a>
+          @if (iam.can('appointments.read')) {
+            <a routerLink="/reception" routerLinkActive="bg-teal-600 text-white" (click)="closeMobileMenu()" class="flex items-center gap-3 px-4 py-3.5 rounded-xl text-slate-300 hover:text-white hover:bg-white/10 transition-all font-medium group">
+              <lucide-icon [img]="Calendar" [size]="20" class="text-slate-400 group-[.bg-teal-600]:text-white transition-colors"></lucide-icon>
+              Recepção
+            </a>
+          }
           
-          <a routerLink="/patients" routerLinkActive="bg-teal-600 text-white" (click)="closeMobileMenu()" class="flex items-center gap-3 px-4 py-3.5 rounded-xl text-slate-300 hover:text-white hover:bg-white/10 transition-all font-medium group">
-            <lucide-icon [img]="Users" [size]="20" class="text-slate-400 group-[.bg-teal-600]:text-white transition-colors"></lucide-icon>
-            Pacientes
-          </a>
+          @if (iam.can('patients.read_demographics')) {
+            <a routerLink="/patients" routerLinkActive="bg-teal-600 text-white" (click)="closeMobileMenu()" class="flex items-center gap-3 px-4 py-3.5 rounded-xl text-slate-300 hover:text-white hover:bg-white/10 transition-all font-medium group">
+              <lucide-icon [img]="Users" [size]="20" class="text-slate-400 group-[.bg-teal-600]:text-white transition-colors"></lucide-icon>
+              Pacientes
+            </a>
+          }
           
-          <a routerLink="/inventory" routerLinkActive="bg-teal-600 text-white" (click)="closeMobileMenu()" class="flex items-center gap-3 px-4 py-3.5 rounded-xl text-slate-300 hover:text-white hover:bg-white/10 transition-all font-medium group">
-            <lucide-icon [img]="Box" [size]="20" class="text-slate-400 group-[.bg-teal-600]:text-white transition-colors"></lucide-icon>
-            Estoque
-          </a>
+          @if (iam.can('inventory.read')) {
+            <a routerLink="/inventory" routerLinkActive="bg-teal-600 text-white" (click)="closeMobileMenu()" class="flex items-center gap-3 px-4 py-3.5 rounded-xl text-slate-300 hover:text-white hover:bg-white/10 transition-all font-medium group">
+              <lucide-icon [img]="Box" [size]="20" class="text-slate-400 group-[.bg-teal-600]:text-white transition-colors"></lucide-icon>
+              Estoque
+            </a>
+          }
           
-          <a routerLink="/clinical" routerLinkActive="bg-teal-600 text-white" (click)="closeMobileMenu()" class="flex items-center gap-3 px-4 py-3.5 rounded-xl text-slate-300 hover:text-white hover:bg-white/10 transition-all font-medium group">
-            <lucide-icon [img]="Stethoscope" [size]="20" class="text-slate-400 group-[.bg-teal-600]:text-white transition-colors"></lucide-icon>
-            Prontuário
-          </a>
+          @if (iam.can('clinical.read_records')) {
+            <a routerLink="/clinical" routerLinkActive="bg-teal-600 text-white" (click)="closeMobileMenu()" class="flex items-center gap-3 px-4 py-3.5 rounded-xl text-slate-300 hover:text-white hover:bg-white/10 transition-all font-medium group">
+              <lucide-icon [img]="Stethoscope" [size]="20" class="text-slate-400 group-[.bg-teal-600]:text-white transition-colors"></lucide-icon>
+              Prontuário
+            </a>
+          }
 
-          <a routerLink="/wiki" routerLinkActive="bg-teal-600 text-white" (click)="closeMobileMenu()" class="flex items-center gap-3 px-4 py-3.5 rounded-xl text-slate-300 hover:text-white hover:bg-white/10 transition-all font-medium group">
-            <lucide-icon [img]="BookOpen" [size]="20" class="text-slate-400 group-[.bg-teal-600]:text-white transition-colors"></lucide-icon>
-            Wiki
-          </a>
+          @if (iam.can('ai.use')) {
+            <a routerLink="/wiki" routerLinkActive="bg-teal-600 text-white" (click)="closeMobileMenu()" class="flex items-center gap-3 px-4 py-3.5 rounded-xl text-slate-300 hover:text-white hover:bg-white/10 transition-all font-medium group">
+              <lucide-icon [img]="BookOpen" [size]="20" class="text-slate-400 group-[.bg-teal-600]:text-white transition-colors"></lucide-icon>
+              Wiki
+            </a>
+          }
 
         </nav>
 
@@ -93,7 +104,7 @@ import { LucideAngularModule, LayoutDashboard, Users, Calendar, Box, LogOut, Bui
             <div class="truncate pr-2">
               <p class="text-xs font-bold text-white truncate">{{ auth.currentUser()?.email }}</p>
               <p class="text-[10px] text-slate-400 truncate">
-                @if (isSuperAdmin()) { <span class="text-teal-400">SUPER_ADMIN</span> } @else { Membro }
+                @if (iam.can('clinics.manage')) { <span class="text-teal-400">ADMIN</span> } @else { Membro }
               </p>
             </div>
             <button (click)="logout()" class="p-3 text-slate-400 hover:text-rose-400 hover:bg-rose-400/10 rounded-lg transition-colors" title="Sair do sistema">
@@ -121,10 +132,10 @@ import { LucideAngularModule, LayoutDashboard, Users, Calendar, Box, LogOut, Bui
              <label class="text-[10px] lg:text-xs font-bold text-slate-400 uppercase tracking-widest hidden md:block">Contexto Atual:</label>
              <select 
                 class="bg-slate-50 border border-slate-200 text-sm font-bold text-slate-700 py-2.5 px-3 lg:px-4 rounded-xl outline-none focus:ring-2 focus:ring-teal-500 w-full sm:w-64"
-                [disabled]="!isSuperAdmin()"
+                [disabled]="!iam.can('clinics.manage') && !iam.can('users.manage')"
                 (change)="onContextChange($any($event.target).value)"
              >
-                 @if (isSuperAdmin()) { <option value="all">[ Global SaaS View ]</option> }
+                 @if (iam.can('clinics.manage')) { <option value="all">[ Global SaaS View ]</option> }
                 <!-- Loop real coming from Supabase -->
                 @for (clinic of myClinics(); track clinic.id) {
                   <option [value]="clinic.id" [selected]="context.selectedClinicId() === clinic.id">{{ clinic.name }}</option>
@@ -145,9 +156,9 @@ import { LucideAngularModule, LayoutDashboard, Users, Calendar, Box, LogOut, Bui
 export class MainLayoutComponent implements OnInit {
   auth = inject(AuthService);
   context = inject(ClinicContextService);
+  iam = inject(IamService);
   private db = inject(SupabaseService).clientInstance;
 
-  isSuperAdmin = signal(false);
   myClinics = signal<any[]>([]);
   isMobileMenuOpen = signal(false);
 
@@ -165,7 +176,6 @@ export class MainLayoutComponent implements OnInit {
   readonly BookOpen = BookOpen;
 
   ngOnInit() {
-    this.checkAdminRole();
     this.loadClinics();
   }
 
@@ -173,25 +183,29 @@ export class MainLayoutComponent implements OnInit {
     this.isMobileMenuOpen.set(false);
   }
 
-  async checkAdminRole() {
+  async loadClinics() {
     const user = this.auth.currentUser();
     if (!user) return;
-    
-    const { data } = await this.db.from('app_user').select('role').eq('id', user.id).single();
-    if (data?.role === 'SUPER_ADMIN') {
-      this.isSuperAdmin.set(true);
-      if (!this.context.selectedClinicId()) {
-        this.context.setContext('all');
-      }
-    }
-  }
 
-  async loadClinics() {
-    const { data } = await this.db.from('clinic').select('id, name');
-    if (data) {
-      this.myClinics.set(data);
-      if (!this.isSuperAdmin() && data.length > 0 && !this.context.selectedClinicId()) {
-        this.context.setContext(data[0].id);
+    // Busca quais clínicas o usuário tem acesso lendo as chaves do iam_bindings
+    const { data: userData } = await this.db.from('app_user').select('iam_bindings').eq('id', user.id).single();
+    if (userData?.iam_bindings) {
+      const allowedClinicIds = Object.keys(userData.iam_bindings).filter(k => k !== 'global');
+      
+      if (allowedClinicIds.length > 0) {
+        const { data } = await this.db.from('clinic').select('id, name').in('id', allowedClinicIds);
+        if (data) {
+          this.myClinics.set(data);
+          // Auto-select a primeira clínica se não tiver contexto global
+          if (!this.context.selectedClinicId() && !userData.iam_bindings['global']) {
+            this.context.setContext(data[0].id);
+          }
+        }
+      }
+      
+      // Se for super admin, seta o contexto pra all por default
+      if (userData.iam_bindings['global'] && !this.context.selectedClinicId()) {
+         this.context.setContext('all');
       }
     }
   }
