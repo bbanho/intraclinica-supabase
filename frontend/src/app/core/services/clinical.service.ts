@@ -37,7 +37,7 @@ export class ClinicalService {
   async createRecord(
     patientId: string,
     content: MedicalRecordContent,
-    type = 'consultation'
+    type = 'EVOLUCAO'
   ): Promise<MedicalRecord> {
     const doctorId = this.auth.currentUser()?.id;
     if (!doctorId) {
@@ -73,7 +73,8 @@ export class ClinicalService {
       let parsed: MedicalRecordContent;
       try {
         parsed = typeof r.content === 'string' ? JSON.parse(r.content) : r.content;
-      } catch {
+      } catch (e) {
+        console.error('Failed to parse medical record content:', r.content, e);
         parsed = { chief_complaint: '', observations: '', diagnosis: '', prescriptions: '' };
       }
       return { ...r, content: parsed };

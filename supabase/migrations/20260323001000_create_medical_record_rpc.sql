@@ -5,7 +5,7 @@ CREATE OR REPLACE FUNCTION public.create_medical_record(
   p_patient_id uuid,
   p_doctor_id uuid,
   p_content jsonb,
-  p_type text DEFAULT 'consultation'
+  p_type text DEFAULT 'EVOLUCAO'
 ) RETURNS setof public.clinical_record
 LANGUAGE plpgsql SECURITY DEFINER
 AS $$

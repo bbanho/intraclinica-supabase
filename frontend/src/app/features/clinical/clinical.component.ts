@@ -1,6 +1,7 @@
 import { Component, inject, signal, effect, computed } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { LucideAngularModule, Search, User, FileText, Activity, Heart, Pill, AlertCircle, ChevronLeft, ChevronRight, Maximize2, Minimize2, Bot, Loader2 } from 'lucide-angular';
+import { DatePipe } from '@angular/common';
+import { LucideAngularModule, Search, User, FileText, Activity, Heart, Pill, AlertCircle, ChevronLeft, ChevronRight, Maximize2, Minimize2, Bot, Loader2, History, ChevronDown, ChevronUp } from 'lucide-angular';
 import { ClinicContextService } from '../../core/services/clinic-context.service';
 import { PatientService, Patient } from '../../core/services/patient.service';
 import { ClinicalService, MedicalRecord, MedicalRecordContent } from '../../core/services/clinical.service';
@@ -8,7 +9,7 @@ import { ClinicalService, MedicalRecord, MedicalRecordContent } from '../../core
 @Component({
   selector: 'app-clinical',
   standalone: true,
-  imports: [FormsModule, LucideAngularModule],
+  imports: [FormsModule, LucideAngularModule, DatePipe],
   template: `
     @if (!selectedClinicId() || selectedClinicId() === 'all') {
       <div class="h-full flex items-center justify-center p-8">
@@ -67,6 +68,49 @@ import { ClinicalService, MedicalRecord, MedicalRecordContent } from '../../core
               }
             }
           </div>
+
+          <!-- HISTORY: Patient Records -->
+          @if (selectedPatient() && records().length > 0) {
+            <div class="border-t border-slate-700 flex-shrink-0">
+              <button
+                (click)="toggleRecords()"
+                class="w-full px-4 py-3 flex items-center justify-between hover:bg-slate-700/30 transition-colors"
+              >
+                <div class="flex items-center gap-2">
+                  <lucide-icon [img]="HistoryIcon" class="w-4 h-4 text-teal-400"></lucide-icon>
+                  <span class="text-sm font-medium text-slate-300">Histórico</span>
+                  <span class="text-xs text-slate-500">({{ records().length }})</span>
+                </div>
+                <lucide-icon [img]="recordsOpen() ? ChevronUpIcon : ChevronDownIcon" class="w-4 h-4 text-slate-400"></lucide-icon>
+              </button>
+
+              @if (recordsOpen()) {
+                @if (recordsError()) {
+                  <div class="px-4 py-2 flex items-center gap-2 text-red-400 text-xs">
+                    <lucide-icon [img]="AlertCircleIcon" class="w-3 h-3 shrink-0"></lucide-icon>
+                    {{ recordsError() }}
+                  </div>
+                } @else {
+                <div class="max-h-64 overflow-y-auto">
+                  @for (rec of records(); track rec.id) {
+                    <div class="px-4 py-3 border-t border-slate-700/50 hover:bg-slate-700/20 transition-colors">
+                      <div class="flex items-start justify-between gap-2 mb-1">
+                        <span class="text-xs font-medium text-teal-400 uppercase">{{ rec.type }}</span>
+                        <span class="text-xs text-slate-500">{{ rec.created_at | date:'dd/MM/y' }}</span>
+                      </div>
+                      <p class="text-sm text-slate-300 line-clamp-2">{{ rec.content.chief_complaint || '—' }}</p>
+                      @if (rec.content?.diagnosis) {
+                        <p class="text-xs text-slate-500 mt-1 truncate">
+                          <span class="text-emerald-400">Dx:</span> {{ rec.content.diagnosis }}
+                        </p>
+                      }
+                    </div>
+                  }
+                </div>
+                }
+              }
+            </div>
+          }
         </aside>
 
         <!-- MAIN AREA: Medical Record -->
@@ -236,6 +280,9 @@ export class ClinicalComponent {
   readonly Minimize2Icon = Minimize2;
   readonly BotIcon = Bot;
   readonly Loader2Icon = Loader2;
+  readonly HistoryIcon = History;
+  readonly ChevronDownIcon = ChevronDown;
+  readonly ChevronUpIcon = ChevronUp;
 
   patients = signal<Patient[]>([]);
   selectedPatient = signal<Patient | null>(null);
@@ -245,6 +292,8 @@ export class ClinicalComponent {
   aiLoading = signal(false);
   records = signal<MedicalRecord[]>([]);
   saveError = signal<string | null>(null);
+  recordsOpen = signal(true);
+  recordsError = signal<string | null>(null);
 
   selectedClinicId = this.clinicContext.selectedClinicId;
 
@@ -299,6 +348,10 @@ export class ClinicalComponent {
     this.focusMode.update(v => !v);
   }
 
+  toggleRecords() {
+    this.recordsOpen.update(v => !v);
+  }
+
   clearRecord() {
     this.record = {
       chief_complaint: '',
@@ -333,11 +386,13 @@ export class ClinicalComponent {
   }
 
   async loadRecords(patientId: string) {
+    this.recordsError.set(null);
     try {
       const data = await this.clinicalService.getRecordsByPatient(patientId);
       this.records.set(data);
-    } catch (err) {
-      console.error('Error loading records:', err);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Erro ao carregar histórico';
+      this.recordsError.set(message);
     }
   }
 

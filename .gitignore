@@ -7,6 +7,9 @@ intraclinica-angular/.angular/
 intraclinica-angular/node_modules/
 supabase/.temp/
 
+# Git worktrees
+.worktrees/
+
 # Local testing and secrets
 .env
 .env.*
