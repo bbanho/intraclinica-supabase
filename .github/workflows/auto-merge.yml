@@ -11,6 +11,7 @@ permissions:
 
 env:
   GEMINI_APP_NAME: Gemini Code Assist
+  GH_TOKEN: ${{ github.token }}
 
 jobs:
   auto-merge:
