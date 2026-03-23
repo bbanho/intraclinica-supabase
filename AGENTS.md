@@ -75,3 +75,37 @@ The `actor` abstraction table has been flattened and removed to improve performa
 - **Commits:** Commit messages must follow Conventional Commits (e.g., `feat(reception): add new agenda calendar`).
 - **Pull Requests:** Do not push directly to `main`. Push branches and use `gh pr create` to submit Pull Requests so automated AI review bots can audit your code before merging.
 - **Review:** Always address bot comments and reviews before executing `gh pr merge`.
+
+---
+
+## 🚀 Parallel Development with Git Worktrees
+
+For multi-feature development, use Git Worktrees on fast local storage (e.g., `/var/mnt/SATA/worktrees/`).
+
+### Quick Start
+```bash
+# Create worktree (branch auto-created from current HEAD)
+git worktree add /var/mnt/SATA/worktrees/wt-<feature> -b feat/<feature>
+
+# Symlink node_modules (npm installed once in main repo)
+rm -rf frontend/node_modules
+ln -s /path/to/main-repo/frontend/node_modules frontend/node_modules
+
+# Verify: tsc --noEmit should pass
+```
+
+### Critical Rules for Parallel Agents
+1. **FSD isolation**: Features (`features/reception/`, `features/inventory/`, etc.) MUST NOT import each other
+2. **node_modules**: Install packages ONCE only in the main repo, symlink everywhere else
+3. **Core services**: `core/services/` can be read by all features but modified by only ONE agent at a time
+4. **Commits per feature**: Each agent commits only to its feature path — ensures atomic PRs
+
+### Review Workflow (MANDATORY before each merge)
+1. Push branch: `git push -u origin feat/<feature>`
+2. Create PR: `gh pr create --base main --head feat/<feature> ...`
+3. Wait 2-3 min for Gemini Code Assist to post auto-comments
+4. Agent reviews: reads Gemini comments, fixes CRITICAL/MEDIUM issues, commits, pushes
+5. After fixes: verify PR is `mergeable` via `gh pr view <N> --json mergeable`
+6. Merge: `gh pr merge <N> --squash`
+
+**Never batch reviews** — each PR gets its own review cycle sequentially.

@@ -6,7 +6,7 @@ export default withMermaid(defineConfig({
   title: "IntraClinica Wiki",
   description: "Official Documentation for IntraClinica (Angular 18 / Supabase)",
   appearance: 'dark',
-  ignoreDeadLinks: true,
+  ignoreDeadLinks: false,
   themeConfig: {
     logo: 'https://angular.dev/assets/images/logos/angular/angular.svg',
     nav: [
@@ -20,12 +20,6 @@ export default withMermaid(defineConfig({
         items: [
           { text: 'Principal-Level Guide', link: '/onboarding/principal-guide' },
           { text: 'Zero-to-Hero Guide', link: '/onboarding/zero-to-hero' }
-        ]
-      },
-      {
-        text: 'Getting Started',
-        items: [
-          { text: 'Local Development', link: '/getting-started/local-development' }
         ]
       },
       {
@@ -53,7 +47,7 @@ export default withMermaid(defineConfig({
       }
     ],
     socialLinks: [
-      { icon: 'github', link: 'https://github.com/vuejs/vitepress' }
+      { icon: 'github', link: 'https://github.com/bbanho/intraclinica-supabase' }
     ]
   },
   mermaid: {

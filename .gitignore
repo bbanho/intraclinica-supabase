@@ -19,3 +19,4 @@ supabase/.temp/
 *check*.mjs
 
 wiki-site/.vitepress/dist/
+wiki-site/node_modules/

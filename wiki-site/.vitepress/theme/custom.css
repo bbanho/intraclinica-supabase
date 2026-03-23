@@ -1,9 +1,15 @@
 .mermaid .node rect,
 .mermaid .node circle,
-.mermaid .node polygon { fill: #1e3a5f !important; stroke: #4a9eed !important; }
-.mermaid .edgeLabel { background-color: #1a1a2e !important; color: #e0e0e0 !important; }
-.mermaid text { fill: #e0e0e0 !important; }
-.mermaid .label { color: #e0e0e0 !important; }
+.mermaid .node polygon {
+  fill: #1e3a5f;
+  stroke: #4a9eed;
+}
+.mermaid .edgeLabel {
+  background-color: #1a1a2e;
+  color: #e0e0e0;
+}
+.mermaid text { fill: #e0e0e0; }
+.mermaid .label { color: #e0e0e0; }
 
 .mermaid-zoom-modal {
   position: fixed; inset: 0;
