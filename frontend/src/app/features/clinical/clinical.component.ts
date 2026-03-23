@@ -1,5 +1,6 @@
 import { Component, inject, signal, effect, computed } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { DatePipe } from '@angular/common';
 import { LucideAngularModule, Search, User, FileText, Activity, Heart, Pill, AlertCircle, ChevronLeft, ChevronRight, Maximize2, Minimize2, Bot, Loader2, History, ChevronDown, ChevronUp } from 'lucide-angular';
 import { ClinicContextService } from '../../core/services/clinic-context.service';
 import { PatientService, Patient } from '../../core/services/patient.service';
@@ -8,7 +9,7 @@ import { ClinicalService, MedicalRecord, MedicalRecordContent } from '../../core
 @Component({
   selector: 'app-clinical',
   standalone: true,
-  imports: [FormsModule, LucideAngularModule],
+  imports: [FormsModule, LucideAngularModule, DatePipe],
   template: `
     @if (!selectedClinicId() || selectedClinicId() === 'all') {
       <div class="h-full flex items-center justify-center p-8">
@@ -89,9 +90,9 @@ import { ClinicalService, MedicalRecord, MedicalRecordContent } from '../../core
                     <div class="px-4 py-3 border-t border-slate-700/50 hover:bg-slate-700/20 transition-colors">
                       <div class="flex items-start justify-between gap-2 mb-1">
                         <span class="text-xs font-medium text-teal-400 uppercase">{{ rec.type }}</span>
-                        <span class="text-xs text-slate-500">{{ formatDate(rec.created_at) }}</span>
+                        <span class="text-xs text-slate-500">{{ rec.created_at | date:'dd/MM/y' }}</span>
                       </div>
-                      <p class="text-sm text-slate-300 line-clamp-2">{{ rec.content?.chief_complaint || '—' }}</p>
+                      <p class="text-sm text-slate-300 line-clamp-2">{{ rec.content.chief_complaint || '—' }}</p>
                       @if (rec.content?.diagnosis) {
                         <p class="text-xs text-slate-500 mt-1 truncate">
                           <span class="text-emerald-400">Dx:</span> {{ rec.content.diagnosis }}
@@ -403,10 +404,5 @@ export class ClinicalComponent {
       age--;
     }
     return age >= 0 ? age : 0;
-  }
-
-  formatDate(dateStr: string): string {
-    const d = new Date(dateStr);
-    return d.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' });
   }
 }
