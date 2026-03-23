@@ -1,6 +1,7 @@
 import { Component, inject, signal, computed, effect } from '@angular/core';
 import { Dialog, DialogModule } from '@angular/cdk/dialog';
 import { LucideAngularModule, Plus, Package, Search, AlertCircle, TrendingDown, TrendingUp, RefreshCw } from 'lucide-angular';
+import { CurrencyPipe } from '@angular/common';
 import { InventoryService, Product } from '../../core/services/inventory.service';
 import { ClinicContextService } from '../../core/services/clinic-context.service';
 import { IamService } from '../../core/services/iam.service';
@@ -9,7 +10,7 @@ import { ProductModalComponent } from './product-modal/product-modal.component';
 @Component({
   selector: 'app-inventory',
   standalone: true,
-  imports: [DialogModule, LucideAngularModule],
+  imports: [DialogModule, LucideAngularModule, CurrencyPipe],
   template: `
     <div class="p-6 max-w-7xl mx-auto">
       <!-- Header -->
