@@ -90,7 +90,11 @@ WITH CHECK (public.has_clinic_access(clinic_id));
 
 CREATE POLICY "Acesso Receitas Procedimento" ON public.procedure_recipe
 FOR ALL TO authenticated
-USING (public.has_clinic_access(clinic_id))
-WITH CHECK (public.has_clinic_access(clinic_id));
+USING (
+  public.has_clinic_access((SELECT clinic_id FROM public.procedure_type WHERE id = procedure_type_id))
+)
+WITH CHECK (
+  public.has_clinic_access((SELECT clinic_id FROM public.procedure_type WHERE id = procedure_type_id))
+);
 
 COMMIT;
