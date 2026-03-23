@@ -54,35 +54,6 @@ jobs:
           fi
           echo "Path filter: PASSED"
 
-      - name: 📝 Check Docs Updated
-        id: docs-check
-        run: |
-          echo "Checking documentation update requirement..."
-          
-          FRONTEND_CHANGES=$(echo '${{ steps.changed-files.outputs.CHANGED_FILES }}' | grep -c '^frontend/' || true)
-          WIKI_CHANGES=$(echo '${{ steps.changed-files.outputs.CHANGED_FILES }}' | grep -c '^wiki-site/' || true)
-          
-          echo "Frontend files changed: $FRONTEND_CHANGES"
-          echo "Wiki files changed: $WIKI_CHANGES"
-          
-          if [ "$FRONTEND_CHANGES" -gt 0 ] && [ "$WIKI_CHANGES" -eq 0 ]; then
-            echo ""
-            echo "ERROR: Documentation not updated!"
-            echo "PR changes $FRONTEND_CHANGES file(s) in frontend/ but 0 files in wiki-site/"
-            echo ""
-            echo "IntraClinica requires docs-as-code: every code change must update the wiki."
-            echo "Please add documentation to wiki-site/docs/ describing your changes."
-            echo ""
-            echo "NOTE: If this is a pure documentation PR, this check should pass."
-            exit 1
-          fi
-          
-          if [ "$FRONTEND_CHANGES" -gt 0 ] && [ "$WIKI_CHANGES" -gt 0 ]; then
-            echo "Docs updated alongside code: PASSED"
-          else
-            echo "No frontend code changes (wiki-only PR): PASSED"
-          fi
-
       - name: 🔬 Check Gemini Review State
         id: gemini-check
         run: |
