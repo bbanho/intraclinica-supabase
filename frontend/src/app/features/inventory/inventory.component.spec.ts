@@ -20,7 +20,7 @@ describe('InventoryComponent', () => {
   let mockInventoryService: Partial<InventoryService>;
   let mockClinicContext: Partial<ClinicContextService>;
   let mockIamService: Partial<IamService>;
-  let mockDialog: Partial<Dialog>;
+  let mockDialog: any;
   let dialogOpenSpy: ReturnType<typeof vi.fn>;
 
   beforeEach(async () => {
