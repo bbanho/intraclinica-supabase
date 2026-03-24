@@ -135,4 +135,21 @@ export class ProcedureService {
 
     if (error) throw error;
   }
+
+  async executeProcedure(params: {
+    pClinicId: string;
+    pPatientId: string;
+    pProfessionalId: string | null;
+    pProcedureTypeId: string;
+    pNotes: string;
+  }): Promise<void> {
+    const { error } = await this.supabase.rpc('perform_procedure', {
+      p_clinic_id: params.pClinicId,
+      p_patient_id: params.pPatientId,
+      p_professional_id: params.pProfessionalId,
+      p_procedure_type_id: params.pProcedureTypeId,
+      p_notes: params.pNotes
+    });
+    if (error) throw error;
+  }
 }
