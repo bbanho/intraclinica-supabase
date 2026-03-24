@@ -5,6 +5,7 @@ import { LucideAngularModule, X, User, Calendar, Clock, Stethoscope, ArrowRight,
 import { PatientService, Patient } from '../../../core/services/patient.service';
 import { AppointmentService } from '../../../core/services/appointment.service';
 import { IamService } from '../../../core/services/iam.service';
+import { ProcedureService, ProcedureType } from '../../../core/services/procedure.service';
 
 export interface AppointmentModalData {
   date?: string;
@@ -154,7 +155,27 @@ export interface AppointmentModalData {
               </select>
             </div>
           </div>
-          
+
+          <!-- Procedure type (optional) -->
+          <div class="space-y-2">
+            <label for="procedureTypeId" class="block text-sm font-bold text-slate-700">Procedimento Planejado</label>
+            <div class="relative">
+              <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400">
+                <lucide-icon [img]="Stethoscope" [size]="20"></lucide-icon>
+              </div>
+              <select
+                id="procedureTypeId"
+                formControlName="procedureTypeId"
+                class="block w-full pl-12 pr-10 py-3.5 bg-slate-50 border-0 text-slate-900 rounded-2xl ring-1 ring-inset ring-slate-200 focus:ring-2 focus:ring-inset focus:ring-teal-600 sm:text-sm font-medium appearance-none transition-all cursor-pointer"
+              >
+                <option [value]="null">Nenhum</option>
+                @for (proc of procedureTypes(); track proc.id) {
+                  <option [value]="proc.id">{{ proc.name }}</option>
+                }
+              </select>
+            </div>
+          </div>
+
         </form>
       </div>
 
@@ -203,6 +224,7 @@ export class AppointmentModalComponent implements OnInit {
   private patientService = inject(PatientService);
   private appointmentService = inject(AppointmentService);
   private iam = inject(IamService);
+  private procedureService = inject(ProcedureService);
   public data = inject<AppointmentModalData>(DIALOG_DATA, { optional: true });
 
   isSaving = signal(false);
@@ -211,6 +233,8 @@ export class AppointmentModalComponent implements OnInit {
 
   patients = signal<Patient[]>([]);
   doctors = signal<{id: string, name: string}[]>([]);
+  procedureTypes = signal<ProcedureType[]>([]);
+  procedureTypesLoading = signal(false);
 
   patientSearch = signal('');
   selectedPatient = signal<Patient | null>(null);
@@ -219,7 +243,8 @@ export class AppointmentModalComponent implements OnInit {
     patientId: ['', [Validators.required]],
     date: ['', [Validators.required]],
     time: ['', [Validators.required]],
-    doctorId: ['', [Validators.required]]
+    doctorId: ['', [Validators.required]],
+    procedureTypeId: this.fb.control<string | null>(null)
   });
 
   filteredPatients = computed(() => {
@@ -231,12 +256,14 @@ export class AppointmentModalComponent implements OnInit {
   async ngOnInit() {
     try {
       this.isLoadingData.set(true);
-      const [patientsList, doctorsList] = await Promise.all([
+      const [patientsList, doctorsList, procedureTypesResult] = await Promise.all([
         this.patientService.getPatients(),
-        this.appointmentService.getDoctors()
+        this.appointmentService.getDoctors(),
+        this.procedureService.getProcedureTypes().catch(() => [])
       ]);
       this.patients.set(patientsList);
       this.doctors.set(doctorsList);
+      this.procedureTypes.set(procedureTypesResult.filter((p: ProcedureType) => p.active));
 
       // Pre-fill data if provided
       if (this.data?.date) {
@@ -316,7 +343,8 @@ export class AppointmentModalComponent implements OnInit {
         patient_name: patient?.name || 'Unknown',
         appointment_date: localDate.toISOString(),
         doctor_id: formVals.doctorId!,
-        duration_minutes: 60
+        duration_minutes: 60,
+        procedure_type_id: formVals.procedureTypeId ?? undefined
       });
       
       this.dialogRef.close(true); // Signal success

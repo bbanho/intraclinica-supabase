@@ -14,6 +14,7 @@ export interface Appointment {
   timestamp: string;
   doctor_id: string | null;
   duration_minutes: number;
+  procedure_type_id: string | null;
 }
 
 export interface AppointmentPayload {
@@ -22,6 +23,7 @@ export interface AppointmentPayload {
   appointment_date: string;
   doctor_id?: string;
   duration_minutes?: number;
+  procedure_type_id?: string | null;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -107,7 +109,8 @@ export class AppointmentService {
         doctor_id: payload.doctor_id,
         duration_minutes: payload.duration_minutes ?? 60,
         status: 'Agendado',
-        priority: 'Normal'
+        priority: 'Normal',
+        procedure_type_id: payload.procedure_type_id ?? null
       })
       .select('*')
       .single();
