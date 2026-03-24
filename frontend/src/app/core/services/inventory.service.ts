@@ -50,6 +50,38 @@ export class InventoryService {
     })) as Product[];
   }
 
+  async getWeeklyTransactions(clinicId: string): Promise<{ date: string; count: number }[]> {
+    const since = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+    const { data, error } = await this.supabase
+      .from('stock_transaction')
+      .select('timestamp')
+      .eq('clinic_id', clinicId)
+      .gte('timestamp', since);
+
+    if (error) throw error;
+
+    const map = new Map<string, number>();
+    for (const row of data ?? []) {
+      const dateStr = (row.timestamp as string).split('T')[0];
+      map.set(dateStr, (map.get(dateStr) ?? 0) + 1);
+    }
+    return Array.from(map.entries())
+      .map(([date, count]) => ({ date, count }))
+      .sort((a, b) => a.date.localeCompare(b.date));
+  }
+
+  async getTransactionCount(clinicId: string): Promise<number> {
+    const since = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+    const { count, error } = await this.supabase
+      .from('stock_transaction')
+      .select('id', { count: 'exact', head: true })
+      .eq('clinic_id', clinicId)
+      .gte('timestamp', since);
+
+    if (error) throw error;
+    return count ?? 0;
+  }
+
   async createProduct(dto: CreateProductDto): Promise<Product> {
     const clinicId = this.requireClinicId();
     

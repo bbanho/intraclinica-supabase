@@ -1,5 +1,6 @@
 import { Injectable, inject, signal } from '@angular/core';
 import { MedicalRecordContent } from './clinical.service';
+import { environment } from '../../../environments/environment';
 
 export interface AiSuggestion {
   hypotheses: string[];
@@ -16,9 +17,7 @@ export class GeminiService {
   readonly isLoading = this._isLoading.asReadonly();
   readonly error = this._error.asReadonly();
 
-  private get apiKey(): string {
-    return (window as unknown as Record<string, string>)['INTRA_GEMINI_API_KEY'] ?? '';
-  }
+  private readonly apiKey = environment.geminiApiKey;
 
   async analyzeClinicalRecord(record: MedicalRecordContent): Promise<AiSuggestion> {
     this._isLoading.set(true);

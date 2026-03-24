@@ -1,16 +1,18 @@
 import { Component, inject, signal, effect, computed } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { DatePipe } from '@angular/common';
+import { CurrencyPipe, DatePipe } from '@angular/common';
 import { LucideAngularModule, Search, User, FileText, Activity, Heart, Pill, AlertCircle, ChevronLeft, ChevronRight, Maximize2, Minimize2, Bot, Loader2, History, ChevronDown, ChevronUp } from 'lucide-angular';
 import { ClinicContextService } from '../../core/services/clinic-context.service';
 import { PatientService, Patient } from '../../core/services/patient.service';
 import { ClinicalService, MedicalRecord, MedicalRecordContent, MedicalRecordType } from '../../core/services/clinical.service';
 import { IamService } from '../../core/services/iam.service';
+import { ProcedureService, ProcedureType } from '../../core/services/procedure.service';
+import { AuthStore } from '../../core/store/auth.store';
 
 @Component({
   selector: 'app-clinical',
   standalone: true,
-  imports: [FormsModule, LucideAngularModule, DatePipe],
+  imports: [FormsModule, LucideAngularModule, DatePipe, CurrencyPipe],
   template: `
     @if (!selectedClinicId() || selectedClinicId() === 'all') {
       <div class="h-full flex items-center justify-center p-8">
@@ -167,6 +169,33 @@ import { IamService } from '../../core/services/iam.service';
                 </select>
               </div>
 
+              <!-- Procedure selector -->
+              <div class="mb-4">
+                <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">
+                  Procedimento (opcional)
+                </label>
+                @if (procedureLoading()) {
+                  <p class="text-sm text-slate-400">Carregando procedimentos...</p>
+                } @else {
+                  <select
+                    [value]="selectedProcedureId() ?? ''"
+                    (change)="selectedProcedureId.set($any($event.target).value || null)"
+                    class="block w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-200 focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                  >
+                    <option value="">Nenhum procedimento</option>
+                    @for (proc of procedures(); track proc.id) {
+                      <option [value]="proc.id">{{ proc.name }} — {{ proc.price | currency:'BRL':'symbol':'1.2-2' }}</option>
+                    }
+                  </select>
+                }
+                @if (procedureSuccess()) {
+                  <p class="mt-1 text-sm text-emerald-400">{{ procedureSuccess() }}</p>
+                }
+                @if (procedureError()) {
+                  <p class="mt-1 text-sm text-red-400">{{ procedureError() }}</p>
+                }
+              </div>
+
               <!-- Chief Complaint -->
               <div class="space-y-2">
                 <label class="flex items-center gap-2 text-sm font-medium text-slate-300">
@@ -284,6 +313,8 @@ export class ClinicalComponent {
   private patientService = inject(PatientService);
   private clinicalService = inject(ClinicalService);
   private iam = inject(IamService);
+  private readonly procedureService = inject(ProcedureService);
+  readonly authStore = inject(AuthStore);
 
   readonly SearchIcon = Search;
   readonly UserIcon = User;
@@ -312,6 +343,11 @@ export class ClinicalComponent {
   saveError = signal<string | null>(null);
   recordsOpen = signal(true);
   recordsError = signal<string | null>(null);
+  procedures = signal<ProcedureType[]>([]);
+  selectedProcedureId = signal<string | null>(null);
+  procedureLoading = signal(false);
+  procedureError = signal<string | null>(null);
+  procedureSuccess = signal<string | null>(null);
 
   selectedClinicId = this.clinicContext.selectedClinicId;
   canWrite = computed(() => this.iam.can('clinical.write'));
@@ -345,8 +381,10 @@ export class ClinicalComponent {
       const clinicId = this.clinicContext.selectedClinicId();
       if (clinicId && clinicId !== 'all') {
         this.loadPatients();
+        this.loadProcedures();
       } else {
         this.patients.set([]);
+        this.procedures.set([]);
       }
     });
   }
@@ -407,6 +445,23 @@ export class ClinicalComponent {
         prescriptions: this.record.prescriptions
       };
       await this.clinicalService.createRecord(patient.id, content, this.record.type);
+
+      const procedureId = this.selectedProcedureId();
+      if (procedureId) {
+        const clinicId = this.clinicContext.selectedClinicId();
+        if (clinicId && clinicId !== 'all') {
+          await this.procedureService.executeProcedure({
+            pClinicId: clinicId,
+            pPatientId: patient.id,
+            pProfessionalId: this.authStore.user()?.id ?? null,
+            pProcedureTypeId: procedureId,
+            pNotes: `Prontuário: ${this.record.type}`
+          });
+          this.procedureSuccess.set('Procedimento executado e estoque debitado.');
+          this.selectedProcedureId.set(null);
+        }
+      }
+
       this.clearRecord();
       await this.loadRecords(patient.id);
     } catch (err: unknown) {
@@ -425,6 +480,20 @@ export class ClinicalComponent {
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Erro ao carregar histórico';
       this.recordsError.set(message);
+    }
+  }
+
+  private async loadProcedures() {
+    try {
+      this.procedureLoading.set(true);
+      this.procedureError.set(null);
+      const data = await this.procedureService.getProcedureTypes();
+      this.procedures.set(data.filter(p => p.active));
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Erro ao carregar procedimentos';
+      this.procedureError.set(msg);
+    } finally {
+      this.procedureLoading.set(false);
     }
   }
 

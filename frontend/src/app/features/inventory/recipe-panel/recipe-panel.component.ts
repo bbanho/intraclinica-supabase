@@ -1,4 +1,4 @@
-import { Component, inject, input, signal, output } from '@angular/core';
+import { Component, inject, input, signal, output, effect } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { LucideAngularModule, Plus, Trash2, Pill, Stethoscope } from 'lucide-angular';
 import { CurrencyPipe } from '@angular/common';
@@ -145,6 +145,12 @@ export class RecipePanelComponent {
   
   newItemId = '';
   newItemQty = 1;
+
+  constructor() {
+    effect(() => {
+      this.loadRecipes();
+    });
+  }
 
   async loadRecipes() {
     const proc = this.procedure();

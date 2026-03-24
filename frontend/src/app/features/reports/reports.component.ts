@@ -76,7 +76,7 @@ import {
               <lucide-icon [img]="Activity" [size]="12"></lucide-icon> Movimentações
             </div>
             <div class="text-3xl font-black text-slate-800">{{ totalMovements() }}</div>
-            <div class="text-xs text-slate-400 mt-2 font-bold">Total registrado (simulado)</div>
+            <div class="text-xs text-slate-400 mt-2 font-bold">Total registrado (30 dias)</div>
         </div>
       </div>
 
@@ -191,7 +191,8 @@ export class ReportsComponent implements OnInit {
   recentAppointments = signal<Appointment[]>([]);
   isLoading = signal<boolean>(true);
 
-  totalMovements = signal<number>(42);
+  totalMovements = signal<number>(0);
+  weeklyTransactions = signal<{ date: string; count: number }[]>([]);
 
   canViewFinance = computed(() => this.iamService.can('finance_read'));
 
@@ -205,11 +206,16 @@ export class ReportsComponent implements OnInit {
       const clinicId = this.clinicContext.selectedClinicId();
       if (!clinicId || clinicId === 'all') return;
 
-      const [prods, appsToday, recentApps] = await Promise.all([
+      const [prods, appsToday, recentApps, weeklyTxData, txCount] = await Promise.all([
         this.inventoryService.getProducts().catch(() => []),
         this.appointmentService.getWaitlistForToday().catch(() => []),
-        this.appointmentService.getRecentAppointments().catch(() => [])
+        this.appointmentService.getRecentAppointments().catch(() => []),
+        this.inventoryService.getWeeklyTransactions(clinicId).catch(() => []),
+        this.inventoryService.getTransactionCount(clinicId).catch(() => 0)
       ]);
+
+      this.weeklyTransactions.set(weeklyTxData);
+      this.totalMovements.set(txCount);
 
       this.products.set(prods);
       this.appointmentsToday.set(appsToday);
@@ -238,17 +244,21 @@ export class ReportsComponent implements OnInit {
   weeklyData = computed(() => {
     const days = ['DOM', 'SEG', 'TER', 'QUA', 'QUI', 'SEX', 'SAB'];
     const now = new Date();
-    const last7Days = Array.from({length: 7}, (_, i) => {
-        const d = new Date();
-        d.setDate(now.getDate() - i);
-        return d;
-    }).reverse();
+    const last7Days = Array.from({ length: 7 }, (_, i) => {
+      const d = new Date();
+      d.setDate(now.getDate() - 6 + i);
+      return d.toISOString().split('T')[0];
+    });
 
-    return last7Days.map(date => {
-        const dayLabel = days[date.getDay()];
-        const income = Math.floor(Math.random() * 50);
-        const outcome = Math.floor(Math.random() * 40);
-        return { label: dayLabel, in: income, out: outcome };
+    const txMap = new Map(this.weeklyTransactions().map(t => [t.date, t.count]));
+
+    return last7Days.map(dateStr => {
+      const d = new Date(dateStr + 'T12:00:00');
+      return {
+        label: days[d.getDay()],
+        in: txMap.get(dateStr) ?? 0,
+        out: 0
+      };
     });
   });
 
