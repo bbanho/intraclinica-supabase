@@ -44,7 +44,7 @@ import { Product } from '../../../core/services/inventory.service';
               >
                 <option value="" disabled>Selecione um item...</option>
                 @for (item of inventoryItems(); track item.id) {
-                  <option [value]="item.id">{{ item.name }} ({{ item.unit }})</option>
+                  <option [value]="item.id">{{ item.name }}</option>
                 }
               </select>
             </div>
