@@ -33,7 +33,7 @@
     "@analogjs/vite-plugin-angular": "^2.3.1",
     "@angular-devkit/build-angular": "^18.2.21",
     "@angular/cdk": "^18.2.14",
-    "@angular/cli": "^18.2.21",
+    "@angular/cli": "^21.2.3",
     "@angular/compiler-cli": "^18.2.0",
     "@oxc-project/runtime": "^0.122.0",
     "@spartan-ng/cli": "^0.0.1-alpha.655",
