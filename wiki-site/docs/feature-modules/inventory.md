@@ -100,8 +100,16 @@ $$ LANGUAGE plpgsql;
 
 ## UI Features
 
+### Tab Navigation
+
+The inventory module provides two main tabs:
+
+1. **Produtos** — Product catalog and stock management
+2. **Procedimentos** — Procedure types and recipe configuration
+
 ### Product Modal
-The `ProductModalComponent` (frontend/src/app/features/inventory/product-modal/product-modal.component.ts) handles new product intake.
+
+The `ProductModalComponent` (`frontend/src/app/features/inventory/product-modal/product-modal.component.ts`) handles new product intake.
 
 | Field | Requirement | Permission Required |
 |-------|-------------|---------------------|
@@ -111,6 +119,78 @@ The `ProductModalComponent` (frontend/src/app/features/inventory/product-modal/p
 | Cost Price | Mandatory (>=0) | `inventory.view_cost` |
 | Initial Stock | Mandatory (>=0) | `inventory.write` |
 | Min. Stock | Mandatory (>=0) | `inventory.write` |
+
+### Procedures & Recipes
+
+The Procedures tab (`frontend/src/app/features/inventory/`) allows clinics to define medical/aesthetic procedures and configure which inventory items are consumed when a procedure is performed.
+
+#### Data Model
+
+**`procedure_type`** — Types of procedures offered:
+
+```sql
+procedure_type {
+  id         uuid PRIMARY KEY DEFAULT gen_random_uuid()
+  clinic_id  uuid NOT NULL REFERENCES clinic(id)
+  name       text NOT NULL
+  code       text          -- TUSS/Internal code
+  price      numeric(10,2) DEFAULT 0 NOT NULL
+  active     boolean DEFAULT true
+  created_at timestamptz DEFAULT now()
+}
+```
+
+**`procedure_recipe`** — Ingredients/consumables for a procedure:
+
+```sql
+procedure_recipe {
+  id                 uuid PRIMARY KEY DEFAULT gen_random_uuid()
+  procedure_type_id  uuid NOT NULL REFERENCES procedure_type(id)
+  item_id            uuid NOT NULL REFERENCES product(id)
+  quantity           numeric(10,2) DEFAULT 1 NOT NULL
+  created_at         timestamptz DEFAULT now()
+  UNIQUE(procedure_type_id, item_id)
+}
+```
+
+#### Service Layer
+
+The `ProcedureService` (`frontend/src/app/core/services/procedure.service.ts`) provides:
+
+| Method | Description |
+|--------|-------------|
+| `getProcedureTypes()` | List all procedure types for the clinic |
+| `createProcedureType(dto)` | Create a new procedure type |
+| `updateProcedureType(id, dto)` | Update an existing procedure type |
+| `getRecipeForProcedure(procedureId)` | Get all recipe items for a procedure |
+| `addRecipeItem(dto)` | Add an item to a procedure's recipe |
+| `removeRecipeItem(recipeId)` | Remove an item from a recipe |
+
+#### Components
+
+| Component | File | Purpose |
+|-----------|------|---------|
+| `ProcedureModalComponent` | `procedure-modal/procedure-modal.component.ts` | Create/edit procedure form |
+| `RecipePanelComponent` | `recipe-panel/recipe-panel.component.ts` | Shows selected procedure's recipe items |
+
+#### Procedure Modal Fields
+
+| Field | Requirement | Permission Required |
+|-------|-------------|---------------------|
+| Name | Mandatory | `inventory.write` |
+| Code (TUSS/Internal) | Optional | `inventory.write` |
+| Price (R$) | Mandatory (>=0) | `inventory.write` |
+| Active | Checkbox (default true) | `inventory.write` |
+
+#### Recipe Panel
+
+The recipe panel displays when a procedure is selected. It allows:
+- Viewing all items configured for the selected procedure
+- Adding new items with quantity
+- Removing items from the recipe
+
+> [!NOTE]
+> Recipe items reference the `product` table, not `inventory_item`. All procedure recipes consume products from the main inventory.
 
 ### Filtering & Alerts
 Implemented in recent updates (PR #71), the inventory dashboard now supports:
