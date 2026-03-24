@@ -4,14 +4,14 @@ import { AuthStore } from './auth.store';
 import { AuthService } from '../services/auth.service';
 import { ClinicContextService } from '../services/clinic-context.service';
 import { SupabaseService } from '../services/supabase.service';
-import { User } from '@supabase/supabase-js';
+import { User, SupabaseClient } from '@supabase/supabase-js';
 
 // ---------------------------------------------------------------------------
 // Mock Supabase Client factory
 // ---------------------------------------------------------------------------
 function createMockSupabaseClient() {
   const mockFrom = vi.fn();
-  const mockClient = { from: mockFrom };
+  const mockClient = { from: mockFrom } as unknown as SupabaseClient;
   return { mockClient, mockFrom };
 }
 

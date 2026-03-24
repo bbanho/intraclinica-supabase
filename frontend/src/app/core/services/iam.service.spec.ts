@@ -1,17 +1,18 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { TestBed } from '@angular/core/testing';
 import { IamService } from './iam.service';
-import { SupabaseService } from './supabase.service';
-import { AuthService } from './auth.service';
-import { ClinicContextService } from './clinic-context.service';
+import { SupabaseService } from '../services/supabase.service';
+import { AuthService } from '../services/auth.service';
+import { ClinicContextService } from '../services/clinic-context.service';
 import { IamRole, IamPermission } from '../models/iam.types';
+import { SupabaseClient } from '@supabase/supabase-js';
 
 // ---------------------------------------------------------------------------
 // Mock Supabase Client factory
 // ---------------------------------------------------------------------------
 function createMockSupabaseClient() {
   const mockFrom = vi.fn();
-  const mockClient = { from: mockFrom };
+  const mockClient = { from: mockFrom } as unknown as SupabaseClient;
   return { mockClient, mockFrom };
 }
 
