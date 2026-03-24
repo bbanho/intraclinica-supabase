@@ -148,12 +148,7 @@ export class RecipePanelComponent {
 
   constructor() {
     effect(() => {
-      const proc = this.procedure();
-      if (proc) {
-        this.loadRecipes();
-      } else {
-        this.recipes.set([]);
-      }
+      this.loadRecipes();
     });
   }
 

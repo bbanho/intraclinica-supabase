@@ -19,7 +19,7 @@ export interface ProcedureModalData {
       <!-- Header -->
       <div class="px-6 py-4 border-b border-gray-100 flex items-center justify-between bg-indigo-50/50">
         <h2 class="text-lg font-semibold text-gray-900">
-          {{ editingProcedure() ? 'Editar Procedimento' : 'Novo Procedimento' }}
+          {{ editingProcedure ? 'Editar Procedimento' : 'Novo Procedimento' }}
         </h2>
         <button 
           (click)="close()" 

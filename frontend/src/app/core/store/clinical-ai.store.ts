@@ -81,7 +81,9 @@ export class ClinicalAiStore {
           raw
         };
       }
-    } catch {}
+    } catch (e) {
+      console.warn('[ClinicalAiStore] Failed to parse JSON response from local AI:', e);
+    }
     return { hypotheses: [], exams: [], conduct: raw, raw };
   }
 
