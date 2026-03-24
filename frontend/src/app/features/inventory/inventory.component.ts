@@ -423,18 +423,6 @@ export class InventoryComponent {
         this.selectedProcedure.set(null);
       }
     });
-
-    effect(() => {
-      const tab = this.activeTab();
-      const clinicId = this.clinicContext.selectedClinicId();
-      if (clinicId && clinicId !== 'all') {
-        if (tab === 'products') {
-          this.loadProducts();
-        } else {
-          this.loadProcedures();
-        }
-      }
-    });
   }
 
   async loadProducts() {
@@ -492,7 +480,7 @@ export class InventoryComponent {
       minWidth: '500px',
       panelClass: 'bg-transparent',
       backdropClass: 'bg-black/50',
-      data: { editingProcedure: proc }
+      data: { procedure: proc, clinicId: this.clinicContext.selectedClinicId() }
     });
 
     dialogRef.closed.subscribe((result: any) => {

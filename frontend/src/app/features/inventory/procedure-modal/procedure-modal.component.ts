@@ -1,9 +1,14 @@
-import { Component, inject, signal, input } from '@angular/core';
+import { Component, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { DialogRef } from '@angular/cdk/dialog';
+import { DialogRef, DIALOG_DATA } from '@angular/cdk/dialog';
 import { LucideAngularModule, X } from 'lucide-angular';
 import { ProcedureService, ProcedureType, CreateProcedureDto } from '../../../core/services/procedure.service';
 import { IamService } from '../../../core/services/iam.service';
+
+export interface ProcedureModalData {
+  procedure: ProcedureType | null;
+  clinicId: string;
+}
 
 @Component({
   selector: 'app-procedure-modal',
@@ -140,10 +145,11 @@ export class ProcedureModalComponent {
   private dialogRef = inject(DialogRef<ProcedureModalComponent>);
   private procedureService = inject(ProcedureService);
   private iam = inject(IamService);
-
-  editingProcedure = input<ProcedureType | null>(null);
+  private data = inject<ProcedureModalData>(DIALOG_DATA);
 
   readonly XIcon = X;
+
+  get editingProcedure() { return this.data.procedure; }
 
   submitting = signal(false);
   error = signal<string | null>(null);
@@ -156,7 +162,7 @@ export class ProcedureModalComponent {
   });
 
   constructor() {
-    const proc = this.editingProcedure();
+    const proc = this.data.procedure;
     if (proc) {
       this.form.patchValue({
         name: proc.name,
@@ -200,7 +206,7 @@ export class ProcedureModalComponent {
       };
 
       let result: ProcedureType;
-      const editing = this.editingProcedure();
+      const editing = this.data.procedure;
       
       if (editing) {
         result = await this.procedureService.updateProcedureType(editing.id, dto);

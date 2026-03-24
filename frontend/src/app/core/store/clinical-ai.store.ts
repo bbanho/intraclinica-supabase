@@ -70,31 +70,19 @@ export class ClinicalAiStore {
   }
 
   private parseLocalResult(raw: string): AiSuggestion {
-    const lines = raw.split('\n').filter(l => l.trim());
-    const hypotheses: string[] = [];
-    const exams: string[] = [];
-    let conduct = '';
-
-    for (const line of lines) {
-      const trimmed = line.trim();
-      if (trimmed.startsWith('-') || /^\d+\)/.test(trimmed)) {
-        const text = trimmed.replace(/^-\s*/, '').replace(/^\d+\)\s*/, '');
-        if (text.toLowerCase().includes('exame') || text.toLowerCase().includes('exames')) {
-          exams.push(text);
-        } else {
-          hypotheses.push(text);
-        }
-      } else if (hypotheses.length > 0 || exams.length > 0) {
-        conduct += trimmed + ' ';
+    try {
+      const match = raw.match(/\{[\s\S]*\}/);
+      if (match) {
+        const parsed = JSON.parse(match[0]);
+        return {
+          hypotheses: Array.isArray(parsed.hypotheses) ? parsed.hypotheses : [],
+          exams: Array.isArray(parsed.exams) ? parsed.exams : [],
+          conduct: parsed.conduct ?? '',
+          raw
+        };
       }
-    }
-
-    return {
-      hypotheses,
-      exams,
-      conduct: conduct.trim(),
-      raw
-    };
+    } catch {}
+    return { hypotheses: [], exams: [], conduct: raw, raw };
   }
 
   clearSuggestion(): void {

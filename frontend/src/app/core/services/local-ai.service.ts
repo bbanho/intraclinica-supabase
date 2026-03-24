@@ -100,7 +100,9 @@ Com base no contexto acima, forneça:
 1. Hipóteses diagnósticas (CID-10 se possível)
 2. Exames complementares sugeridos
 3. Conduta clínica recomendada
-</task>`;
+</task>
+Responda SOMENTE com JSON válido neste formato exato (sem markdown, sem explicação):
+{"hypotheses": ["string"], "exams": ["string"], "conduct": "string"}`;
   }
 
   dispose(): void {
