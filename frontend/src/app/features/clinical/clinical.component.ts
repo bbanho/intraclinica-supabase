@@ -100,7 +100,7 @@ import { IamService } from '../../core/services/iam.service';
                         <span class="text-xs text-slate-500">{{ rec.created_at | date:'dd/MM/y' }}</span>
                       </div>
                       <p class="text-sm text-slate-300 line-clamp-2">{{ rec.content.chief_complaint || '—' }}</p>
-                      @if (rec.content?.diagnosis) {
+                      @if (rec.content.diagnosis) {
                         <p class="text-xs text-slate-500 mt-1 truncate">
                           <span class="text-emerald-400">Dx:</span> {{ rec.content.diagnosis }}
                         </p>

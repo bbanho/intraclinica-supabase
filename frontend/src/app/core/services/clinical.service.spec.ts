@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { TestBed } from '@angular/core/testing';
+import { signal } from '@angular/core';
 import {
   ClinicalService,
   MedicalRecord,
@@ -64,22 +65,26 @@ describe('ClinicalService', () => {
   let mockSupabaseService: Partial<SupabaseService>;
   let mockClinicContext: Partial<ClinicContextService>;
   let mockAuthService: Partial<AuthService>;
+  let mockClinicIdSignal: ReturnType<typeof signal<string | null>>;
+  let mockUserSignal: ReturnType<typeof signal<typeof MOCK_USER | null>>;
 
   beforeEach(async () => {
     vi.clearAllMocks();
 
     mockClient = createMockSupabaseClient();
+    mockClinicIdSignal = signal(MOCK_CLINIC_ID);
+    mockUserSignal = signal(MOCK_USER);
 
     mockSupabaseService = {
-      clientInstance: mockClient.mockClient,
+      clientInstance: mockClient.mockClient as any,
     };
 
     mockClinicContext = {
-      selectedClinicId: vi.fn().mockReturnValue(MOCK_CLINIC_ID),
+      selectedClinicId: mockClinicIdSignal as any,
     };
 
     mockAuthService = {
-      currentUser: vi.fn().mockReturnValue(MOCK_USER),
+      currentUser: mockUserSignal as any,
     };
 
     await TestBed.configureTestingModule({
@@ -169,7 +174,7 @@ describe('ClinicalService', () => {
     });
 
     it('should throw when clinic context is "all" (no clinic selected)', async () => {
-      mockClinicContext.selectedClinicId = vi.fn().mockReturnValue('all');
+      mockClinicIdSignal.set('all');
 
       await TestBed.configureTestingModule({
         providers: [
@@ -186,7 +191,7 @@ describe('ClinicalService', () => {
     });
 
     it('should throw when clinic context is null', async () => {
-      mockClinicContext.selectedClinicId = vi.fn().mockReturnValue(null);
+      mockClinicIdSignal.set(null);
 
       await TestBed.configureTestingModule({
         providers: [
@@ -246,7 +251,7 @@ describe('ClinicalService', () => {
     });
 
     it('should throw when no authenticated user', async () => {
-      mockAuthService.currentUser = vi.fn().mockReturnValue(null);
+      mockUserSignal.set(null);
 
       await TestBed.configureTestingModule({
         providers: [
