@@ -1,5 +1,5 @@
 import { defineConfig } from 'vitest/config';
-import angular from 'vite-plugin-angular';
+import angular from '@analogjs/vite-plugin-angular';
 
 export default defineConfig({
   plugins: [angular()],
@@ -10,4 +10,6 @@ export default defineConfig({
     reportsDirectory: './coverage',
   },
   include: ['src/**/*.spec.ts'],
+  exclude: ['e2e/**'],
+  globals: true,
 });
